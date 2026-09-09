@@ -1,0 +1,32 @@
+{
+  "name": "喵的粮仓",
+  "short_name": "喵粮仓",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fbf5e7",
+  "theme_color": "#ea580c",
+  "description": "纯本地私密的个人资产与收支流水管理 PWA，数据使用 IndexedDB 本地持久化，支持离线访问与趋势追踪。",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "icons/app-logo.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

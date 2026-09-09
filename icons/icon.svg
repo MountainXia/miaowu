@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- 背景温暖渐变 -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#3d1d08"/>
+      <stop offset="60%" stop-color="#231105"/>
+      <stop offset="100%" stop-color="#140902"/>
+    </radialGradient>
+
+    <!-- 萌萌大橘猫毛色柔和渐变 -->
+    <linearGradient id="catCoat" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffa654"/>
+      <stop offset="45%" stop-color="#ff8826"/>
+      <stop offset="100%" stop-color="#e65d00"/>
+    </linearGradient>
+
+    <!-- 软糯奶油色面颊与肚皮 -->
+    <linearGradient id="creamFur" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fff1db"/>
+    </linearGradient>
+
+    <!-- 招财小金币渐变 -->
+    <linearGradient id="goldGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff59d"/>
+      <stop offset="50%" stop-color="#fbc02d"/>
+      <stop offset="100%" stop-color="#f57f17"/>
+    </linearGradient>
+
+    <!-- 柔和立体光晕 -->
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#f97316" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+
+  <!-- 圆角背景底座 -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="rgba(251,146,60,0.22)" stroke-width="8"/>
+
+  <!-- 背景小浮雕猫爪装饰印记 -->
+  <g opacity="0.08" fill="#fb923c">
+    <ellipse cx="90" cy="90" rx="16" ry="12"/>
+    <circle cx="75" cy="70" r="5"/><circle cx="88" cy="64" r="5"/><circle cx="102" cy="68" r="5"/><circle cx="110" cy="80" r="5"/>
+    <ellipse cx="430" cy="110" rx="16" ry="12"/>
+    <circle cx="415" cy="90" r="5"/><circle cx="428" cy="84" r="5"/><circle cx="442" cy="88" r="5"/><circle cx="450" cy="100" r="5"/>
+  </g>
+
+  <!-- 超可爱日系卡通橘猫主体 -->
+  <g filter="url(#softGlow)">
+    <!-- 两个圆嘟嘟小耳朵外耳 -->
+    <path d="M120,200 C110,130 135,78 185,115 C215,138 215,170 210,200 Z" fill="#ff8826"/>
+    <path d="M392,200 C402,130 377,78 327,115 C297,138 297,170 302,200 Z" fill="#ff8826"/>
+
+    <!-- 耳朵内部柔嫩粉肉 -->
+    <path d="M136,188 C128,142 148,105 178,130 C198,146 198,168 194,188 Z" fill="#fda4af"/>
+    <path d="M376,188 C384,142 364,105 334,130 C314,146 314,168 318,188 Z" fill="#fda4af"/>
+
+    <!-- 大而圆润软糯的橘猫大脸蛋 -->
+    <ellipse cx="256" cy="265" rx="162" ry="145" fill="url(#catCoat)"/>
+
+    <!-- 橘猫额头超萌虎斑“M”纹 -->
+    <path d="M256,132 L256,172" stroke="#b43403" stroke-width="12" stroke-linecap="round"/>
+    <path d="M226,140 Q234,160 238,178" fill="none" stroke="#b43403" stroke-width="10" stroke-linecap="round"/>
+    <path d="M286,140 Q278,160 274,178" fill="none" stroke="#b43403" stroke-width="10" stroke-linecap="round"/>
+
+    <!-- 面颊两边可爱小短斑 -->
+    <path d="M116,242 Q136,248 146,250" fill="none" stroke="#b43403" stroke-width="8" stroke-linecap="round"/>
+    <path d="M110,268 Q132,272 144,272" fill="none" stroke="#b43403" stroke-width="8" stroke-linecap="round"/>
+    <path d="M396,242 Q376,248 366,250" fill="none" stroke="#b43403" stroke-width="8" stroke-linecap="round"/>
+    <path d="M402,268 Q380,272 368,272" fill="none" stroke="#b43403" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- 肥嘟嘟的大奶白脸颊与口鼻部 -->
+    <ellipse cx="212" cy="296" rx="52" ry="40" fill="url(#creamFur)"/>
+    <ellipse cx="300" cy="296" rx="52" ry="40" fill="url(#creamFur)"/>
+    <ellipse cx="256" cy="318" rx="42" ry="30" fill="url(#creamFur)"/>
+
+    <!-- 水灵灵治愈系超大动漫眼睛 -->
+    <g>
+      <!-- 左眼 -->
+      <ellipse cx="188" cy="235" rx="24" ry="30" fill="#1c1917"/>
+      <!-- 高光大星芒圆点 -->
+      <ellipse cx="196" cy="224" rx="10" ry="13" fill="#ffffff"/>
+      <circle cx="180" cy="246" r="5" fill="#ffffff"/>
+      <circle cx="198" cy="248" r="3" fill="#fdba74"/>
+
+      <!-- 右眼 -->
+      <ellipse cx="324" cy="235" rx="24" ry="30" fill="#1c1917"/>
+      <!-- 高光大星芒圆点 -->
+      <ellipse cx="332" cy="224" rx="10" ry="13" fill="#ffffff"/>
+      <circle cx="316" cy="246" r="5" fill="#ffffff"/>
+      <circle cx="334" cy="248" r="3" fill="#fdba74"/>
+    </g>
+
+    <!-- 少女心爆棚的粉嫩椭圆腮红 -->
+    <ellipse cx="145" cy="278" rx="20" ry="12" fill="#fb7185" fill-opacity="0.65"/>
+    <ellipse cx="367" cy="278" rx="20" ry="12" fill="#fb7185" fill-opacity="0.65"/>
+
+    <!-- 小巧软糖粉鼻头 -->
+    <path d="M256,276 C250,276 245,268 256,263 C267,268 262,276 256,276 Z" fill="#f43f5e"/>
+
+    <!-- 治愈系小猫微笑嘴 (:3 / ω) -->
+    <path d="M256,276 L256,286" stroke="#441a03" stroke-width="4" stroke-linecap="round"/>
+    <path d="M256,286 Q236,306 218,294" fill="none" stroke="#441a03" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M256,286 Q276,306 294,294" fill="none" stroke="#441a03" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- 俏皮猫咪胡须 (每边两根圆润细线) -->
+    <line x1="160" y1="284" x2="80" y2="276" stroke="#fed7aa" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="158" y1="300" x2="75" y2="302" stroke="#fed7aa" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="352" y1="284" x2="432" y2="276" stroke="#fed7aa" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="354" y1="300" x2="437" y2="302" stroke="#fed7aa" stroke-width="3.5" stroke-linecap="round"/>
+
+    <!-- 猫猫脖子上的红绳与招财金币 -->
+    <path d="M194,372 Q256,400 318,372" fill="none" stroke="#ef4444" stroke-width="10" stroke-linecap="round"/>
+    
+    <!-- 闪亮大金币 -->
+    <g transform="translate(256, 408)">
+      <circle cx="0" cy="0" r="45" fill="url(#goldGlow)" stroke="#92400e" stroke-width="3.5"/>
+      <circle cx="0" cy="0" r="37" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2.5"/>
+      <!-- 金币上的可爱小鱼干印记与 ¥ -->
+      <text x="0" y="15" font-size="40" font-family="system-ui, sans-serif" font-weight="900" text-anchor="middle" fill="#78350f">¥</text>
+    </g>
+
+    <!-- 肉乎乎软绵绵的白橘双色猫爪抱金币 -->
+    <!-- 左爪爪 -->
+    <ellipse cx="196" cy="412" rx="28" ry="22" fill="#fff" stroke="#ff8826" stroke-width="3"/>
+    <ellipse cx="185" cy="410" rx="5" ry="6" fill="#fda4af"/>
+    <ellipse cx="196" cy="406" rx="5" ry="6" fill="#fda4af"/>
+    <ellipse cx="207" cy="410" rx="5" ry="6" fill="#fda4af"/>
+
+    <!-- 右爪爪 -->
+    <ellipse cx="316" cy="412" rx="28" ry="22" fill="#fff" stroke="#ff8826" stroke-width="3"/>
+    <ellipse cx="305" cy="410" rx="5" ry="6" fill="#fda4af"/>
+    <ellipse cx="316" cy="406" rx="5" ry="6" fill="#fda4af"/>
+    <ellipse cx="327" cy="410" rx="5" ry="6" fill="#fda4af"/>
+  </g>
+</svg>

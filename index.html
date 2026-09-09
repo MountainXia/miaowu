@@ -1,0 +1,2973 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>喵的粮仓 - 个人资产管家</title>
+  
+  <!-- PWA Meta -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#fef9ee">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="喵的粮仓">
+  <link rel="apple-touch-icon" href="icons/app-logo.jpg">
+  <link rel="icon" type="image/jpeg" href="icons/app-logo.jpg">
+  <link rel="icon" type="image/png" href="icons/app-logo.png">
+
+  <!-- Vue 3 本地优先 + CDN 自动降级 -->
+  <script src="./vendor/vue.global.prod.js"></script>
+  <script>
+    if (typeof Vue === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3.5.13/dist/vue.global.prod.js"><\/script>');
+    }
+  </script>
+
+  <!-- IndexedDB 原生 Promise 封装层 -->
+  <script src="./db.js"></script>
+
+  <style>
+    /* ================================================= */
+    /* ================================================= */
+    /* 三大个性化主题系统 (含特色图案/插画背景)            */
+    /* 1. 大橘为重 (温暖浅黄 + 熟睡大橘猫专属壁纸背景)    */
+    /* 2. 小小神金 (纯白浅色 + 奶牛猫玩毛线球专属壁纸背景) */
+    /* 3. 我很成熟 (当前经典商务深蓝网格)                */
+    /* ================================================= */
+
+    /* 主题 1: 大橘为重 (温暖浅黄底色 + 熟睡大橘猫专属插画背景) */
+    :root, body[data-theme="orange"] {
+      --bg-main: #fbf5e7;
+      --bg-pattern: url("assets/bg-orange.png");
+      --bg-size: cover;
+      --bg-position: center bottom;
+      --bg-attachment: fixed;
+      --bg-repeat: no-repeat;
+      --bg-card: rgba(255, 255, 255, 0.91);
+      --bg-card-hover: rgba(255, 253, 247, 0.96);
+      --bg-card-shadow: 0 8px 24px rgba(217, 119, 6, 0.10);
+      --bg-subtle: rgba(254, 243, 199, 0.7);
+      --border-subtle: rgba(254, 215, 170, 0.75);
+      --text-main: #2b1704;
+      --text-muted: #855b38;
+      --text-secondary: #54361e;
+      --primary: #ea580c;
+      --primary-hover: #c2410c;
+      --success: #059669;
+      --danger: #e11d48;
+      --warning: #d97706;
+      --purple: #b45309;
+      --header-bg: rgba(254, 249, 238, 0.88);
+      --nav-bg: rgba(254, 249, 238, 0.92);
+      --hero-bg-1: rgba(255, 247, 237, 0.95);
+      --hero-bg-2: rgba(255, 237, 213, 0.92);
+      --hero-border: #fed7aa;
+      --hero-glow: rgba(249, 115, 22, 0.2);
+      --chart-box-bg: rgba(254, 243, 199, 0.55);
+      --trend-stroke: #ea580c;
+      --brand-tag-bg: rgba(249, 115, 22, 0.14);
+      --brand-tag-color: #c2410c;
+      --acc-bal-color: #2b1704;
+      --acc-bal-credit: #dc2626;
+      --input-bg: #ffffff;
+      --modal-bg: rgba(255, 255, 255, 0.96);
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    /* 主题 2: 小小神金 (纯白浅色 + 调皮奶牛猫玩毛线球插画背景) */
+    body[data-theme="cow"] {
+      --bg-main: #fcfcfc;
+      --bg-pattern: url("assets/bg-cow.png");
+      --bg-size: cover;
+      --bg-position: center bottom;
+      --bg-attachment: fixed;
+      --bg-repeat: no-repeat;
+      --bg-card: rgba(255, 255, 255, 0.91);
+      --bg-card-hover: rgba(248, 250, 252, 0.96);
+      --bg-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      --bg-subtle: rgba(241, 245, 249, 0.7);
+      --border-subtle: rgba(226, 232, 240, 0.85);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-secondary: #334155;
+      --primary: #e11d48;
+      --primary-hover: #be123c;
+      --success: #059669;
+      --danger: #e11d48;
+      --warning: #d97706;
+      --purple: #7c3aed;
+      --header-bg: rgba(255, 255, 255, 0.88);
+      --nav-bg: rgba(255, 255, 255, 0.92);
+      --hero-bg-1: rgba(248, 250, 252, 0.95);
+      --hero-bg-2: rgba(237, 242, 247, 0.92);
+      --hero-border: #cbd5e1;
+      --hero-glow: rgba(225, 29, 72, 0.15);
+      --chart-box-bg: rgba(241, 245, 249, 0.7);
+      --trend-stroke: #e11d48;
+      --brand-tag-bg: rgba(225, 29, 72, 0.12);
+      --brand-tag-color: #be123c;
+      --acc-bal-color: #0f172a;
+      --acc-bal-credit: #e11d48;
+      --input-bg: #ffffff;
+      --modal-bg: rgba(255, 255, 255, 0.96);
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    /* 主题 3: 我很成熟 (经典商务风 + 沉稳科技点阵网格) */
+    body[data-theme="business"] {
+      --bg-main: #0b0f19;
+      --bg-pattern: radial-gradient(rgba(59, 130, 246, 0.08) 1px, transparent 1px);
+      --bg-size: 24px 24px;
+      --bg-position: 0 0;
+      --bg-attachment: scroll;
+      --bg-repeat: repeat;
+      --bg-card: rgba(19, 27, 46, 0.94);
+      --bg-card-hover: rgba(26, 36, 61, 0.96);
+      --bg-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --bg-subtle: #1e293b;
+      --border-subtle: #24314d;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-secondary: #cbd5e1;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --purple: #8b5cf6;
+      --header-bg: rgba(11, 15, 25, 0.94);
+      --nav-bg: rgba(11, 15, 25, 0.95);
+      --hero-bg-1: #18223c;
+      --hero-bg-2: #0f172a;
+      --hero-border: #24314d;
+      --hero-glow: rgba(59, 130, 246, 0.22);
+      --chart-box-bg: rgba(0, 0, 0, 0.35);
+      --trend-stroke: #38bdf8;
+      --brand-tag-bg: rgba(59, 130, 246, 0.18);
+      --brand-tag-color: #60a5fa;
+      --acc-bal-color: #f8fafc;
+      --acc-bal-credit: #fb7185;
+      --input-bg: #0b0f19;
+      --modal-bg: rgba(19, 27, 46, 0.98);
+      --safe-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    input, textarea, select {
+      user-select: auto;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      background-image: var(--bg-pattern);
+      background-size: var(--bg-size);
+      background-position: var(--bg-position, center bottom);
+      background-attachment: var(--bg-attachment, fixed);
+      background-repeat: var(--bg-repeat, no-repeat);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: calc(76px + var(--safe-bottom));
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 3px;
+    }
+
+    /* 头部 Header */
+    header.app-header {
+      background: var(--header-bg);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* 超萌卡通橘猫形象头像 */
+    .brand-cat-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      object-fit: cover;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      border: 1.5px solid var(--border-subtle);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+    }
+
+    .brand-cat-avatar:hover {
+      transform: scale(1.12) rotate(-6deg);
+    }
+
+    .brand-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-tag {
+      font-size: 10px;
+      background: var(--brand-tag-bg);
+      color: var(--brand-tag-color);
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .brand-tag:hover {
+      opacity: 0.85;
+      transform: scale(1.04);
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg-card-hover);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .icon-btn.theme-btn {
+      font-size: 16px;
+    }
+
+    /* 主容器 */
+    main.container {
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* 卡片通用 */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: var(--bg-card-shadow);
+      position: relative;
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    /* 总览核心 Hero 卡片 */
+    .hero-card {
+      background: linear-gradient(145deg, var(--hero-bg-1) 0%, var(--hero-bg-2) 100%);
+      border: 1px solid var(--hero-border, var(--border-subtle));
+      box-shadow: var(--bg-card-shadow);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 160px;
+      height: 160px;
+      background: radial-gradient(circle, var(--hero-glow) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .hero-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+    }
+
+    .hero-amount {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-main);
+      margin: 4px 0 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .hero-amount .currency {
+      font-size: 22px;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* 差值指示徽标 */
+    .diff-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .diff-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .diff-badge.up {
+      color: #059669;
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .diff-badge.down {
+      color: #e11d48;
+      background: rgba(244, 63, 94, 0.12);
+      border-color: rgba(244, 63, 94, 0.25);
+    }
+
+    .diff-badge.flat {
+      color: var(--text-muted);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .hero-sub-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hero-sub-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .hero-sub-val {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .val-asset { color: #2563eb; }
+    .val-liability { color: #e11d48; }
+
+    /* 环形图模块 */
+    .chart-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-layout {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .donut-container {
+      position: relative;
+      width: 170px;
+      height: 170px;
+      flex-shrink: 0;
+    }
+
+    .donut-container svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .donut-center-info {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      text-align: center;
+      padding: 10px;
+    }
+
+    .donut-center-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .donut-center-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 2px;
+    }
+
+    .chart-legend {
+      flex: 1;
+      min-width: 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      font-size: 13px;
+      transition: background 0.15s ease;
+    }
+
+    .legend-item:hover {
+      background: var(--bg-card-hover);
+    }
+
+    .legend-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .legend-amt {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .legend-pct {
+      font-size: 11px;
+      color: var(--text-muted);
+      width: 44px;
+      text-align: right;
+    }
+
+    /* 近期流水卡片 */
+    .quick-flow-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tx-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .tx-item:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .tx-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .tx-icon-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .tx-details {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tx-category {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tx-tag {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    .tx-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .tx-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+
+    .tx-amount {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+    }
+
+    .amt-expense { color: #f43f5e; }
+    .amt-income { color: #10b981; }
+    .amt-transfer { color: #38bdf8; }
+
+    /* ================================================= */
+    /* 资产增长趋势折线图模块 (放置于最下方)              */
+    /* ================================================= */
+    .trend-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .trend-meta-badge {
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .trend-chart-box {
+      width: 100%;
+      position: relative;
+      background: var(--chart-box-bg);
+      border-radius: 14px;
+      padding: 12px 8px 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .trend-svg {
+      width: 100%;
+      height: 180px;
+      display: block;
+      overflow: visible;
+    }
+
+    .trend-x-axis {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 8px 6px 0;
+    }
+
+    .trend-point-tooltip {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 12px;
+      pointer-events: none;
+      box-shadow: var(--bg-card-shadow);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    /* 账户管理 Tab 样式 */
+    .acc-header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease, transform 0.1s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      scrollbar-width: none;
+    }
+
+    .filter-pills::-webkit-scrollbar {
+      display: none;
+    }
+
+    .pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .pill.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .accounts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 14px;
+    }
+
+    .account-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .account-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .acc-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .acc-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .acc-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .acc-name-box {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .acc-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .acc-type-text {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .acc-balance-section {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .acc-bal-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .acc-bal-value {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--acc-bal-color, var(--text-main));
+    }
+
+    .acc-bal-value.is-credit {
+      color: var(--acc-bal-credit, var(--danger));
+    }
+
+    .acc-bal-currency {
+      font-size: 14px;
+      font-weight: 700;
+      opacity: 0.85;
+      margin-right: 2px;
+    }
+
+    .acc-card-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 4px;
+    }
+
+    .acc-time {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .acc-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-sm {
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-subtle);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-sm:hover {
+      background: var(--bg-card-hover);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn-sm.adjust {
+      background: rgba(249, 115, 22, 0.15);
+      color: var(--primary);
+      border-color: rgba(249, 115, 22, 0.35);
+      font-weight: 600;
+    }
+
+    body[data-theme="cow"] .btn-sm.adjust {
+      background: rgba(251, 113, 133, 0.15);
+      border-color: rgba(251, 113, 133, 0.35);
+    }
+
+    body[data-theme="business"] .btn-sm.adjust {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .btn-sm.adjust:hover {
+      filter: brightness(1.2);
+    }
+
+    .btn-sm.danger {
+      color: var(--danger);
+      border-color: rgba(244, 63, 94, 0.2);
+    }
+
+    .btn-sm.danger:hover {
+      background: rgba(244, 63, 94, 0.15);
+    }
+
+    /* 底部导航栏 */
+    nav.bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(64px + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 50;
+      max-width: 720px;
+      margin: 0 auto;
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+
+    .nav-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px 16px;
+      border-radius: 12px;
+      transition: color 0.15s ease, transform 0.1s ease;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .nav-tab svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+    }
+
+    .nav-tab.active {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* 悬浮记账 FAB */
+    .fab-btn {
+      position: fixed;
+      right: 20px;
+      bottom: calc(80px + var(--safe-bottom));
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #fff;
+      border: none;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 45;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .fab-btn:hover {
+      transform: scale(1.08);
+    }
+
+    .fab-btn:active {
+      transform: scale(0.95);
+    }
+
+    .fab-btn svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    /* 弹窗 Modal 通用 */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @media (min-width: 640px) {
+      .modal-backdrop {
+        align-items: center;
+        padding: 20px;
+      }
+    }
+
+    .modal-box {
+      background: var(--modal-bg);
+      border: 1px solid var(--border-subtle);
+      width: 100%;
+      max-width: 540px;
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px calc(24px + var(--safe-bottom));
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @media (min-width: 640px) {
+      .modal-box {
+        border-radius: 20px;
+        padding: 24px;
+        animation: popIn 0.2s ease-out;
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-close {
+      background: var(--bg-subtle);
+      border: none;
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .btn-close:hover {
+      color: var(--primary);
+      background: var(--bg-card-hover);
+    }
+
+    /* 表单控件 */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--input-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      color: var(--text-main);
+      padding: 12px 14px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--primary);
+    }
+
+    .input-amount-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-amount-symbol {
+      position: absolute;
+      left: 14px;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .form-input.amount-input {
+      padding-left: 36px;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    /* 记账分类网格 */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .cat-btn {
+      background: var(--input-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .cat-btn.active {
+      background: rgba(249, 115, 22, 0.18);
+      border-color: var(--primary);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .cat-emoji {
+      font-size: 20px;
+    }
+
+    .cat-title {
+      font-size: 11px;
+    }
+
+    /* 20+ 款图标选择网格 */
+    .account-icon-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 6px 2px;
+      background: var(--input-bg);
+      border-radius: 14px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    @media (max-width: 480px) {
+      .account-icon-grid {
+        grid-template-columns: repeat(5, 1fr);
+      }
+    }
+
+    .acc-icon-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .acc-icon-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+    }
+
+    .acc-icon-btn.active {
+      background: rgba(249, 115, 22, 0.2);
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
+      transform: scale(1.05);
+    }
+
+    .icon-emoji {
+      font-size: 22px;
+    }
+
+    .icon-name {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .acc-icon-btn.active .icon-name {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* 主题选择卡片网格 */
+    .theme-options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .theme-card-option {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--bg-card-shadow);
+    }
+
+    .theme-card-option:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .theme-card-option.active {
+      border-color: var(--primary);
+      background: rgba(249, 115, 22, 0.12);
+      box-shadow: var(--bg-card-shadow);
+    }
+
+    body[data-theme="cow"] .theme-card-option.active {
+      background: rgba(225, 29, 72, 0.12);
+    }
+
+    body[data-theme="business"] .theme-card-option.active {
+      background: rgba(59, 130, 246, 0.12);
+    }
+
+    .theme-card-preview {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    }
+
+    .theme-card-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .theme-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .theme-active-tag {
+      font-size: 10px;
+      background: var(--primary);
+      color: #fff;
+      padding: 1px 7px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .theme-card-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* 记账类型切换 Tabs */
+    .tx-type-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      background: var(--bg-subtle);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 16px;
+    }
+
+    .tx-type-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tx-type-btn.active.expense {
+      background: var(--danger);
+      color: #fff;
+    }
+    .tx-type-btn.active.income {
+      background: var(--success);
+      color: #fff;
+    }
+    .tx-type-btn.active.transfer {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* Toast 通知 */
+    .toast-box {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--primary);
+      color: var(--text-main);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--bg-card-shadow);
+      z-index: 200;
+      animation: popIn 0.2s ease-out;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+
+    /* 空状态 */
+    .empty-state {
+      padding: 36px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .empty-icon {
+      font-size: 36px;
+      opacity: 0.6;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 顶部状态栏 -->
+    <header class="app-header">
+      <div class="brand-group">
+        <!-- 专属软萌可爱蓝猫头像 -->
+        <img
+          src="icons/app-logo.jpg"
+          class="brand-cat-avatar"
+          alt="喵的粮仓猫咪"
+          @click="showThemeModal = true"
+          title="点击切换猫咪粮仓主题"
+        />
+        <div>
+          <div class="brand-title">
+            喵的粮仓
+            <span class="brand-tag" @click="showThemeModal = true" :title="'当前主题: ' + currentThemeTitle">
+              <span>{{ currentThemeEmoji }}</span>
+              <span>{{ currentThemeTitle }}</span>
+            </span>
+          </div>
+          <div class="brand-subtitle">{{ currentDateText }} · 私密安全粮仓</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- 主题切换按钮 -->
+        <button class="icon-btn theme-btn" @click="showThemeModal = true" title="切换主题 (大橘为重 / 小小神金 / 我很成熟)">
+          <span>🎨</span>
+        </button>
+
+        <!-- 隐私模式切换 -->
+        <button class="icon-btn" @click="toggleHideAmount" :title="hideAmount ? '显示金额' : '隐藏金额'">
+          <svg v-if="!hideAmount" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          <svg v-else width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"/>
+          </svg>
+        </button>
+
+        <!-- 刷新数据 -->
+        <button class="icon-btn" @click="refreshAllData" title="刷新数据">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- 主体区域 -->
+    <main class="container">
+      
+      <!-- ============================================== -->
+      <!-- TAB 1: 总览面板 (按要求：资产趋势位于最下方)    -->
+      <!-- 顺序：1.总净资产卡片 2.环形图 3.近期流水 4.增长趋势 -->
+      <!-- ============================================== -->
+      <div v-if="currentTab === 'overview'" style="display: flex; flex-direction: column; gap: 18px;">
+        
+        <!-- 1. 核心总净资产卡片 -->
+        <section class="card hero-card">
+          <div class="hero-top">
+            <div class="hero-label">
+              <span>🐟 粮仓总净资产 (Net Worth)</span>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">实时汇总</span>
+          </div>
+
+          <div class="hero-amount">
+            <span class="currency">¥</span>
+            <span>{{ hideAmount ? '••••••' : formatNumber(overview.netAsset) }}</span>
+          </div>
+
+          <!-- 对比差值指示器 (昨日与本月) -->
+          <div class="diff-row">
+            <!-- 较昨日 -->
+            <div class="diff-badge" :class="getDiffClass(overview.diffYesterday)">
+              <span>较昨日:</span>
+              <span v-if="hideAmount">•••</span>
+              <span v-else>
+                {{ overview.diffYesterday > 0 ? '+' : '' }}{{ formatNumber(overview.diffYesterday) }}
+                <small v-if="overview.hasYesterday">({{ overview.diffYesterdayPercent > 0 ? '+' : '' }}{{ overview.diffYesterdayPercent }}%)</small>
+              </span>
+            </div>
+
+            <!-- 较月初 -->
+            <div class="diff-badge" :class="getDiffClass(overview.diffMonth)">
+              <span>较月初:</span>
+              <span v-if="hideAmount">•••</span>
+              <span v-else>
+                {{ overview.diffMonth > 0 ? '+' : '' }}{{ formatNumber(overview.diffMonth) }}
+                <small v-if="overview.hasMonthStart">({{ overview.diffMonthPercent > 0 ? '+' : '' }}{{ overview.diffMonthPercent }}%)</small>
+              </span>
+            </div>
+          </div>
+
+          <!-- 分项指标 -->
+          <div class="hero-grid">
+            <div class="hero-sub-item">
+              <span class="hero-sub-label">储备总资产 (Assets)</span>
+              <span class="hero-sub-val val-asset">{{ hideAmount ? '••••' : '¥ ' + formatNumber(overview.totalAsset) }}</span>
+            </div>
+            <div class="hero-sub-item">
+              <span class="hero-sub-label">待还总负债 (Liabilities)</span>
+              <span class="hero-sub-val val-liability">{{ hideAmount ? '••••' : '¥ ' + formatNumber(overview.totalLiability) }}</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. 各类型资产占比环形图模块 -->
+        <section class="card chart-card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10h-10z"/>
+              </svg>
+              各类型资产占比
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted);">共 {{ accounts.length }} 个资产账户</span>
+          </div>
+
+          <div class="chart-layout">
+            <div class="donut-container">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="transparent" stroke="rgba(255,255,255,0.06)" stroke-width="12" />
+                <circle
+                  v-for="(seg, idx) in chartSegments"
+                  :key="idx"
+                  cx="50"
+                  cy="50"
+                  r="38"
+                  fill="transparent"
+                  :stroke="seg.color"
+                  stroke-width="12"
+                  :stroke-dasharray="seg.dashArray"
+                  :stroke-dashoffset="seg.dashOffset"
+                  stroke-linecap="round"
+                  style="transition: stroke-dasharray 0.5s ease, stroke-dashoffset 0.5s ease;"
+                />
+              </svg>
+              <div class="donut-center-info">
+                <div class="donut-center-label">主要储备</div>
+                <div class="donut-center-val">{{ dominantCategoryName }}</div>
+              </div>
+            </div>
+
+            <div class="chart-legend">
+              <div v-if="accounts.length === 0" style="padding: 24px 10px; font-size: 13px; color: var(--text-muted); text-align: center;">
+                暂无资产分布数据
+              </div>
+              <div
+                v-else
+                v-for="item in assetTypeSummaries"
+                :key="item.type"
+                class="legend-item"
+              >
+                <div class="legend-left">
+                  <div class="legend-dot" :style="{ backgroundColor: item.color }"></div>
+                  <span>{{ item.label }}</span>
+                  <small style="color: var(--text-muted); font-size: 11px;">({{ item.count }}户)</small>
+                </div>
+                <div class="legend-right">
+                  <span class="legend-amt">{{ hideAmount ? '•••' : '¥ ' + formatNumber(item.total) }}</span>
+                  <span class="legend-pct">{{ item.percentage }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. 近期流水概览卡片 -->
+        <section class="card quick-flow-card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+              </svg>
+              近期收支动态
+            </div>
+            <button class="btn-sm" @click="currentTab = 'transactions'">全部流水 &gt;</button>
+          </div>
+
+          <div v-if="transactions.length === 0" class="empty-state">
+            <div class="empty-icon">📝</div>
+            <div>暂无流水明细，点击右下角记一笔吧！</div>
+          </div>
+
+          <div v-else style="display: flex; flex-direction: column; gap: 8px;">
+            <div
+              v-for="item in recentTransactions"
+              :key="item.id"
+              class="tx-item"
+            >
+              <div class="tx-left">
+                <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
+                  {{ getCategoryEmoji(item.category) }}
+                </div>
+                <div class="tx-details">
+                  <div class="tx-category">
+                    {{ item.category }}
+                    <span v-if="item.isAdjustment" class="tx-tag">校准</span>
+                  </div>
+                  <div class="tx-meta">
+                    {{ item.date }} · {{ getAccountName(item.accountId) }}
+                    <span v-if="item.toAccountId"> → {{ getAccountName(item.toAccountId) }}</span>
+                    <span v-if="item.notes"> ({{ item.notes }})</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tx-right">
+                <div class="tx-amount" :class="'amt-' + item.type">
+                  {{ item.type === 'income' ? '+' : (item.type === 'expense' ? '-' : '⇄') }}
+                  ¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. 资产增长趋势折线/面积图模块 (置于最下方) -->
+        <section class="card trend-card">
+          <div class="card-header">
+            <div class="card-title">
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+              </svg>
+              资产增长趋势
+            </div>
+            <div class="trend-meta-badge">
+              <span>从启用到今: </span>
+              <strong :style="{ color: overallGrowth >= 0 ? '#34d399' : '#fb7185' }">
+                {{ overallGrowth >= 0 ? '+' : '' }}¥{{ hideAmount ? '•••' : formatNumber(overallGrowth) }}
+                ({{ overallGrowthPercent >= 0 ? '+' : '' }}{{ overallGrowthPercent }}%)
+              </strong>
+            </div>
+          </div>
+
+          <div class="trend-chart-box">
+            <!-- 暂无数据空状态 -->
+            <div v-if="trendPoints.length === 0" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+              <div style="font-size: 32px; margin-bottom: 8px;">📈</div>
+              <div style="font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">暂无历史资产趋势</div>
+              <div style="font-size: 12px; color: var(--text-muted);">录入账户与日常收支后，系统将每日自动生成您的资产增长曲线 🐾</div>
+            </div>
+
+            <div v-else>
+              <!-- 悬浮点提示 -->
+              <div class="trend-point-tooltip" v-if="activeTrendPoint">
+                <span>📅 {{ activeTrendPoint.date }}</span>
+                <strong style="color: var(--primary);">¥ {{ hideAmount ? '••••••' : formatNumber(activeTrendPoint.netAsset) }}</strong>
+              </div>
+
+              <svg viewBox="0 0 500 180" class="trend-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="trendAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--trend-stroke)" stop-opacity="0.45"/>
+                    <stop offset="100%" stop-color="var(--trend-stroke)" stop-opacity="0.0"/>
+                  </linearGradient>
+                </defs>
+
+                <!-- 网格辅助横线 -->
+                <line x1="20" y1="35" x2="480" y2="35" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
+                <line x1="20" y1="85" x2="480" y2="85" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
+                <line x1="20" y1="135" x2="480" y2="135" stroke="rgba(255,255,255,0.08)"/>
+
+                <!-- 渐变面积 -->
+                <path :d="trendAreaPath" fill="url(#trendAreaGrad)"/>
+                <!-- 平滑曲线 -->
+                <path :d="trendLinePath" fill="none" stroke="var(--trend-stroke)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+                <!-- 数据节点与点击交互 -->
+                <g
+                  v-for="(pt, idx) in trendPoints"
+                  :key="idx"
+                  @mouseenter="activeTrendPoint = pt"
+                  @click="activeTrendPoint = pt"
+                  style="cursor: pointer;"
+                >
+                  <circle :cx="pt.x" :cy="pt.y" r="5" fill="var(--bg-main)" stroke="var(--trend-stroke)" stroke-width="2.5" />
+                  <circle v-if="activeTrendPoint?.date === pt.date" :cx="pt.x" :cy="pt.y" r="8" fill="var(--trend-stroke)" fill-opacity="0.35" />
+                </g>
+              </svg>
+
+              <!-- X 轴说明 -->
+              <div class="trend-x-axis">
+                <span>{{ trendSnapshots[0]?.date || '开始' }} (启始粮仓)</span>
+                <span>点击节点查看历史数值 · 持续记录中 🐾</span>
+                <span>{{ trendSnapshots[trendSnapshots.length - 1]?.date || '今天' }} (目前)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 2: 账户管理 (含 20 种图标个性化标识)        -->
+      <!-- ============================================== -->
+      <div v-if="currentTab === 'accounts'" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <div class="acc-header-actions">
+          <div class="card-title">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+            资产账户明细
+          </div>
+          <button class="btn-primary" @click="openAddAccountModal">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            快速添加账户
+          </button>
+        </div>
+
+        <!-- 分类筛选小药丸 -->
+        <div class="filter-pills">
+          <button
+            class="pill"
+            :class="{ active: selectedAccountCategory === 'all' }"
+            @click="selectedAccountCategory = 'all'"
+          >
+            全部 ({{ accounts.length }})
+          </button>
+          <button
+            class="pill"
+            :class="{ active: selectedAccountCategory === 'bank' }"
+            @click="selectedAccountCategory = 'bank'"
+          >
+            储蓄/银行卡
+          </button>
+          <button
+            class="pill"
+            :class="{ active: selectedAccountCategory === 'cash' }"
+            @click="selectedAccountCategory = 'cash'"
+          >
+            活期/零钱
+          </button>
+          <button
+            class="pill"
+            :class="{ active: selectedAccountCategory === 'investment' }"
+            @click="selectedAccountCategory = 'investment'"
+          >
+            投资理财
+          </button>
+          <button
+            class="pill"
+            :class="{ active: selectedAccountCategory === 'credit' }"
+            @click="selectedAccountCategory = 'credit'"
+          >
+            信用卡/借贷
+          </button>
+        </div>
+
+        <!-- 账户卡片列表 (展示 20+ 款精美图标) -->
+        <div v-if="filteredAccounts.length > 0" class="accounts-grid">
+          <div
+            v-for="acc in filteredAccounts"
+            :key="acc.id"
+            class="account-card"
+          >
+            <div class="acc-card-top">
+              <div class="acc-brand">
+                <div class="acc-icon">
+                  {{ acc.icon || getAccountEmoji(acc.type) }}
+                </div>
+                <div class="acc-name-box">
+                  <div class="acc-name">{{ acc.name }}</div>
+                  <div class="acc-type-text">{{ getAccountTypeLabel(acc.type) }} <span v-if="acc.notes">· {{ acc.notes }}</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 余额区域 -->
+            <div class="acc-balance-section">
+              <div>
+                <div class="acc-bal-title">当前实时余额</div>
+                <div class="acc-bal-value" :class="{ 'is-credit': acc.type === 'credit' }">
+                  <span class="acc-bal-currency">¥</span>{{ hideAmount ? '••••••' : formatNumber(acc.balance) }}
+                </div>
+              </div>
+
+              <!-- 快捷调额按钮 -->
+              <button class="btn-sm adjust" @click="openAdjustModal(acc)">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                直接调额
+              </button>
+            </div>
+
+            <!-- 底部操作与更新时间 -->
+            <div class="acc-card-actions">
+              <div class="acc-time">更新于 {{ formatTime(acc.updatedAt) }}</div>
+              <div class="acc-btns">
+                <button class="btn-sm" @click="openEditAccountModal(acc)">编辑</button>
+                <button class="btn-sm danger" @click="confirmDeleteAccount(acc)">删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 账户空状态 -->
+        <div v-else class="card empty-state" style="margin-top: 6px; text-align: center; padding: 40px 20px;">
+          <div class="empty-icon" style="font-size: 42px; margin-bottom: 8px;">🐱</div>
+          <div style="font-weight: 700; font-size: 16px; color: var(--text-main); margin-bottom: 6px;">粮仓空空如也</div>
+          <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+            暂无资产账户，点击下方按钮添加您的第一个银行卡、零钱或理财账户吧 🐾
+          </div>
+          <button class="btn-primary" @click="openNewAccountModal" style="margin: 0 auto; display: inline-flex;">
+            + 快速添加第一个账户
+          </button>
+        </div>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- TAB 3: 流水记账                               -->
+      <!-- ============================================== -->
+      <div v-if="currentTab === 'transactions'" style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <div class="acc-header-actions">
+          <div class="card-title">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+            流水明细
+          </div>
+          <button class="btn-primary" @click="openNewTxModal">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            记一笔
+          </button>
+        </div>
+
+        <!-- 筛选控件 -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div class="filter-pills" style="flex: 1;">
+            <button class="pill" :class="{ active: txFilterType === '' }" @click="txFilterType = ''">全部收支</button>
+            <button class="pill" :class="{ active: txFilterType === 'expense' }" @click="txFilterType = 'expense'">支出</button>
+            <button class="pill" :class="{ active: txFilterType === 'income' }" @click="txFilterType = 'income'">收入</button>
+            <button class="pill" :class="{ active: txFilterType === 'transfer' }" @click="txFilterType = 'transfer'">转账</button>
+          </div>
+          
+          <select v-model="txFilterAccountId" class="form-select" style="width: auto; padding: 6px 12px; font-size: 12px;">
+            <option value="">全部账户</option>
+            <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }}</option>
+          </select>
+        </div>
+
+        <!-- 流水列表 -->
+        <div v-if="filteredTransactions.length === 0" class="card empty-state">
+          <div class="empty-icon">💸</div>
+          <div>暂无符合筛选条件的流水记录</div>
+        </div>
+
+        <div v-else style="display: flex; flex-direction: column; gap: 10px;">
+          <div
+            v-for="item in filteredTransactions"
+            :key="item.id"
+            class="tx-item"
+          >
+            <div class="tx-left">
+              <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
+                {{ getCategoryEmoji(item.category) }}
+              </div>
+              <div class="tx-details">
+                <div class="tx-category">
+                  {{ item.category }}
+                  <span v-if="item.isAdjustment" class="tx-tag">校准</span>
+                </div>
+                <div class="tx-meta">
+                  {{ item.date }} · {{ getAccountName(item.accountId) }}
+                  <span v-if="item.toAccountId"> → {{ getAccountName(item.toAccountId) }}</span>
+                  <span v-if="item.notes"> ({{ item.notes }})</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="tx-right">
+              <div class="tx-amount" :class="'amt-' + item.type">
+                {{ item.type === 'income' ? '+' : (item.type === 'expense' ? '-' : '⇄') }}
+                ¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
+              </div>
+              <button
+                class="btn-sm danger"
+                style="padding: 2px 6px; font-size: 11px; margin-top: 4px;"
+                @click="confirmDeleteTx(item)"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- 底部导航栏 -->
+    <nav class="bottom-nav">
+      <button class="nav-tab" :class="{ active: currentTab === 'overview' }" @click="currentTab = 'overview'">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+        总览
+      </button>
+
+      <button class="nav-tab" :class="{ active: currentTab === 'accounts' }" @click="currentTab = 'accounts'">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+          <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+        账户
+      </button>
+
+      <button class="nav-tab" :class="{ active: currentTab === 'transactions' }" @click="currentTab = 'transactions'">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+        </svg>
+        流水
+      </button>
+    </nav>
+
+    <!-- 悬浮快捷记账按钮 (FAB) -->
+    <button class="fab-btn" @click="openNewTxModal" title="快速记一笔">
+      <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+    </button>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 0: 猫咪主题切换弹窗 (大橘为重/小小神金/我很成熟) -->
+    <!-- ============================================== -->
+    <div v-if="showThemeModal" class="modal-backdrop" @click.self="showThemeModal = false">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>🎨 切换猫咪粮仓主题</span>
+          </div>
+          <button class="btn-close" @click="showThemeModal = false">✕</button>
+        </div>
+
+        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+          精选三套个性化猫咪视觉皮肤，全屏搭载专属壁纸与背景图案：
+        </div>
+
+        <div class="theme-options-grid">
+          <!-- 主题 1: 大橘为重 -->
+          <div
+            class="theme-card-option"
+            :class="{ active: currentTheme === 'orange' }"
+            @click="selectTheme('orange')"
+          >
+            <div class="theme-card-preview" style="background: url('assets/bg-orange.png') center bottom / cover no-repeat; border: 1.5px solid #fdba74;">
+            </div>
+            <div class="theme-card-info">
+              <div class="theme-card-title">
+                大橘为重
+                <span class="theme-active-tag" v-if="currentTheme === 'orange'">当前使用</span>
+              </div>
+              <div class="theme-card-desc">🐱 温暖浅黄暖阳房间，地板上熟睡的小橘猫专属插画壁纸。</div>
+            </div>
+          </div>
+
+          <!-- 主题 2: 小小神金 -->
+          <div
+            class="theme-card-option"
+            :class="{ active: currentTheme === 'cow' }"
+            @click="selectTheme('cow')"
+          >
+            <div class="theme-card-preview" style="background: url('assets/bg-cow.png') center bottom / cover no-repeat; border: 1.5px solid #cbd5e1;">
+            </div>
+            <div class="theme-card-info">
+              <div class="theme-card-title">
+                小小神金
+                <span class="theme-active-tag" v-if="currentTheme === 'cow'">当前使用</span>
+              </div>
+              <div class="theme-card-desc">🐾 纯白治愈猫咪房间，地板上抱毛线球打滚的奶牛猫专属插画壁纸。</div>
+            </div>
+          </div>
+
+          <!-- 主题 3: 我很成熟 -->
+          <div
+            class="theme-card-option"
+            :class="{ active: currentTheme === 'business' }"
+            @click="selectTheme('business')"
+          >
+            <div class="theme-card-preview" style="background: linear-gradient(135deg, #1e3a8a, #2563eb, #0f172a); border: 1.5px solid #3b82f6;">
+              <span style="font-size: 26px;">💼</span>
+            </div>
+            <div class="theme-card-info">
+              <div class="theme-card-title">
+                我很成熟
+                <span class="theme-active-tag" v-if="currentTheme === 'business'">当前使用</span>
+              </div>
+              <div class="theme-card-desc">🏛️ 科技商务点阵背景，经典深蓝与理性质感，沉稳大气。</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 12px; color: var(--text-muted);">
+              版本: v1.0 (纯净正式版)
+            </div>
+            <button class="btn-sm cancel" @click="forceReloadApp" style="font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
+              🔄 强制清除缓存刷新
+            </button>
+          </div>
+          <div style="display: flex; justify-content: flex-end;">
+            <button class="btn-sm danger" @click="confirmClearAllData" style="font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
+              🧹 清空所有测试数据 (重置空白粮仓)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 1: 点击即开记账弹窗                         -->
+    <!-- ============================================== -->
+    <div v-if="showTxModal" class="modal-backdrop" @click.self="showTxModal = false">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>🐾 记一笔</span>
+          </div>
+          <button class="btn-close" @click="showTxModal = false">✕</button>
+        </div>
+
+        <div class="tx-type-tabs">
+          <button
+            class="tx-type-btn expense"
+            :class="{ active: txForm.type === 'expense' }"
+            @click="setTxType('expense')"
+          >
+            支出
+          </button>
+          <button
+            class="tx-type-btn income"
+            :class="{ active: txForm.type === 'income' }"
+            @click="setTxType('income')"
+          >
+            收入
+          </button>
+          <button
+            class="tx-type-btn transfer"
+            :class="{ active: txForm.type === 'transfer' }"
+            @click="setTxType('transfer')"
+          >
+            内部转账
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">金额 (¥)</label>
+          <div class="input-amount-wrapper">
+            <span class="input-amount-symbol">¥</span>
+            <input
+              type="number"
+              step="0.01"
+              v-model.number="txForm.amount"
+              class="form-input amount-input"
+              placeholder="0.00"
+              autofocus
+            />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="form-group">
+            <label class="form-label">{{ txForm.type === 'transfer' ? '转出账户' : '结算账户' }}</label>
+            <select v-model="txForm.accountId" class="form-select">
+              <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
+            </select>
+          </div>
+
+          <div v-if="txForm.type === 'transfer'" class="form-group">
+            <label class="form-label">转入账户</label>
+            <select v-model="txForm.toAccountId" class="form-select">
+              <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.icon || '' }} {{ a.name }}</option>
+            </select>
+          </div>
+
+          <div :style="txForm.type === 'transfer' ? '' : 'grid-column: span 2;'" class="form-group">
+            <label class="form-label">记账日期</label>
+            <input type="date" v-model="txForm.date" class="form-input" />
+          </div>
+        </div>
+
+        <div v-if="txForm.type !== 'transfer'" class="form-group">
+          <label class="form-label">分类选择</label>
+          <div class="cat-grid">
+            <button
+              v-for="cat in currentCategoryList"
+              :key="cat.name"
+              type="button"
+              class="cat-btn"
+              :class="{ active: txForm.category === cat.name }"
+              @click="txForm.category = cat.name"
+            >
+              <span class="cat-emoji">{{ cat.emoji }}</span>
+              <span class="cat-title">{{ cat.name }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">备注 (可选)</label>
+          <input type="text" v-model="txForm.notes" class="form-input" placeholder="添加补充说明..." />
+        </div>
+
+        <button class="btn-primary" style="width: 100%; justify-content: center; padding: 13px; font-size: 15px; margin-top: 10px;" @click="submitTransaction">
+          保存并自动联动更新账户
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 2: 直接调整余额弹窗                         -->
+    <!-- ============================================== -->
+    <div v-if="showAdjustModal" class="modal-backdrop" @click.self="showAdjustModal = false">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>⚖️ 直接调整余额</span>
+          </div>
+          <button class="btn-close" @click="showAdjustModal = false">✕</button>
+        </div>
+
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+          <div style="font-size: 13px; color: var(--text-secondary);">目标账户: <strong>{{ targetAdjustAccount?.icon }} {{ targetAdjustAccount?.name }}</strong></div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">修改后将自动更新最新净资产与趋势记录，并记录“余额校准”流水。</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">最新真实余额 (¥)</label>
+          <div class="input-amount-wrapper">
+            <span class="input-amount-symbol">¥</span>
+            <input
+              type="number"
+              step="0.01"
+              v-model.number="adjustForm.newBalance"
+              class="form-input amount-input"
+              autofocus
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">调整原因 / 备注</label>
+          <input
+            type="text"
+            v-model="adjustForm.reason"
+            class="form-input"
+            placeholder="如：对账修正、利息结算、净值变动等"
+          />
+        </div>
+
+        <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;" @click="submitAdjustBalance">
+          确认调整
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 3: 添加/编辑账户弹窗 (包含 20 种图标选择)    -->
+    <!-- ============================================== -->
+    <div v-if="showAccountModal" class="modal-backdrop" @click.self="showAccountModal = false">
+      <div class="modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>{{ isEditAccount ? '✏️ 编辑账户' : '➕ 快速添加新账户' }}</span>
+          </div>
+          <button class="btn-close" @click="showAccountModal = false">✕</button>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">账户名称</label>
+          <input type="text" v-model="accountForm.name" class="form-input" placeholder="例如：招商银行工资卡、微信零钱" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">账户类型</label>
+          <select v-model="accountForm.type" class="form-select">
+            <option value="bank">储蓄卡 / 银行存折</option>
+            <option value="cash">活期零钱 / 电子钱包</option>
+            <option value="investment">基金 / 股票 / 理财投资</option>
+            <option value="credit">信用卡 / 消费借贷 (计入负债)</option>
+            <option value="other">其他资产</option>
+          </select>
+        </div>
+
+        <div v-if="!isEditAccount" class="form-group">
+          <label class="form-label">初始余额 (¥)</label>
+          <input type="number" step="0.01" v-model.number="accountForm.balance" class="form-input" placeholder="0.00" />
+        </div>
+
+        <!-- 20+ 款精选标识图标选择器 -->
+        <div class="form-group">
+          <label class="form-label">选择账户标识图标 ({{ accountIconList.length }}种精选图标)</label>
+          <div class="account-icon-grid">
+            <button
+              v-for="item in accountIconList"
+              :key="item.icon"
+              type="button"
+              class="acc-icon-btn"
+              :class="{ active: accountForm.icon === item.icon }"
+              @click="accountForm.icon = item.icon"
+            >
+              <span class="icon-emoji">{{ item.icon }}</span>
+              <span class="icon-name">{{ item.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">备注说明 (可选)</label>
+          <input type="text" v-model="accountForm.notes" class="form-input" placeholder="使用说明或账号尾号" />
+        </div>
+
+        <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 10px;" @click="submitAccountForm">
+          {{ isEditAccount ? '保存修改' : '立即创建账户' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- 浮动 Toast 消息 -->
+    <div v-if="toastMessage" class="toast-box">
+      <span>✨</span>
+      <span>{{ toastMessage }}</span>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const currentTab = ref('overview');
+        const hideAmount = ref(localStorage.getItem('hideAmount') === 'true');
+        const toastMessage = ref('');
+        const showThemeModal = ref(false);
+
+        // 主题状态：'orange' (大橘为重), 'cow' (小小神金 - 奶牛猫), 'business' (我很成熟)
+        const currentTheme = ref(localStorage.getItem('catTheme') || 'orange');
+
+        // 核心数据
+        const accounts = ref([]);
+        const transactions = ref([]);
+        const trendSnapshots = ref([]);
+        const activeTrendPoint = ref(null);
+
+        const overview = reactive({
+          netAsset: 0,
+          totalAsset: 0,
+          totalLiability: 0,
+          diffYesterday: 0,
+          diffYesterdayPercent: 0,
+          hasYesterday: false,
+          diffMonth: 0,
+          diffMonthPercent: 0,
+          hasMonthStart: false
+        });
+
+        // 弹窗状态
+        const showTxModal = ref(false);
+        const showAdjustModal = ref(false);
+        const showAccountModal = ref(false);
+        const isEditAccount = ref(false);
+        const targetAdjustAccount = ref(null);
+
+        // 筛选
+        const selectedAccountCategory = ref('all');
+        const txFilterType = ref('');
+        const txFilterAccountId = ref('');
+
+        // 表单数据
+        const txForm = reactive({
+          type: 'expense',
+          amount: '',
+          accountId: '',
+          toAccountId: '',
+          category: '餐饮美食',
+          date: '',
+          notes: ''
+        });
+
+        const adjustForm = reactive({
+          newBalance: 0,
+          reason: '余额校准'
+        });
+
+        const accountForm = reactive({
+          id: '',
+          name: '',
+          type: 'bank',
+          balance: 0,
+          icon: '💳',
+          color: '#2563eb',
+          notes: ''
+        });
+
+        // 22 种账户精选标识图标
+        const accountIconList = [
+          { icon: '💳', label: '银行卡' },
+          { icon: '👛', label: '零钱夹' },
+          { icon: '📱', label: '电子支付' },
+          { icon: '📈', label: '股票基金' },
+          { icon: '🪙', label: '黄金金币' },
+          { icon: '🏦', label: '银行存单' },
+          { icon: '🛍️', label: '信用卡' },
+          { icon: '🏠', label: '房产物业' },
+          { icon: '🚗', label: '车辆座驾' },
+          { icon: '🐱', label: '猫咪金库' },
+          { icon: '🐾', label: '喵星粮仓' },
+          { icon: '🐟', label: '小鱼干储蓄' },
+          { icon: '💵', label: '现钞现金' },
+          { icon: '💎', label: '珠宝贵重' },
+          { icon: '🔒', label: '保险养老' },
+          { icon: '💻', label: '数字资产' },
+          { icon: '🎓', label: '教育基金' },
+          { icon: '✈️', label: '旅行心愿' },
+          { icon: '🎁', label: '人情红包' },
+          { icon: '🍼', label: '家庭育儿' },
+          { icon: '🏥', label: '医疗备用' },
+          { icon: '📦', label: '其他资产' }
+        ];
+
+        const expenseCategories = [
+          { name: '餐饮美食', emoji: '🍜' },
+          { name: '交通出行', emoji: '🚇' },
+          { name: '购物消费', emoji: '🛍️' },
+          { name: '休闲娱乐', emoji: '🎮' },
+          { name: '日用百货', emoji: '🧻' },
+          { name: '住房物业', emoji: '🏠' },
+          { name: '医疗保健', emoji: '💊' },
+          { name: '其他支出', emoji: '📦' }
+        ];
+
+        const incomeCategories = [
+          { name: '工资薪酬', emoji: '💰' },
+          { name: '理财收益', emoji: '📈' },
+          { name: '兼职副业', emoji: '💻' },
+          { name: '奖金分红', emoji: '🧧' },
+          { name: '礼金人情', emoji: '🎁' },
+          { name: '退款返还', emoji: '↩️' },
+          { name: '其他收入', emoji: '💵' }
+        ];
+
+        // 当前主题元数据 (大橘 🐱，小小神金 🐾，商务 💼)
+        const currentThemeTitle = computed(() => {
+          if (currentTheme.value === 'cow') return '小小神金';
+          if (currentTheme.value === 'business') return '我很成熟';
+          return '大橘为重';
+        });
+
+        const currentThemeEmoji = computed(() => {
+          if (currentTheme.value === 'cow') return '🐾';
+          if (currentTheme.value === 'business') return '💼';
+          return '🐱';
+        });
+
+        function selectTheme(themeId) {
+          currentTheme.value = themeId;
+          document.body.setAttribute('data-theme', themeId);
+          localStorage.setItem('catTheme', themeId);
+          showThemeModal.value = false;
+
+          const metaColors = {
+            orange: '#fbf5e7',
+            cow: '#ffffff',
+            business: '#0b0f19'
+          };
+          const metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme && metaColors[themeId]) {
+            metaTheme.setAttribute('content', metaColors[themeId]);
+          }
+
+          const map = {
+            orange: '已切换至「大橘为重」暖阳熟睡大橘猫插画主题 🐱☀️',
+            cow: '已切换至「小小神金」插画主题 🐾🧶',
+            business: '已切换至「我很成熟」经典商务风主题 💼'
+          };
+          showToast(map[themeId] || '主题已更新 ✨');
+        }
+
+        // 当前日期文本
+        const currentDateText = computed(() => {
+          const now = new Date();
+          const weeks = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+          return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 ${weeks[now.getDay()]}`;
+        });
+
+        const currentCategoryList = computed(() => {
+          return txForm.type === 'income' ? incomeCategories : expenseCategories;
+        });
+
+        // 账户筛选
+        const filteredAccounts = computed(() => {
+          if (selectedAccountCategory.value === 'all') return accounts.value;
+          return accounts.value.filter(a => a.type === selectedAccountCategory.value);
+        });
+
+        // 流水筛选
+        const filteredTransactions = computed(() => {
+          let list = transactions.value;
+          if (txFilterType.value) {
+            list = list.filter(t => t.type === txFilterType.value);
+          }
+          if (txFilterAccountId.value) {
+            list = list.filter(t => t.accountId === txFilterAccountId.value || t.toAccountId === txFilterAccountId.value);
+          }
+          return list;
+        });
+
+        const recentTransactions = computed(() => {
+          return transactions.value.slice(0, 5);
+        });
+
+        // 资产类型汇总
+        const assetTypeSummaries = computed(() => {
+          const typeDefs = [
+            { type: 'cash', label: '现金活期', color: '#0284c7' },
+            { type: 'bank', label: '银行储蓄', color: '#f97316' },
+            { type: 'investment', label: '投资理财', color: '#8b5cf6' },
+            { type: 'credit', label: '信用卡负债', color: '#ea580c' },
+            { type: 'other', label: '其他资产', color: '#10b981' }
+          ];
+
+          const totalAssetPositive = accounts.value.reduce((sum, a) => {
+            const b = Number(a.balance || 0);
+            return a.type !== 'credit' && b > 0 ? sum + b : sum;
+          }, 0);
+
+          return typeDefs.map(def => {
+            const matching = accounts.value.filter(a => a.type === def.type);
+            const total = matching.reduce((sum, a) => sum + Number(a.balance || 0), 0);
+            const pct = totalAssetPositive > 0 && def.type !== 'credit'
+              ? ((total / totalAssetPositive) * 100).toFixed(1)
+              : (def.type === 'credit' ? '-' : '0.0');
+
+            return {
+              ...def,
+              count: matching.length,
+              total,
+              percentage: pct
+            };
+          });
+        });
+
+        // SVG 环形图段计算
+        const chartSegments = computed(() => {
+          const circumference = 2 * Math.PI * 38;
+          let currentOffset = 0;
+          const positiveTypes = assetTypeSummaries.value.filter(t => t.type !== 'credit' && t.total > 0);
+          const totalVal = positiveTypes.reduce((sum, t) => sum + t.total, 0);
+
+          if (totalVal <= 0) return [];
+
+          return positiveTypes.map(item => {
+            const ratio = item.total / totalVal;
+            const strokeLength = ratio * circumference;
+            const dashArray = `${strokeLength} ${circumference - strokeLength}`;
+            const seg = {
+              color: item.color,
+              dashArray,
+              dashOffset: -currentOffset
+            };
+            currentOffset += strokeLength;
+            return seg;
+          });
+        });
+
+        const dominantCategoryName = computed(() => {
+          const positiveTypes = assetTypeSummaries.value.filter(t => t.type !== 'credit' && t.total > 0);
+          if (positiveTypes.length === 0) return '暂无资产';
+          let max = positiveTypes[0];
+          for (const item of positiveTypes) {
+            if (item.total > max.total) max = item;
+          }
+          return max.label;
+        });
+
+        // 资产增长趋势曲线算法
+        const trendPoints = computed(() => {
+          const list = trendSnapshots.value;
+          if (!list || list.length === 0) return [];
+
+          const width = 500;
+          const height = 180;
+          const padX = 35;
+          const padTop = 30;
+          const padBottom = 40;
+          const usableW = width - padX * 2;
+          const usableH = height - padTop - padBottom;
+
+          const values = list.map(item => Number(item.netAsset || 0));
+          let minVal = Math.min(...values);
+          let maxVal = Math.max(...values);
+
+          if (minVal === maxVal) {
+            minVal = minVal * 0.9;
+            maxVal = maxVal * 1.1 || 100;
+          }
+
+          const valRange = maxVal - minVal;
+
+          return list.map((item, idx) => {
+            const x = list.length === 1 ? width / 2 : padX + (idx / (list.length - 1)) * usableW;
+            const y = height - padBottom - ((Number(item.netAsset || 0) - minVal) / valRange) * usableH;
+            return {
+              date: item.date,
+              netAsset: item.netAsset,
+              x: +x.toFixed(1),
+              y: +y.toFixed(1)
+            };
+          });
+        });
+
+        const trendLinePath = computed(() => {
+          const pts = trendPoints.value;
+          if (pts.length === 0) return '';
+          if (pts.length === 1) return `M ${pts[0].x - 20} ${pts[0].y} L ${pts[0].x + 20} ${pts[0].y}`;
+
+          let d = `M ${pts[0].x} ${pts[0].y}`;
+          for (let i = 1; i < pts.length; i++) {
+            const prev = pts[i - 1];
+            const curr = pts[i];
+            const midX = (prev.x + curr.x) / 2;
+            d += ` C ${midX} ${prev.y}, ${midX} ${curr.y}, ${curr.x} ${curr.y}`;
+          }
+          return d;
+        });
+
+        const trendAreaPath = computed(() => {
+          const pts = trendPoints.value;
+          if (pts.length === 0) return '';
+          const bottomY = 145;
+          let d = `M ${pts[0].x} ${bottomY} L ${pts[0].x} ${pts[0].y}`;
+          for (let i = 1; i < pts.length; i++) {
+            const prev = pts[i - 1];
+            const curr = pts[i];
+            const midX = (prev.x + curr.x) / 2;
+            d += ` C ${midX} ${prev.y}, ${midX} ${curr.y}, ${curr.x} ${curr.y}`;
+          }
+          const last = pts[pts.length - 1];
+          d += ` L ${last.x} ${bottomY} Z`;
+          return d;
+        });
+
+        const overallGrowth = computed(() => {
+          const list = trendSnapshots.value;
+          if (!list || list.length < 2) return 0;
+          const first = Number(list[0].netAsset || 0);
+          const latest = Number(list[list.length - 1].netAsset || 0);
+          return +(latest - first).toFixed(2);
+        });
+
+        const overallGrowthPercent = computed(() => {
+          const list = trendSnapshots.value;
+          if (!list || list.length < 2) return 0;
+          const first = Number(list[0].netAsset || 0);
+          if (first === 0) return 0;
+          return +((overallGrowth.value / Math.abs(first)) * 100).toFixed(1);
+        });
+
+        // 格式化函数
+        function formatNumber(num) {
+          if (num === undefined || num === null || isNaN(num)) return '0.00';
+          return Number(num).toLocaleString('zh-CN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
+        }
+
+        function formatTime(isoStr) {
+          if (!isoStr) return '刚刚';
+          const d = new Date(isoStr);
+          return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        }
+
+        function showToast(msg) {
+          toastMessage.value = msg;
+          setTimeout(() => {
+            if (toastMessage.value === msg) toastMessage.value = '';
+          }, 2400);
+        }
+
+        function toggleHideAmount() {
+          hideAmount.value = !hideAmount.value;
+          localStorage.setItem('hideAmount', String(hideAmount.value));
+        }
+
+        function getDiffClass(diff) {
+          if (diff > 0) return 'up';
+          if (diff < 0) return 'down';
+          return 'flat';
+        }
+
+        function getAccountName(id) {
+          const acc = accounts.value.find(a => a.id === id);
+          return acc ? (acc.icon ? acc.icon + ' ' + acc.name : acc.name) : '未知账户';
+        }
+
+        function getAccountEmoji(type) {
+          switch(type) {
+            case 'bank': return '💳';
+            case 'cash': return '👛';
+            case 'investment': return '📈';
+            case 'credit': return '🛍️';
+            default: return '📦';
+          }
+        }
+
+        function getAccountTypeLabel(type) {
+          switch(type) {
+            case 'bank': return '储蓄卡';
+            case 'cash': return '零钱活期';
+            case 'investment': return '投资理财';
+            case 'credit': return '信用卡/借贷';
+            default: return '其他资产';
+          }
+        }
+
+        function getCategoryEmoji(cat) {
+          const all = [...expenseCategories, ...incomeCategories];
+          const found = all.find(c => c.name === cat);
+          if (found) return found.emoji;
+          if (cat === '内部转账') return '⇄';
+          if (cat === '余额调整') return '⚖️';
+          return '🏷️';
+        }
+
+        function getCategoryColor(cat, type) {
+          if (type === 'income') return '#10b981';
+          if (type === 'transfer') return '#38bdf8';
+          if (cat === '余额调整') return '#f59e0b';
+          return '#f43f5e';
+        }
+
+        // 数据加载与交互
+        async function refreshAllData() {
+          try {
+            const [accs, txs, stats, trends] = await Promise.all([
+              AssetDB.getAllAccounts(),
+              AssetDB.getAllTransactions(),
+              AssetDB.getOverviewStats(),
+              AssetDB.getTrendSnapshots()
+            ]);
+
+            accounts.value = accs;
+            transactions.value = txs;
+            Object.assign(overview, stats);
+            trendSnapshots.value = trends;
+
+            if (trends.length > 0) {
+              activeTrendPoint.value = trends[trends.length - 1];
+            } else {
+              activeTrendPoint.value = null;
+            }
+          } catch (e) {
+            console.error('加载数据失败', e);
+            showToast('加载失败: ' + e.message);
+          }
+        }
+
+        // 清空所有测试数据 (重置为空白粮仓)
+        async function confirmClearAllData() {
+          if (confirm('⚠️ 确认清空所有测试数据吗？\n此操作将清空本地所有账户、流水账目与历史趋势，彻底重置为空白粮仓，方便您开始记录真实的个人资产。')) {
+            try {
+              await AssetDB.clearAllData();
+              await refreshAllData();
+              showToast('🧹 已清空所有测试数据，当前已重置为空白粮仓 ✨');
+              showThemeModal.value = false;
+            } catch (err) {
+              showToast('清空失败: ' + err.message);
+            }
+          }
+        }
+
+        // 记账 Modal
+        function openNewTxModal() {
+          if (accounts.value.length === 0) {
+            showToast('请先创建至少一个账户');
+            currentTab.value = 'accounts';
+            return;
+          }
+          txForm.type = 'expense';
+          txForm.amount = '';
+          txForm.accountId = accounts.value[0].id;
+          txForm.toAccountId = accounts.value.length > 1 ? accounts.value[1].id : '';
+          txForm.category = '餐饮美食';
+          txForm.date = AssetDB.formatDate();
+          txForm.notes = '';
+          showTxModal.value = true;
+        }
+
+        function setTxType(type) {
+          txForm.type = type;
+          if (type === 'income') {
+            txForm.category = '工资薪酬';
+          } else if (type === 'expense') {
+            txForm.category = '餐饮美食';
+          } else {
+            txForm.category = '内部转账';
+          }
+        }
+
+        async function submitTransaction() {
+          const amt = Number(txForm.amount);
+          if (!amt || amt <= 0) {
+            showToast('请输入有效金额');
+            return;
+          }
+
+          try {
+            await AssetDB.addTransaction({
+              type: txForm.type,
+              amount: amt,
+              accountId: txForm.accountId,
+              toAccountId: txForm.type === 'transfer' ? txForm.toAccountId : null,
+              category: txForm.category,
+              date: txForm.date,
+              notes: txForm.notes
+            });
+
+            showTxModal.value = false;
+            showToast('记账成功！账户余额已联动更新 ✨');
+            await refreshAllData();
+          } catch (err) {
+            alert('保存失败: ' + err.message);
+          }
+        }
+
+        async function confirmDeleteTx(item) {
+          if (confirm(`确认删除该笔 ${item.category} (¥${item.amount}) 记录吗？\n将自动回滚对应账户的余额。`)) {
+            await AssetDB.deleteTransaction(item.id);
+            showToast('流水已删除，账户余额已回滚');
+            await refreshAllData();
+          }
+        }
+
+        // 调额 Modal
+        function openAdjustModal(acc) {
+          targetAdjustAccount.value = acc;
+          adjustForm.newBalance = acc.balance;
+          adjustForm.reason = '对账校准';
+          showAdjustModal.value = true;
+        }
+
+        async function submitAdjustBalance() {
+          if (!targetAdjustAccount.value) return;
+          try {
+            await AssetDB.adjustBalance(
+              targetAdjustAccount.value.id,
+              adjustForm.newBalance,
+              adjustForm.reason || '对账校准'
+            );
+            showAdjustModal.value = false;
+            showToast('余额已调整，已自动同步净资产');
+            await refreshAllData();
+          } catch (e) {
+            alert('调额失败: ' + e.message);
+          }
+        }
+
+        // 账户创建 / 编辑 Modal
+        function openAddAccountModal() {
+          isEditAccount.value = false;
+          accountForm.id = '';
+          accountForm.name = '';
+          accountForm.type = 'bank';
+          accountForm.balance = '';
+          accountForm.icon = '💳';
+          accountForm.color = '#f97316';
+          accountForm.notes = '';
+          showAccountModal.value = true;
+        }
+
+        function openEditAccountModal(acc) {
+          isEditAccount.value = true;
+          accountForm.id = acc.id;
+          accountForm.name = acc.name;
+          accountForm.type = acc.type;
+          accountForm.balance = acc.balance;
+          accountForm.icon = acc.icon || '💳';
+          accountForm.color = acc.color || '#f97316';
+          accountForm.notes = acc.notes || '';
+          showAccountModal.value = true;
+        }
+
+        async function submitAccountForm() {
+          if (!accountForm.name.trim()) {
+            showToast('请输入账户名称');
+            return;
+          }
+
+          try {
+            if (isEditAccount.value) {
+              await AssetDB.updateAccount({
+                id: accountForm.id,
+                name: accountForm.name.trim(),
+                type: accountForm.type,
+                icon: accountForm.icon,
+                color: accountForm.color,
+                notes: accountForm.notes.trim()
+              });
+              showToast('账户信息已更新');
+            } else {
+              await AssetDB.addAccount({
+                name: accountForm.name.trim(),
+                type: accountForm.type,
+                balance: Number(accountForm.balance) || 0,
+                icon: accountForm.icon,
+                color: accountForm.color,
+                notes: accountForm.notes.trim()
+              });
+              showToast('新账户已创建成功');
+            }
+            showAccountModal.value = false;
+            await refreshAllData();
+          } catch (e) {
+            alert('保存失败: ' + e.message);
+          }
+        }
+
+        async function confirmDeleteAccount(acc) {
+          if (confirm(`确认删除账户【${acc.name}】吗？\n当前余额 ¥${acc.balance} 将不再计入净资产。`)) {
+            await AssetDB.deleteAccount(acc.id);
+            showToast('账户已删除');
+            await refreshAllData();
+          }
+        }
+
+        // 强制清除所有 SW 与 CacheStorage 并深度刷新
+        async function forceReloadApp() {
+          showToast('🐾 正在清理缓存并获取最新版本...');
+          if ('serviceWorker' in navigator) {
+            try {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              for (const r of regs) {
+                await r.unregister();
+              }
+            } catch (e) {
+              console.warn('[PWA] Unregister SW failed:', e);
+            }
+          }
+          if ('caches' in window) {
+            try {
+              const keys = await caches.keys();
+              for (const k of keys) {
+                await caches.delete(k);
+              }
+            } catch (e) {
+              console.warn('[PWA] Delete cache failed:', e);
+            }
+          }
+          setTimeout(() => {
+            window.location.href = window.location.origin + window.location.pathname + '?refresh=' + Date.now();
+          }, 350);
+        }
+
+        onMounted(async () => {
+          // 应用初始主题
+          const savedTheme = localStorage.getItem('catTheme') || 'orange';
+          currentTheme.value = savedTheme;
+          document.body.setAttribute('data-theme', savedTheme);
+
+          const metaColors = {
+            orange: '#fef9ee',
+            cow: '#ffffff',
+            business: '#0b0f19'
+          };
+          const metaTheme = document.querySelector('meta[name="theme-color"]');
+          if (metaTheme && metaColors[savedTheme]) {
+            metaTheme.setAttribute('content', metaColors[savedTheme]);
+          }
+
+          // 支持 URL 参数一键清空测试数据 (?clean=1)
+          if (window.location.search.includes('clean=1')) {
+            await AssetDB.clearAllData();
+            const cleanUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+            showToast('🧹 已成功清空所有测试数据，当前为空白粮仓 ✨');
+          }
+
+          await refreshAllData();
+
+          // 注册 Service Worker 离线能力
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').then((reg) => {
+              console.log('[PWA] Service Worker registered:', reg.scope);
+              // 每次加载主动检查是否有新版本
+              reg.update().catch(() => {});
+            }).catch(err => console.warn('[PWA] SW register failed:', err));
+
+            // 当新的 Service Worker 激活生效时，平滑自动刷新获取最新代码
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (!refreshing) {
+                refreshing = true;
+                window.location.reload();
+              }
+            });
+          }
+        });
+
+        return {
+          currentTab,
+          hideAmount,
+          toggleHideAmount,
+          currentDateText,
+          toastMessage,
+          showThemeModal,
+          currentTheme,
+          currentThemeTitle,
+          currentThemeEmoji,
+          selectTheme,
+          accounts,
+          transactions,
+          trendSnapshots,
+          activeTrendPoint,
+          trendPoints,
+          trendLinePath,
+          trendAreaPath,
+          overallGrowth,
+          overallGrowthPercent,
+          overview,
+          filteredAccounts,
+          filteredTransactions,
+          recentTransactions,
+          assetTypeSummaries,
+          chartSegments,
+          dominantCategoryName,
+          selectedAccountCategory,
+          txFilterType,
+          txFilterAccountId,
+          showTxModal,
+          showAdjustModal,
+          showAccountModal,
+          isEditAccount,
+          targetAdjustAccount,
+          txForm,
+          adjustForm,
+          accountForm,
+          accountIconList,
+          currentCategoryList,
+          formatNumber,
+          formatTime,
+          getDiffClass,
+          getAccountName,
+          getAccountEmoji,
+          getAccountTypeLabel,
+          getCategoryEmoji,
+          getCategoryColor,
+          refreshAllData,
+          openNewTxModal,
+          setTxType,
+          submitTransaction,
+          confirmDeleteTx,
+          openAdjustModal,
+          submitAdjustBalance,
+          openAddAccountModal,
+          openEditAccountModal,
+          submitAccountForm,
+          confirmDeleteAccount,
+          forceReloadApp
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
