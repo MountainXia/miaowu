@@ -1406,7 +1406,7 @@
     }
 
     /* ================================================= */
-    /* 锁屏界面 (全屏独立覆盖与透明输入框/按钮)           */
+    /* 锁屏界面 (全屏竖屏猫咪壁纸与透明输入框/按钮)        */
     /* ================================================= */
     .lock-screen-container {
       position: fixed;
@@ -1416,35 +1416,43 @@
       z-index: 9999;
       background-color: #0b0f19;
       background-image: url('assets/lock-bg.jpg');
-      background-position: center 20%;
+      background-position: center center;
       background-size: cover;
       background-repeat: no-repeat;
       display: flex;
       flex-direction: column;
       justify-content: flex-end;
       align-items: center;
-      padding: env(safe-area-inset-top, 20px) 24px calc(38px + env(safe-area-inset-bottom, 20px));
+      padding: env(safe-area-inset-top, 24px) 24px calc(46px + env(safe-area-inset-bottom, 20px));
       box-sizing: border-box;
       overflow: hidden;
       animation: fadeIn 0.25s ease-out;
+      transition: justify-content 0.3s ease;
     }
 
-    @media (max-width: 600px) {
-      .lock-screen-container {
-        background-position: center 10%;
-      }
+    /* 当选择“暗号”后进入输入状态：居中对齐 */
+    .lock-screen-container.input-mode {
+      justify-content: center;
+      padding-top: env(safe-area-inset-top, 24px);
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 20px));
     }
 
-    /* 底部操作区域 (透明背景框) */
+    /* 操作卡片区域 (透明背景框) */
     .lock-content-box {
       width: 100%;
-      max-width: 360px;
+      max-width: 330px;
       background: transparent !important;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 14px;
       margin-bottom: 12px;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    .lock-content-box.centered-box {
+      margin-bottom: 0;
+      animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .lock-input-wrap {
@@ -1456,67 +1464,84 @@
     .lock-transparent-input {
       width: 100%;
       background: transparent !important;
-      border: 1.5px solid rgba(255, 255, 255, 0.75);
-      border-radius: 16px;
-      padding: 13px 18px;
+      border: 1.5px solid rgba(255, 255, 255, 0.85);
+      border-radius: 18px;
+      padding: 14px 20px;
       font-size: 16px;
       color: #ffffff;
       text-align: center;
       letter-spacing: 2px;
       outline: none;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       transition: all 0.2s ease;
     }
 
     .lock-transparent-input:focus {
       border-color: #ffffff;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25), 0 6px 22px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3), 0 6px 24px rgba(0, 0, 0, 0.5);
     }
 
     .lock-transparent-input::placeholder {
-      color: rgba(255, 255, 255, 0.75);
+      color: rgba(255, 255, 255, 0.8);
       letter-spacing: 0px;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
     }
 
-    /* 按钮组 */
-    .lock-btn-group {
-      width: 100%;
-      display: flex;
-      gap: 12px;
-    }
-
-    /* 透明按钮 */
+    /* 透明按钮 (暗号 / 暗号，我不需要暗号 / 确认) */
     .lock-transparent-btn {
-      flex: 1;
+      width: 100%;
       background: transparent !important;
-      border: 1.5px solid rgba(255, 255, 255, 0.8);
-      border-radius: 16px;
-      padding: 12px 16px;
-      font-size: 14px;
+      border: 1.5px solid rgba(255, 255, 255, 0.85);
+      border-radius: 18px;
+      padding: 14px 20px;
+      font-size: 15px;
       font-weight: 600;
       color: #ffffff;
       cursor: pointer;
       text-align: center;
       white-space: nowrap;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       transition: all 0.2s ease;
     }
 
     .lock-transparent-btn:hover {
-      background: rgba(255, 255, 255, 0.18) !important;
+      background: rgba(255, 255, 255, 0.2) !important;
       border-color: #ffffff;
       transform: translateY(-1px);
     }
 
     .lock-transparent-btn:active {
       transform: translateY(1px);
-      background: rgba(255, 255, 255, 0.28) !important;
+      background: rgba(255, 255, 255, 0.32) !important;
+    }
+
+    .lock-transparent-btn.confirm-btn {
+      border-color: #ffffff;
+      background: rgba(255, 255, 255, 0.12) !important;
+      font-weight: 700;
+      letter-spacing: 3px;
+    }
+
+    .lock-back-link {
+      background: transparent !important;
+      border: none;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 6px 14px;
+      margin-top: 4px;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+      transition: all 0.15s ease;
+    }
+
+    .lock-back-link:hover {
+      color: #ffffff;
+      text-decoration: underline;
     }
 
     /* 错误提示 */
@@ -1525,8 +1550,9 @@
       font-size: 13px;
       font-weight: 700;
       text-align: center;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
       animation: fadeIn 0.2s ease;
+      line-height: 1.4;
     }
 
     /* 抖动动画 */
@@ -1545,43 +1571,30 @@
 <body>
   <div id="app">
     <!-- 锁屏独立全屏界面 (v-if="isLocked") -->
-    <div v-if="isLocked" class="lock-screen-container">
-      <!-- 首次欢迎界面 (尚未设置暗号记录) -->
-      <div v-if="!hasPasswordRecord" class="lock-content-box">
-        <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
-          <input
-            type="password"
-            v-model="passwordInput"
-            placeholder="输入你想约定的暗号..."
-            class="lock-transparent-input"
-            @keyup.enter="handleSetPassword"
-            autocomplete="new-password"
-          />
-        </div>
+    <div v-if="isLocked" class="lock-screen-container" :class="{ 'input-mode': isEnteringCode }">
+      <!-- 阶段 1: 只有“暗号”和“暗号，我不需要暗号”两个框 -->
+      <div v-if="!isEnteringCode" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
+        <button class="lock-transparent-btn" @click="handleChooseEnterCode">
+          暗号
+        </button>
+        <button class="lock-transparent-btn" @click="handleNoCodeNeeded">
+          暗号，我不需要暗号
+        </button>
 
         <div v-if="lockErrorMsg" class="lock-error-hint">
           {{ lockErrorMsg }}
         </div>
-
-        <div class="lock-btn-group">
-          <button class="lock-transparent-btn" @click="handleSetPassword">
-            约定一个暗号
-          </button>
-          <button class="lock-transparent-btn" @click="handleSkipPassword">
-            暗号？我不需要
-          </button>
-        </div>
       </div>
 
-      <!-- 已有暗号记录时的解锁界面 -->
-      <div v-else class="lock-content-box">
+      <!-- 阶段 2: 选择“暗号”后，“我不需要暗号”隐藏，“暗号”框居中，下方显示“确认”按钮 -->
+      <div v-else class="lock-content-box centered-box">
         <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
           <input
             type="password"
             v-model="passwordInput"
             placeholder="暗号"
             class="lock-transparent-input"
-            @keyup.enter="handleUnlock"
+            @keyup.enter="handleConfirmCode"
             autofocus
             autocomplete="current-password"
           />
@@ -1591,11 +1604,13 @@
           {{ lockErrorMsg }}
         </div>
 
-        <div class="lock-btn-group" style="width: 100%;">
-          <button class="lock-transparent-btn" style="width: 100%;" @click="handleUnlock">
-            暗号？我不需要
-          </button>
-        </div>
+        <button class="lock-transparent-btn confirm-btn" @click="handleConfirmCode">
+          确认
+        </button>
+
+        <button class="lock-back-link" @click="handleBackToChoice">
+          ← 返回
+        </button>
       </div>
     </div>
 
@@ -2464,6 +2479,7 @@
         // 隐私暗号锁状态
         const isLocked = ref(true);
         const hasPasswordRecord = ref(false);
+        const isEnteringCode = ref(false);
         const passwordInput = ref('');
         const lockErrorMsg = ref('');
         const isShaking = ref(false);
@@ -3117,59 +3133,88 @@
           return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
         }
 
-        // 首次欢迎界面：约定一个暗号
-        async function handleSetPassword() {
-          const pwd = (passwordInput.value || '').trim();
-          if (!pwd) {
-            lockErrorMsg.value = '请输入你想约定的暗号喵~';
-            isShaking.value = true;
-            setTimeout(() => { isShaking.value = false; }, 500);
-            return;
-          }
-          const hash = await hashPassword(pwd);
-          localStorage.setItem('app_password_hash', hash);
-          localStorage.removeItem('app_password_skipped');
-          hasPasswordRecord.value = true;
-          isLocked.value = false;
-          passwordInput.value = '';
+        // 点击主选项【暗号】：隐藏另一个框，输入框居中
+        function handleChooseEnterCode() {
+          isEnteringCode.value = true;
           lockErrorMsg.value = '';
-          showToast('✨ 暗号已约定成功，粮仓安全加倍！');
+          passwordInput.value = '';
+          setTimeout(() => {
+            const input = document.querySelector('.lock-transparent-input');
+            if (input) input.focus();
+          }, 80);
         }
 
-        // 首次欢迎界面：暗号？我不需要
-        function handleSkipPassword() {
-          localStorage.setItem('app_password_skipped', 'true');
-          isLocked.value = false;
-          passwordInput.value = '';
+        // 返回两框选择状态
+        function handleBackToChoice() {
+          isEnteringCode.value = false;
           lockErrorMsg.value = '';
-          showToast('已进入粮仓，随时可在猫咪主题设置中开启暗号~');
+          passwordInput.value = '';
         }
 
-        // 解锁界面点击“暗号？我不需要”或回车解锁
-        async function handleUnlock() {
-          const pwd = passwordInput.value || '';
-          const savedHash = localStorage.getItem('app_password_hash');
-          if (!savedHash) {
+        // 点击【暗号，我不需要暗号】
+        function handleNoCodeNeeded() {
+          if (!hasPasswordRecord.value) {
+            // 首次无密码：选择不需要暗号，直接跳过并进入页面
+            localStorage.setItem('app_password_skipped', 'true');
             isLocked.value = false;
-            return;
-          }
-          const enteredHash = await hashPassword(pwd);
-          if (enteredHash === savedHash) {
-            isLocked.value = false;
+            isEnteringCode.value = false;
             passwordInput.value = '';
             lockErrorMsg.value = '';
-            showToast('🔓 暗号正确，欢迎回到粮仓！');
+            showToast('已进入粮仓，随时可在猫咪主题设置中开启暗号~');
           } else {
+            // 已设置过暗号：点击不需要暗号，给出调侃提示
             lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
             isShaking.value = true;
             setTimeout(() => { isShaking.value = false; }, 500);
+          }
+        }
+
+        // 点击【确认】或回车提交暗号
+        async function handleConfirmCode() {
+          const pwd = (passwordInput.value || '').trim();
+          if (!pwd) {
+            lockErrorMsg.value = hasPasswordRecord.value 
+              ? '不会吧不会吧，不会有人忘了暗号吧' 
+              : '请输入你想约定的暗号喵~';
+            isShaking.value = true;
+            setTimeout(() => { isShaking.value = false; }, 500);
+            return;
+          }
+
+          if (!hasPasswordRecord.value) {
+            // 首次设置暗号
+            const hash = await hashPassword(pwd);
+            localStorage.setItem('app_password_hash', hash);
+            localStorage.removeItem('app_password_skipped');
+            hasPasswordRecord.value = true;
+            isLocked.value = false;
+            isEnteringCode.value = false;
             passwordInput.value = '';
+            lockErrorMsg.value = '';
+            showToast('✨ 暗号已约定成功，粮仓安全加倍！');
+          } else {
+            // 校验已有暗号
+            const savedHash = localStorage.getItem('app_password_hash');
+            const enteredHash = await hashPassword(pwd);
+            if (enteredHash === savedHash) {
+              isLocked.value = false;
+              isEnteringCode.value = false;
+              passwordInput.value = '';
+              lockErrorMsg.value = '';
+              showToast('🔓 暗号正确，欢迎回到粮仓！');
+            } else {
+              lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
+              isShaking.value = true;
+              setTimeout(() => { isShaking.value = false; }, 500);
+              passwordInput.value = '';
+            }
           }
         }
 
         // 立即上锁
         function handleLockNow() {
           isLocked.value = true;
+          isEnteringCode.value = false;
           showThemeModal.value = false;
           passwordInput.value = '';
           lockErrorMsg.value = '';
@@ -3182,6 +3227,7 @@
             localStorage.removeItem('app_password_hash');
             localStorage.removeItem('app_password_skipped');
             hasPasswordRecord.value = false;
+            isEnteringCode.value = false;
             showToast('暗号已清除');
           }
         }
@@ -3189,15 +3235,21 @@
         // 从主题弹窗打开暗号设置界面
         function handleOpenPasswordSetup() {
           showThemeModal.value = false;
+          isEnteringCode.value = true;
           passwordInput.value = '';
           lockErrorMsg.value = '';
           isLocked.value = true;
+          setTimeout(() => {
+            const input = document.querySelector('.lock-transparent-input');
+            if (input) input.focus();
+          }, 80);
         }
 
         onMounted(async () => {
           // 初始化暗号锁状态检查
           const savedPwdHash = localStorage.getItem('app_password_hash');
           const isSkipped = localStorage.getItem('app_password_skipped') === 'true';
+          isEnteringCode.value = false;
           if (savedPwdHash) {
             hasPasswordRecord.value = true;
             isLocked.value = true;
@@ -3220,6 +3272,7 @@
                 const elapsed = Date.now() - lastExit;
                 if (elapsed >= 120000) { // 2分钟 = 120,000 毫秒
                   isLocked.value = true;
+                  isEnteringCode.value = false;
                   passwordInput.value = '';
                   lockErrorMsg.value = '';
                   showThemeModal.value = false;
@@ -3285,12 +3338,14 @@
         return {
           isLocked,
           hasPasswordRecord,
+          isEnteringCode,
           passwordInput,
           lockErrorMsg,
           isShaking,
-          handleSetPassword,
-          handleSkipPassword,
-          handleUnlock,
+          handleChooseEnterCode,
+          handleBackToChoice,
+          handleNoCodeNeeded,
+          handleConfirmCode,
           handleLockNow,
           handleRemovePassword,
           handleOpenPasswordSetup,

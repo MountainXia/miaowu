@@ -245,7 +245,33 @@ async function runAllTests() {
     assert.strictEqual(stats.netAsset, 14000, '净资产应为 12000 + 2000 = 14000');
   });
 
-  // 6. HTTP 服务器端点响应测试
+  // 6. 隐私暗号锁功能与安全规范检验
+  test('验证本地隐私暗号锁与安全配置', () => {
+    // 验证背景壁纸
+    const lockBgPath = path.join(ROOT, 'assets/lock-bg.jpg');
+    assert.ok(fs.existsSync(lockBgPath), '暗号锁屏壁纸 assets/lock-bg.jpg 不存在');
+    assert.ok(fs.statSync(lockBgPath).size > 10000, '暗号锁屏壁纸文件异常');
+
+    // 验证 SW 缓存
+    const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+    assert.ok(swContent.includes('assets/lock-bg.jpg'), 'sw.js 必须包含 lock-bg.jpg 缓存');
+
+    // 验证 index.html UI 与逻辑
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    assert.ok(html.includes('lock-screen-container'), '缺少锁屏界面容器 .lock-screen-container');
+    assert.ok(html.includes('v-if="isLocked"'), '缺少 isLocked 状态条件控制');
+    assert.ok(html.includes('v-if="!isLocked"'), '主视图缺少 !isLocked 保护');
+    assert.ok(html.includes('暗号，我不需要暗号'), '缺少【暗号，我不需要暗号】选项框');
+    assert.ok(html.includes('确认'), '缺少居中输入后的【确认】确认框');
+    assert.ok(html.includes('isEnteringCode'), '缺少 isEnteringCode 响应式输入状态');
+    assert.ok(html.includes('不会吧不会吧，不会有人忘了暗号吧'), '缺少错误提示语【不会吧不会吧，不会有人忘了暗号吧】');
+    assert.ok(html.includes('SHA-256'), '缺少 SHA-256 哈希加密算法');
+    assert.ok(html.includes('visibilitychange'), '缺少 visibilitychange 离屏监听');
+    assert.ok(html.includes('120000'), '缺少 2分钟 (120,000ms) 自动上锁时间阈值');
+    assert.ok(html.includes('background: transparent !important'), '锁屏输入框或按钮缺少透明背景样式');
+  });
+
+  // 7. HTTP 服务器端点响应测试
   await testAsync('测试本地 HTTP 服务端点状态与 MIME 类型', async () => {
     // 动态启动一个测试端口服务
     const TEST_PORT = 9123;
