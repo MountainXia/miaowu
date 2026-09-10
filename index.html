@@ -1404,12 +1404,205 @@
       font-size: 36px;
       opacity: 0.6;
     }
+
+    /* ================================================= */
+    /* 锁屏界面 (全屏独立覆盖与透明输入框/按钮)           */
+    /* ================================================= */
+    .lock-screen-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 9999;
+      background-color: #0b0f19;
+      background-image: url('assets/lock-bg.jpg');
+      background-position: center 20%;
+      background-size: cover;
+      background-repeat: no-repeat;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      padding: env(safe-area-inset-top, 20px) 24px calc(38px + env(safe-area-inset-bottom, 20px));
+      box-sizing: border-box;
+      overflow: hidden;
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @media (max-width: 600px) {
+      .lock-screen-container {
+        background-position: center 10%;
+      }
+    }
+
+    /* 底部操作区域 (透明背景框) */
+    .lock-content-box {
+      width: 100%;
+      max-width: 360px;
+      background: transparent !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .lock-input-wrap {
+      width: 100%;
+      position: relative;
+    }
+
+    /* 透明密码输入框 */
+    .lock-transparent-input {
+      width: 100%;
+      background: transparent !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.75);
+      border-radius: 16px;
+      padding: 13px 18px;
+      font-size: 16px;
+      color: #ffffff;
+      text-align: center;
+      letter-spacing: 2px;
+      outline: none;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: all 0.2s ease;
+    }
+
+    .lock-transparent-input:focus {
+      border-color: #ffffff;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25), 0 6px 22px rgba(0, 0, 0, 0.5);
+    }
+
+    .lock-transparent-input::placeholder {
+      color: rgba(255, 255, 255, 0.75);
+      letter-spacing: 0px;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    /* 按钮组 */
+    .lock-btn-group {
+      width: 100%;
+      display: flex;
+      gap: 12px;
+    }
+
+    /* 透明按钮 */
+    .lock-transparent-btn {
+      flex: 1;
+      background: transparent !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.8);
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ffffff;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: all 0.2s ease;
+    }
+
+    .lock-transparent-btn:hover {
+      background: rgba(255, 255, 255, 0.18) !important;
+      border-color: #ffffff;
+      transform: translateY(-1px);
+    }
+
+    .lock-transparent-btn:active {
+      transform: translateY(1px);
+      background: rgba(255, 255, 255, 0.28) !important;
+    }
+
+    /* 错误提示 */
+    .lock-error-hint {
+      color: #fecdd3;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+      animation: fadeIn 0.2s ease;
+    }
+
+    /* 抖动动画 */
+    .shake-anim {
+      animation: lockShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes lockShake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
   </style>
 </head>
 <body>
   <div id="app">
-    <!-- 顶部状态栏 -->
-    <header class="app-header">
+    <!-- 锁屏独立全屏界面 (v-if="isLocked") -->
+    <div v-if="isLocked" class="lock-screen-container">
+      <!-- 首次欢迎界面 (尚未设置暗号记录) -->
+      <div v-if="!hasPasswordRecord" class="lock-content-box">
+        <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
+          <input
+            type="password"
+            v-model="passwordInput"
+            placeholder="输入你想约定的暗号..."
+            class="lock-transparent-input"
+            @keyup.enter="handleSetPassword"
+            autocomplete="new-password"
+          />
+        </div>
+
+        <div v-if="lockErrorMsg" class="lock-error-hint">
+          {{ lockErrorMsg }}
+        </div>
+
+        <div class="lock-btn-group">
+          <button class="lock-transparent-btn" @click="handleSetPassword">
+            约定一个暗号
+          </button>
+          <button class="lock-transparent-btn" @click="handleSkipPassword">
+            暗号？我不需要
+          </button>
+        </div>
+      </div>
+
+      <!-- 已有暗号记录时的解锁界面 -->
+      <div v-else class="lock-content-box">
+        <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
+          <input
+            type="password"
+            v-model="passwordInput"
+            placeholder="暗号"
+            class="lock-transparent-input"
+            @keyup.enter="handleUnlock"
+            autofocus
+            autocomplete="current-password"
+          />
+        </div>
+
+        <div v-if="lockErrorMsg" class="lock-error-hint">
+          {{ lockErrorMsg }}
+        </div>
+
+        <div class="lock-btn-group" style="width: 100%;">
+          <button class="lock-transparent-btn" style="width: 100%;" @click="handleUnlock">
+            暗号？我不需要
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主界面内容 (未锁定时显示) -->
+    <div v-if="!isLocked">
+      <!-- 顶部状态栏 -->
+      <header class="app-header">
       <div class="brand-group">
         <!-- 专属软萌可爱蓝猫头像 -->
         <img
@@ -1932,6 +2125,7 @@
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
     </button>
+  </div> <!-- 结束 !isLocked 主界面视图 -->
 
     <!-- ============================================== -->
     <!-- 弹窗 0: 猫咪主题切换弹窗 (大橘为重/小小神金/我很成熟) -->
@@ -2000,6 +2194,25 @@
               </div>
               <div class="theme-card-desc">🏛️ 科技商务点阵背景，经典深蓝与理性质感，沉稳大气。</div>
             </div>
+          </div>
+        <!-- 隐私暗号锁设置 -->
+        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">🔐 隐私暗号锁</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+              {{ hasPasswordRecord ? '已开启暗号保护 (离屏2分钟自动锁定)' : '当前未开启暗号保护' }}
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button v-if="hasPasswordRecord" class="btn-sm danger" @click="handleRemovePassword" style="font-size: 12px;">
+              清除暗号
+            </button>
+            <button class="btn-sm" @click="handleLockNow" v-if="hasPasswordRecord" style="font-size: 12px;">
+              立即上锁
+            </button>
+            <button class="btn-sm" @click="handleOpenPasswordSetup" v-else style="font-size: 12px;">
+              设置暗号
+            </button>
           </div>
         </div>
 
@@ -2247,6 +2460,13 @@
         const hideAmount = ref(localStorage.getItem('hideAmount') === 'true');
         const toastMessage = ref('');
         const showThemeModal = ref(false);
+
+        // 隐私暗号锁状态
+        const isLocked = ref(true);
+        const hasPasswordRecord = ref(false);
+        const passwordInput = ref('');
+        const lockErrorMsg = ref('');
+        const isShaking = ref(false);
 
         // 主题状态：'orange' (大橘为重), 'cow' (小小神金 - 奶牛猫), 'business' (我很成熟)
         const currentTheme = ref(localStorage.getItem('catTheme') || 'orange');
@@ -2867,7 +3087,157 @@
           }, 350);
         }
 
+        // ==============================================
+        // 隐私暗号锁核心逻辑 (SHA-256 哈希安全加密)
+        // ==============================================
+        async function hashPassword(str) {
+          if (!str) return '';
+          try {
+            if (window.crypto && window.crypto.subtle) {
+              const encoder = new TextEncoder();
+              const data = encoder.encode(str);
+              const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+              const hashArray = Array.from(new Uint8Array(hashBuffer));
+              return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+          } catch (e) {
+            console.warn('[Crypto] subtle SHA-256 fallback:', e);
+          }
+          // 备用 Hash 算法
+          let h1 = 0xdeadbeef, h2 = 0x41c64e6d;
+          for (let i = 0; i < str.length; i++) {
+            const ch = str.charCodeAt(i);
+            h1 = Math.imul(h1 ^ ch, 2654435761);
+            h2 = Math.imul(h2 ^ ch, 1597334677);
+          }
+          h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+          h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+          h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+          h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+          return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+        }
+
+        // 首次欢迎界面：约定一个暗号
+        async function handleSetPassword() {
+          const pwd = (passwordInput.value || '').trim();
+          if (!pwd) {
+            lockErrorMsg.value = '请输入你想约定的暗号喵~';
+            isShaking.value = true;
+            setTimeout(() => { isShaking.value = false; }, 500);
+            return;
+          }
+          const hash = await hashPassword(pwd);
+          localStorage.setItem('app_password_hash', hash);
+          localStorage.removeItem('app_password_skipped');
+          hasPasswordRecord.value = true;
+          isLocked.value = false;
+          passwordInput.value = '';
+          lockErrorMsg.value = '';
+          showToast('✨ 暗号已约定成功，粮仓安全加倍！');
+        }
+
+        // 首次欢迎界面：暗号？我不需要
+        function handleSkipPassword() {
+          localStorage.setItem('app_password_skipped', 'true');
+          isLocked.value = false;
+          passwordInput.value = '';
+          lockErrorMsg.value = '';
+          showToast('已进入粮仓，随时可在猫咪主题设置中开启暗号~');
+        }
+
+        // 解锁界面点击“暗号？我不需要”或回车解锁
+        async function handleUnlock() {
+          const pwd = passwordInput.value || '';
+          const savedHash = localStorage.getItem('app_password_hash');
+          if (!savedHash) {
+            isLocked.value = false;
+            return;
+          }
+          const enteredHash = await hashPassword(pwd);
+          if (enteredHash === savedHash) {
+            isLocked.value = false;
+            passwordInput.value = '';
+            lockErrorMsg.value = '';
+            showToast('🔓 暗号正确，欢迎回到粮仓！');
+          } else {
+            lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
+            isShaking.value = true;
+            setTimeout(() => { isShaking.value = false; }, 500);
+            passwordInput.value = '';
+          }
+        }
+
+        // 立即上锁
+        function handleLockNow() {
+          isLocked.value = true;
+          showThemeModal.value = false;
+          passwordInput.value = '';
+          lockErrorMsg.value = '';
+          showToast('🔒 粮仓已锁定');
+        }
+
+        // 清除暗号
+        function handleRemovePassword() {
+          if (confirm('确定要清除暗号吗？任何人打开应用将能直接查看您的粮仓数据。')) {
+            localStorage.removeItem('app_password_hash');
+            localStorage.removeItem('app_password_skipped');
+            hasPasswordRecord.value = false;
+            showToast('暗号已清除');
+          }
+        }
+
+        // 从主题弹窗打开暗号设置界面
+        function handleOpenPasswordSetup() {
+          showThemeModal.value = false;
+          passwordInput.value = '';
+          lockErrorMsg.value = '';
+          isLocked.value = true;
+        }
+
         onMounted(async () => {
+          // 初始化暗号锁状态检查
+          const savedPwdHash = localStorage.getItem('app_password_hash');
+          const isSkipped = localStorage.getItem('app_password_skipped') === 'true';
+          if (savedPwdHash) {
+            hasPasswordRecord.value = true;
+            isLocked.value = true;
+          } else {
+            hasPasswordRecord.value = false;
+            // 未设置密码时：若未选择过跳过，则展示首次欢迎界面
+            isLocked.value = !isSkipped;
+          }
+
+          // 监听退到后台与回到前台（离开超过 2 分钟自动上锁）
+          const handleVisibilityChange = () => {
+            const currentHash = localStorage.getItem('app_password_hash');
+            if (!currentHash) return; // 未设置暗号，不触发后台锁屏
+
+            if (document.visibilityState === 'hidden') {
+              localStorage.setItem('lastExitTime', Date.now().toString());
+            } else if (document.visibilityState === 'visible') {
+              const lastExit = parseInt(localStorage.getItem('lastExitTime') || '0', 10);
+              if (lastExit > 0) {
+                const elapsed = Date.now() - lastExit;
+                if (elapsed >= 120000) { // 2分钟 = 120,000 毫秒
+                  isLocked.value = true;
+                  passwordInput.value = '';
+                  lockErrorMsg.value = '';
+                  showThemeModal.value = false;
+                  showTxModal.value = false;
+                  showAdjustModal.value = false;
+                  showAccountModal.value = false;
+                }
+              }
+            }
+          };
+
+          document.addEventListener('visibilitychange', handleVisibilityChange);
+          window.addEventListener('pagehide', () => {
+            if (localStorage.getItem('app_password_hash')) {
+              localStorage.setItem('lastExitTime', Date.now().toString());
+            }
+          });
+
           // 应用初始主题
           const savedTheme = localStorage.getItem('catTheme') || 'orange';
           currentTheme.value = savedTheme;
@@ -2913,6 +3283,17 @@
         });
 
         return {
+          isLocked,
+          hasPasswordRecord,
+          passwordInput,
+          lockErrorMsg,
+          isShaking,
+          handleSetPassword,
+          handleSkipPassword,
+          handleUnlock,
+          handleLockNow,
+          handleRemovePassword,
+          handleOpenPasswordSetup,
           currentTab,
           hideAmount,
           toggleHideAmount,

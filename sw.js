@@ -3,7 +3,7 @@
  * 实现网络优先(页面) + 缓存优先(静态资源) 的智能离线策略
  */
 
-const CACHE_NAME = 'personal-asset-pwa-v10';
+const CACHE_NAME = 'personal-asset-pwa-v11';
 
 const STATIC_ASSETS = [
   './',
@@ -17,6 +17,7 @@ const STATIC_ASSETS = [
   './icons/icon.svg',
   './assets/bg-orange.png',
   './assets/bg-cow.png',
+  './assets/lock-bg.jpg',
   './vendor/vue.global.prod.js'
 ];
 
