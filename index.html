@@ -71,6 +71,7 @@
       --acc-bal-credit: #dc2626;
       --input-bg: #ffffff;
       --modal-bg: rgba(255, 255, 255, 0.96);
+      --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 16px);
     }
 
@@ -110,6 +111,7 @@
       --acc-bal-credit: #e11d48;
       --input-bg: #ffffff;
       --modal-bg: rgba(255, 255, 255, 0.96);
+      --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 16px);
     }
 
@@ -149,6 +151,7 @@
       --acc-bal-credit: #fb7185;
       --input-bg: #0b0f19;
       --modal-bg: rgba(19, 27, 46, 0.98);
+      --safe-top: env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 16px);
     }
 
@@ -191,15 +194,19 @@
       border-radius: 3px;
     }
 
-    /* 头部 Header */
+    /* 头部 Header (适配刘海屏与系统状态栏 Safe Area) */
     header.app-header {
       background: var(--header-bg);
       backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       position: sticky;
       top: 0;
       z-index: 40;
       border-bottom: 1px solid var(--border-subtle);
-      padding: 10px 16px;
+      padding-top: calc(10px + env(safe-area-inset-top, 0px));
+      padding-bottom: 10px;
+      padding-left: calc(16px + env(safe-area-inset-left, 0px));
+      padding-right: calc(16px + env(safe-area-inset-right, 0px));
       display: flex;
       align-items: center;
       justify-content: space-between;
