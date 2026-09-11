@@ -1544,6 +1544,43 @@
       text-decoration: underline;
     }
 
+    /* 密保问题展示徽标与辅助排版 */
+    .lock-question-badge {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.15) !important;
+      border: 1.5px dashed rgba(255, 255, 255, 0.8);
+      border-radius: 16px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #ffffff;
+      text-align: center;
+      font-weight: 600;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+      word-break: break-all;
+      box-sizing: border-box;
+    }
+
+    .lock-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+      margin-bottom: 2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lock-action-row {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+
     /* 错误提示 */
     .lock-error-hint {
       color: #fecdd3;
@@ -1572,46 +1609,172 @@
   <div id="app">
     <!-- 锁屏独立全屏界面 (v-if="isLocked") -->
     <div v-if="isLocked" class="lock-screen-container" :class="{ 'input-mode': isEnteringCode }">
-      <!-- 阶段 1: 只有“暗号”和“暗号，我不需要暗号”两个框 -->
-      <div v-if="!isEnteringCode" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
-        <button class="lock-transparent-btn" @click="handleChooseEnterCode">
-          暗号
-        </button>
-        <button class="lock-transparent-btn" @click="handleNoCodeNeeded">
-          暗号，我不需要暗号
-        </button>
+      
+      <!-- ============================================== -->
+      <!-- 场景 A: 首次未设置暗号流程 (!hasPasswordRecord) -->
+      <!-- ============================================== -->
+      <template v-if="!hasPasswordRecord">
+        <!-- 阶段 1: 首次选择（约定一个暗号 vs 我不需要暗号） -->
+        <div v-if="lockViewMode === 'choice'" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
+          <button class="lock-transparent-btn" @click="handleStartSetup">
+            约定一个暗号
+          </button>
+          <button class="lock-transparent-btn" @click="handleSkipPassword">
+            我不需要暗号
+          </button>
 
-        <div v-if="lockErrorMsg" class="lock-error-hint">
-          {{ lockErrorMsg }}
-        </div>
-      </div>
-
-      <!-- 阶段 2: 选择“暗号”后，“我不需要暗号”隐藏，“暗号”框居中，下方显示“确认”按钮 -->
-      <div v-else class="lock-content-box centered-box">
-        <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
-          <input
-            type="password"
-            v-model="passwordInput"
-            placeholder="暗号"
-            class="lock-transparent-input"
-            @keyup.enter="handleConfirmCode"
-            autofocus
-            autocomplete="current-password"
-          />
+          <div v-if="lockErrorMsg" class="lock-error-hint">
+            {{ lockErrorMsg }}
+          </div>
         </div>
 
-        <div v-if="lockErrorMsg" class="lock-error-hint">
-          {{ lockErrorMsg }}
+        <!-- 阶段 2: 居中设置暗号与自定义密保问题 -->
+        <div v-else-if="lockViewMode === 'setup'" class="lock-content-box centered-box">
+          <div class="lock-title">🔐 约定粮仓暗号与密保</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.8); margin-bottom: 2px;">
+            设置密保问题，若遗忘暗号可通过答案找回
+          </div>
+
+          <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
+            <input
+              type="password"
+              v-model="setupForm.password"
+              placeholder="输入你想约定的暗号..."
+              class="lock-transparent-input"
+              @keyup.enter="handleConfirmSetup"
+              autocomplete="new-password"
+            />
+          </div>
+
+          <div class="lock-input-wrap">
+            <input
+              type="text"
+              v-model="setupForm.question"
+              placeholder="自定义密保问题 (如: 第一只猫的名字)"
+              class="lock-transparent-input"
+              @keyup.enter="handleConfirmSetup"
+            />
+          </div>
+
+          <div class="lock-input-wrap">
+            <input
+              type="text"
+              v-model="setupForm.answer"
+              placeholder="输入密保答案 (找回暗号凭证)"
+              class="lock-transparent-input"
+              @keyup.enter="handleConfirmSetup"
+            />
+          </div>
+
+          <div v-if="lockErrorMsg" class="lock-error-hint">
+            {{ lockErrorMsg }}
+          </div>
+
+          <button class="lock-transparent-btn confirm-btn" @click="handleConfirmSetup">
+            确认
+          </button>
+
+          <button class="lock-back-link" @click="handleBackToChoice">
+            ← 返回
+          </button>
+        </div>
+      </template>
+
+      <!-- ============================================== -->
+      <!-- 场景 B: 已有暗号时的解锁与找回流程 (hasPasswordRecord) -->
+      <!-- ============================================== -->
+      <template v-else>
+        <!-- 阶段 1: 两个框（暗号 vs 暗号，我不需要暗号） -->
+        <div v-if="lockViewMode === 'choice'" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
+          <button class="lock-transparent-btn" @click="handleChooseEnterCode">
+            暗号
+          </button>
+          <button class="lock-transparent-btn" @click="handleNoCodeNeeded">
+            暗号，我不需要暗号
+          </button>
+
+          <div v-if="lockErrorMsg" class="lock-error-hint">
+            {{ lockErrorMsg }}
+          </div>
         </div>
 
-        <button class="lock-transparent-btn confirm-btn" @click="handleConfirmCode">
-          确认
-        </button>
+        <!-- 阶段 2: 居中输入暗号并确认 -->
+        <div v-else-if="lockViewMode === 'input'" class="lock-content-box centered-box">
+          <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
+            <input
+              ref="lockInputRef"
+              type="password"
+              v-model="passwordInput"
+              placeholder="暗号"
+              class="lock-transparent-input"
+              @keyup.enter="handleConfirmCode"
+              autofocus
+              autocomplete="current-password"
+            />
+          </div>
 
-        <button class="lock-back-link" @click="handleBackToChoice">
-          ← 返回
-        </button>
-      </div>
+          <div v-if="lockErrorMsg" class="lock-error-hint">
+            {{ lockErrorMsg }}
+          </div>
+
+          <button class="lock-transparent-btn confirm-btn" @click="handleConfirmCode">
+            确认
+          </button>
+
+          <div class="lock-action-row">
+            <button class="lock-back-link" @click="handleOpenForgotPassword">
+              ❓ 忘记暗号？
+            </button>
+            <button class="lock-back-link" @click="handleBackToChoice">
+              ← 返回
+            </button>
+          </div>
+        </div>
+
+        <!-- 阶段 3: 忘记暗号 - 凭密保问题找回并设置新暗号 -->
+        <div v-else-if="lockViewMode === 'forgot'" class="lock-content-box centered-box">
+          <div class="lock-title">🐾 密保找回并设置新暗号</div>
+
+          <!-- 显示之前约定的密保问题 -->
+          <div class="lock-question-badge">
+            密保问题：{{ savedSecurityQuestion || '你预设的密保问题' }}
+          </div>
+
+          <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
+            <input
+              type="text"
+              v-model="forgotForm.answer"
+              placeholder="输入密保答案..."
+              class="lock-transparent-input"
+              @keyup.enter="handleConfirmResetPassword"
+              autofocus
+            />
+          </div>
+
+          <div class="lock-input-wrap">
+            <input
+              type="password"
+              v-model="forgotForm.newPassword"
+              placeholder="设置新暗号..."
+              class="lock-transparent-input"
+              @keyup.enter="handleConfirmResetPassword"
+            />
+          </div>
+
+          <div v-if="lockErrorMsg" class="lock-error-hint">
+            {{ lockErrorMsg }}
+          </div>
+
+          <button class="lock-transparent-btn confirm-btn" @click="handleConfirmResetPassword">
+            确认重置并进入
+          </button>
+
+          <button class="lock-back-link" @click="lockViewMode = 'input'; lockErrorMsg = '';">
+            ← 返回暗号解锁
+          </button>
+        </div>
+      </template>
+
     </div>
 
     <!-- 主界面内容 (未锁定时显示) -->
@@ -2476,13 +2639,28 @@
         const toastMessage = ref('');
         const showThemeModal = ref(false);
 
-        // 隐私暗号锁状态
+        // 隐私暗号锁与密保状态
         const isLocked = ref(true);
         const hasPasswordRecord = ref(false);
-        const isEnteringCode = ref(false);
+        const lockViewMode = ref('choice'); // 'choice' | 'input' | 'setup' | 'forgot'
+        const isEnteringCode = computed(() => lockViewMode.value !== 'choice');
         const passwordInput = ref('');
+        const savedSecurityQuestion = ref(localStorage.getItem('app_security_question') || '');
         const lockErrorMsg = ref('');
         const isShaking = ref(false);
+
+        // 首次约定暗号表单 (暗号 + 自定义密保问题与答案)
+        const setupForm = reactive({
+          password: '',
+          question: '',
+          answer: ''
+        });
+
+        // 忘记暗号找回表单 (密保答案 + 新暗号)
+        const forgotForm = reactive({
+          answer: '',
+          newPassword: ''
+        });
 
         // 主题状态：'orange' (大橘为重), 'cow' (小小神金 - 奶牛猫), 'business' (我很成熟)
         const currentTheme = ref(localStorage.getItem('catTheme') || 'orange');
@@ -3133,9 +3311,71 @@
           return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
         }
 
-        // 点击主选项【暗号】：隐藏另一个框，输入框居中
+        // 密保答案安全哈希
+        async function hashSecurityAnswer(str) {
+          return await hashPassword((str || '').trim().toLowerCase());
+        }
+
+        // 首次欢迎界面：点击【约定一个暗号】
+        function handleStartSetup() {
+          lockViewMode.value = 'setup';
+          lockErrorMsg.value = '';
+          setupForm.password = '';
+          setupForm.question = '';
+          setupForm.answer = '';
+          setTimeout(() => {
+            const input = document.querySelector('.lock-transparent-input');
+            if (input) input.focus();
+          }, 80);
+        }
+
+        // 首次欢迎界面：点击【我不需要暗号】
+        function handleSkipPassword() {
+          localStorage.setItem('app_password_skipped', 'true');
+          isLocked.value = false;
+          lockViewMode.value = 'choice';
+          setupForm.password = '';
+          setupForm.question = '';
+          setupForm.answer = '';
+          lockErrorMsg.value = '';
+          showToast('已进入粮仓，随时可在猫咪主题设置中开启暗号~');
+        }
+
+        // 首次欢迎界面：提交【暗号】与【密保问题】
+        async function handleConfirmSetup() {
+          const pwd = (setupForm.password || '').trim();
+          const q = (setupForm.question || '').trim();
+          const a = (setupForm.answer || '').trim();
+
+          if (!pwd || !q || !a) {
+            lockErrorMsg.value = '请完整填写暗号、密保问题与答案喵~';
+            isShaking.value = true;
+            setTimeout(() => { isShaking.value = false; }, 500);
+            return;
+          }
+
+          const pwdHash = await hashPassword(pwd);
+          const ansHash = await hashSecurityAnswer(a);
+
+          localStorage.setItem('app_password_hash', pwdHash);
+          localStorage.setItem('app_security_question', q);
+          localStorage.setItem('app_security_answer_hash', ansHash);
+          localStorage.removeItem('app_password_skipped');
+
+          savedSecurityQuestion.value = q;
+          hasPasswordRecord.value = true;
+          isLocked.value = false;
+          lockViewMode.value = 'choice';
+          setupForm.password = '';
+          setupForm.question = '';
+          setupForm.answer = '';
+          lockErrorMsg.value = '';
+          showToast('✨ 暗号与密保约定成功，粮仓安全加倍！');
+        }
+
+        // 解锁界面：点击主选项【暗号】进入输入
         function handleChooseEnterCode() {
-          isEnteringCode.value = true;
+          lockViewMode.value = 'input';
           lockErrorMsg.value = '';
           passwordInput.value = '';
           setTimeout(() => {
@@ -3144,99 +3384,129 @@
           }, 80);
         }
 
-        // 返回两框选择状态
+        // 返回两框初选状态
         function handleBackToChoice() {
-          isEnteringCode.value = false;
+          lockViewMode.value = 'choice';
           lockErrorMsg.value = '';
           passwordInput.value = '';
+          setupForm.password = '';
+          setupForm.question = '';
+          setupForm.answer = '';
+          forgotForm.answer = '';
+          forgotForm.newPassword = '';
         }
 
-        // 点击【暗号，我不需要暗号】
+        // 解锁界面：点击【暗号，我不需要暗号】
         function handleNoCodeNeeded() {
-          if (!hasPasswordRecord.value) {
-            // 首次无密码：选择不需要暗号，直接跳过并进入页面
-            localStorage.setItem('app_password_skipped', 'true');
-            isLocked.value = false;
-            isEnteringCode.value = false;
-            passwordInput.value = '';
-            lockErrorMsg.value = '';
-            showToast('已进入粮仓，随时可在猫咪主题设置中开启暗号~');
-          } else {
-            // 已设置过暗号：点击不需要暗号，给出调侃提示
-            lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
-            isShaking.value = true;
-            setTimeout(() => { isShaking.value = false; }, 500);
-          }
+          lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
+          isShaking.value = true;
+          setTimeout(() => { isShaking.value = false; }, 500);
         }
 
-        // 点击【确认】或回车提交暗号
+        // 解锁界面：点击【确认】或回车校验暗号
         async function handleConfirmCode() {
           const pwd = (passwordInput.value || '').trim();
           if (!pwd) {
-            lockErrorMsg.value = hasPasswordRecord.value 
-              ? '不会吧不会吧，不会有人忘了暗号吧' 
-              : '请输入你想约定的暗号喵~';
+            lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
             isShaking.value = true;
             setTimeout(() => { isShaking.value = false; }, 500);
             return;
           }
 
-          if (!hasPasswordRecord.value) {
-            // 首次设置暗号
-            const hash = await hashPassword(pwd);
-            localStorage.setItem('app_password_hash', hash);
-            localStorage.removeItem('app_password_skipped');
-            hasPasswordRecord.value = true;
+          const savedHash = localStorage.getItem('app_password_hash');
+          const enteredHash = await hashPassword(pwd);
+          if (enteredHash === savedHash) {
             isLocked.value = false;
-            isEnteringCode.value = false;
+            lockViewMode.value = 'choice';
             passwordInput.value = '';
             lockErrorMsg.value = '';
-            showToast('✨ 暗号已约定成功，粮仓安全加倍！');
+            showToast('🔓 暗号正确，欢迎回到粮仓！');
           } else {
-            // 校验已有暗号
-            const savedHash = localStorage.getItem('app_password_hash');
-            const enteredHash = await hashPassword(pwd);
-            if (enteredHash === savedHash) {
-              isLocked.value = false;
-              isEnteringCode.value = false;
-              passwordInput.value = '';
-              lockErrorMsg.value = '';
-              showToast('🔓 暗号正确，欢迎回到粮仓！');
-            } else {
-              lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
-              isShaking.value = true;
-              setTimeout(() => { isShaking.value = false; }, 500);
-              passwordInput.value = '';
-            }
+            lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
+            isShaking.value = true;
+            setTimeout(() => { isShaking.value = false; }, 500);
+            passwordInput.value = '';
           }
+        }
+
+        // 解锁界面：打开【忘记暗号】找回界面
+        function handleOpenForgotPassword() {
+          lockViewMode.value = 'forgot';
+          lockErrorMsg.value = '';
+          forgotForm.answer = '';
+          forgotForm.newPassword = '';
+          savedSecurityQuestion.value = localStorage.getItem('app_security_question') || '你预设的密保问题';
+          setTimeout(() => {
+            const input = document.querySelector('.lock-content-box.centered-box input');
+            if (input) input.focus();
+          }, 80);
+        }
+
+        // 忘记暗号界面：点击【确认重置并进入】
+        async function handleConfirmResetPassword() {
+          const ans = (forgotForm.answer || '').trim();
+          const newPwd = (forgotForm.newPassword || '').trim();
+
+          if (!ans || !newPwd) {
+            lockErrorMsg.value = '请填写密保答案与新暗号喵~';
+            isShaking.value = true;
+            setTimeout(() => { isShaking.value = false; }, 500);
+            return;
+          }
+
+          const savedAnsHash = localStorage.getItem('app_security_answer_hash');
+          const enteredAnsHash = await hashSecurityAnswer(ans);
+
+          // 校验密保答案
+          if (savedAnsHash && enteredAnsHash !== savedAnsHash) {
+            lockErrorMsg.value = '密保答案不正确，再想想喵~';
+            isShaking.value = true;
+            setTimeout(() => { isShaking.value = false; }, 500);
+            return;
+          }
+
+          // 验证通过，重置为新暗号
+          const newPwdHash = await hashPassword(newPwd);
+          localStorage.setItem('app_password_hash', newPwdHash);
+          isLocked.value = false;
+          lockViewMode.value = 'choice';
+          forgotForm.answer = '';
+          forgotForm.newPassword = '';
+          lockErrorMsg.value = '';
+          showToast('🎉 暗号已重新设置并成功解锁！');
         }
 
         // 立即上锁
         function handleLockNow() {
           isLocked.value = true;
-          isEnteringCode.value = false;
+          lockViewMode.value = 'choice';
           showThemeModal.value = false;
           passwordInput.value = '';
           lockErrorMsg.value = '';
           showToast('🔒 粮仓已锁定');
         }
 
-        // 清除暗号
+        // 清除暗号与密保
         function handleRemovePassword() {
-          if (confirm('确定要清除暗号吗？任何人打开应用将能直接查看您的粮仓数据。')) {
+          if (confirm('确定要清除暗号与密保吗？任何人打开应用将能直接查看您的粮仓数据。')) {
             localStorage.removeItem('app_password_hash');
+            localStorage.removeItem('app_security_question');
+            localStorage.removeItem('app_security_answer_hash');
             localStorage.removeItem('app_password_skipped');
             hasPasswordRecord.value = false;
-            isEnteringCode.value = false;
-            showToast('暗号已清除');
+            lockViewMode.value = 'choice';
+            savedSecurityQuestion.value = '';
+            showToast('暗号与密保已清除');
           }
         }
 
         // 从主题弹窗打开暗号设置界面
         function handleOpenPasswordSetup() {
           showThemeModal.value = false;
-          isEnteringCode.value = true;
-          passwordInput.value = '';
+          lockViewMode.value = 'setup';
+          setupForm.password = '';
+          setupForm.question = '';
+          setupForm.answer = '';
           lockErrorMsg.value = '';
           isLocked.value = true;
           setTimeout(() => {
@@ -3249,13 +3519,13 @@
           // 初始化暗号锁状态检查
           const savedPwdHash = localStorage.getItem('app_password_hash');
           const isSkipped = localStorage.getItem('app_password_skipped') === 'true';
-          isEnteringCode.value = false;
+          lockViewMode.value = 'choice';
           if (savedPwdHash) {
             hasPasswordRecord.value = true;
             isLocked.value = true;
           } else {
             hasPasswordRecord.value = false;
-            // 未设置密码时：若未选择过跳过，则展示首次欢迎界面
+            // 未设置密码时：若未选择过跳过，则展示首次欢迎双框
             isLocked.value = !isSkipped;
           }
 
@@ -3272,7 +3542,7 @@
                 const elapsed = Date.now() - lastExit;
                 if (elapsed >= 120000) { // 2分钟 = 120,000 毫秒
                   isLocked.value = true;
-                  isEnteringCode.value = false;
+                  lockViewMode.value = 'choice';
                   passwordInput.value = '';
                   lockErrorMsg.value = '';
                   showThemeModal.value = false;
@@ -3338,14 +3608,23 @@
         return {
           isLocked,
           hasPasswordRecord,
+          lockViewMode,
           isEnteringCode,
           passwordInput,
+          savedSecurityQuestion,
+          setupForm,
+          forgotForm,
           lockErrorMsg,
           isShaking,
+          handleStartSetup,
+          handleSkipPassword,
+          handleConfirmSetup,
           handleChooseEnterCode,
           handleBackToChoice,
           handleNoCodeNeeded,
           handleConfirmCode,
+          handleOpenForgotPassword,
+          handleConfirmResetPassword,
           handleLockNow,
           handleRemovePassword,
           handleOpenPasswordSetup,

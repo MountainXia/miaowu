@@ -261,8 +261,12 @@ async function runAllTests() {
     assert.ok(html.includes('lock-screen-container'), '缺少锁屏界面容器 .lock-screen-container');
     assert.ok(html.includes('v-if="isLocked"'), '缺少 isLocked 状态条件控制');
     assert.ok(html.includes('v-if="!isLocked"'), '主视图缺少 !isLocked 保护');
-    assert.ok(html.includes('暗号，我不需要暗号'), '缺少【暗号，我不需要暗号】选项框');
+    assert.ok(html.includes('约定一个暗号'), '缺少首次登录选项【约定一个暗号】');
+    assert.ok(html.includes('我不需要暗号'), '缺少首次登录选项【我不需要暗号】');
+    assert.ok(html.includes('暗号，我不需要暗号'), '缺少解锁选项【暗号，我不需要暗号】');
     assert.ok(html.includes('确认'), '缺少居中输入后的【确认】确认框');
+    assert.ok(html.includes('忘记暗号'), '缺少【忘记暗号】找回入口');
+    assert.ok(html.includes('密保问题'), '缺少密保问题设置与验证');
     assert.ok(html.includes('isEnteringCode'), '缺少 isEnteringCode 响应式输入状态');
     assert.ok(html.includes('不会吧不会吧，不会有人忘了暗号吧'), '缺少错误提示语【不会吧不会吧，不会有人忘了暗号吧】');
     assert.ok(html.includes('SHA-256'), '缺少 SHA-256 哈希加密算法');
