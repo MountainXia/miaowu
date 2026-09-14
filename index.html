@@ -1615,7 +1615,7 @@
       <!-- ============================================== -->
       <template v-if="!hasPasswordRecord">
         <!-- 阶段 1: 首次选择（约定一个暗号 vs 我不需要暗号） -->
-        <div v-if="lockViewMode === 'choice'" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
+        <div v-show="lockViewMode === 'choice'" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
           <button class="lock-transparent-btn" @click="handleStartSetup">
             约定一个暗号
           </button>
@@ -1629,7 +1629,7 @@
         </div>
 
         <!-- 阶段 2: 居中设置暗号与自定义密保问题 -->
-        <div v-else-if="lockViewMode === 'setup'" class="lock-content-box centered-box">
+        <div v-show="lockViewMode === 'setup'" class="lock-content-box centered-box">
           <div class="lock-title">🔐 约定粮仓暗号与密保</div>
           <div style="font-size: 11px; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.8); margin-bottom: 2px;">
             设置密保问题，若遗忘暗号可通过答案找回
@@ -1637,12 +1637,14 @@
 
           <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
             <input
+              ref="setupInputRef"
               type="password"
               v-model="setupForm.password"
               placeholder="输入你想约定的暗号..."
               class="lock-transparent-input"
               @keyup.enter="handleConfirmSetup"
               autocomplete="new-password"
+              :tabindex="lockViewMode === 'setup' ? 0 : -1"
             />
           </div>
 
@@ -1653,6 +1655,7 @@
               placeholder="自定义密保问题 (如: 第一只猫的名字)"
               class="lock-transparent-input"
               @keyup.enter="handleConfirmSetup"
+              :tabindex="lockViewMode === 'setup' ? 0 : -1"
             />
           </div>
 
@@ -1663,6 +1666,7 @@
               placeholder="输入密保答案 (找回暗号凭证)"
               class="lock-transparent-input"
               @keyup.enter="handleConfirmSetup"
+              :tabindex="lockViewMode === 'setup' ? 0 : -1"
             />
           </div>
 
@@ -1685,7 +1689,7 @@
       <!-- ============================================== -->
       <template v-else>
         <!-- 阶段 1: 两个框（暗号 vs 暗号，我不需要暗号） -->
-        <div v-if="lockViewMode === 'choice'" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
+        <div v-show="lockViewMode === 'choice'" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
           <button class="lock-transparent-btn" @click="handleChooseEnterCode">
             暗号
           </button>
@@ -1699,8 +1703,12 @@
         </div>
 
         <!-- 阶段 2: 居中输入暗号并确认 -->
-        <div v-else-if="lockViewMode === 'input'" class="lock-content-box centered-box">
-          <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
+        <div
+          v-show="lockViewMode === 'input'"
+          class="lock-content-box centered-box"
+          @click="focusLockInput"
+        >
+          <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }" @click="focusLockInput">
             <input
               ref="lockInputRef"
               type="password"
@@ -1710,6 +1718,7 @@
               @keyup.enter="handleConfirmCode"
               autofocus
               autocomplete="current-password"
+              :tabindex="lockViewMode === 'input' ? 0 : -1"
             />
           </div>
 
@@ -1732,7 +1741,7 @@
         </div>
 
         <!-- 阶段 3: 忘记暗号 - 凭密保问题找回并设置新暗号 -->
-        <div v-else-if="lockViewMode === 'forgot'" class="lock-content-box centered-box">
+        <div v-show="lockViewMode === 'forgot'" class="lock-content-box centered-box">
           <div class="lock-title">🐾 密保找回并设置新暗号</div>
 
           <!-- 显示之前约定的密保问题 -->
@@ -1742,12 +1751,14 @@
 
           <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }">
             <input
+              ref="forgotInputRef"
               type="text"
               v-model="forgotForm.answer"
               placeholder="输入密保答案..."
               class="lock-transparent-input"
               @keyup.enter="handleConfirmResetPassword"
               autofocus
+              :tabindex="lockViewMode === 'forgot' ? 0 : -1"
             />
           </div>
 
@@ -1758,6 +1769,7 @@
               placeholder="设置新暗号..."
               class="lock-transparent-input"
               @keyup.enter="handleConfirmResetPassword"
+              :tabindex="lockViewMode === 'forgot' ? 0 : -1"
             />
           </div>
 
@@ -1798,7 +1810,7 @@
               <span>{{ currentThemeTitle }}</span>
             </span>
           </div>
-          <div class="brand-subtitle">{{ currentDateText }} · 私密安全粮仓</div>
+          <div class="brand-subtitle">一个懂事的粮仓</div>
         </div>
       </div>
 
@@ -2184,7 +2196,7 @@
           <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
             暂无资产账户，点击下方按钮添加您的第一个银行卡、零钱或理财账户吧 🐾
           </div>
-          <button class="btn-primary" @click="openNewAccountModal" style="margin: 0 auto; display: inline-flex;">
+          <button class="btn-primary" @click="openAddAccountModal" style="margin: 0 auto; display: inline-flex;">
             + 快速添加第一个账户
           </button>
         </div>
@@ -2297,8 +2309,8 @@
       </button>
     </nav>
 
-    <!-- 悬浮快捷记账按钮 (FAB) -->
-    <button class="fab-btn" @click="openNewTxModal" title="快速记一笔">
+    <!-- 悬浮快捷操作按钮 (FAB: 账户页开添加账户，其他开记账) -->
+    <button class="fab-btn" @click="handleFabClick" :title="currentTab === 'accounts' || accounts.length === 0 ? '添加账户' : '快速记一笔'">
       <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
@@ -2630,7 +2642,7 @@
   </div>
 
   <script>
-    const { createApp, ref, reactive, computed, onMounted } = Vue;
+    const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
 
     createApp({
       setup() {
@@ -2638,6 +2650,17 @@
         const hideAmount = ref(localStorage.getItem('hideAmount') === 'true');
         const toastMessage = ref('');
         const showThemeModal = ref(false);
+
+        // 密码输入框与密保 DOM 引用 (确保点击选项后可直接自动获得焦点并拉起输入法)
+        const lockInputRef = ref(null);
+        const setupInputRef = ref(null);
+        const forgotInputRef = ref(null);
+
+        function focusLockInput() {
+          if (lockInputRef.value) {
+            lockInputRef.value.focus();
+          }
+        }
 
         // 隐私暗号锁与密保状态
         const isLocked = ref(true);
@@ -3104,6 +3127,7 @@
           if (accounts.value.length === 0) {
             showToast('请先创建至少一个账户');
             currentTab.value = 'accounts';
+            openAddAccountModal();
             return;
           }
           txForm.type = 'expense';
@@ -3115,6 +3139,18 @@
           txForm.notes = '';
           showTxModal.value = true;
         }
+
+        // 右下角悬浮 "+" 按钮统一入口：智能分流
+        function handleFabClick() {
+          if (currentTab.value === 'accounts' || accounts.value.length === 0) {
+            openAddAccountModal();
+          } else {
+            openNewTxModal();
+          }
+        }
+
+        // 兼容别名：确保快速添加第一个账户与快速添加账户均正常调起
+        const openNewAccountModal = openAddAccountModal;
 
         function setTxType(type) {
           txForm.type = type;
@@ -3316,17 +3352,32 @@
           return await hashPassword((str || '').trim().toLowerCase());
         }
 
-        // 首次欢迎界面：点击【约定一个暗号】
+        // 首次欢迎界面：点击【约定一个暗号】直接进入并即刻聚焦
         function handleStartSetup() {
           lockViewMode.value = 'setup';
           lockErrorMsg.value = '';
           setupForm.password = '';
           setupForm.question = '';
           setupForm.answer = '';
+
+          if (setupInputRef.value) {
+            setupInputRef.value.focus();
+          }
+          nextTick(() => {
+            if (setupInputRef.value) {
+              setupInputRef.value.focus();
+            }
+          });
+          requestAnimationFrame(() => {
+            if (setupInputRef.value) {
+              setupInputRef.value.focus();
+            }
+          });
           setTimeout(() => {
-            const input = document.querySelector('.lock-transparent-input');
-            if (input) input.focus();
-          }, 80);
+            if (setupInputRef.value) {
+              setupInputRef.value.focus();
+            }
+          }, 50);
         }
 
         // 首次欢迎界面：点击【我不需要暗号】
@@ -3373,15 +3424,37 @@
           showToast('✨ 暗号与密保约定成功，粮仓安全加倍！');
         }
 
-        // 解锁界面：点击主选项【暗号】进入输入
+        // 解锁界面：点击主选项【暗号】直接进入输入并确保即刻聚焦
         function handleChooseEnterCode() {
           lockViewMode.value = 'input';
           lockErrorMsg.value = '';
           passwordInput.value = '';
+
+          // 1. 同步手势调用聚焦 (兼容移动端浏览器安全要求)
+          if (lockInputRef.value) {
+            lockInputRef.value.focus();
+          }
+
+          // 2. Vue DOM 更新后再次加固聚焦
+          nextTick(() => {
+            if (lockInputRef.value) {
+              lockInputRef.value.focus();
+            }
+          });
+
+          // 3. 动画帧确保首帧渲染完成无缝处于输入聚焦状态
+          requestAnimationFrame(() => {
+            if (lockInputRef.value) {
+              lockInputRef.value.focus();
+            }
+          });
+
+          // 4. 定时器兜底兼容
           setTimeout(() => {
-            const input = document.querySelector('.lock-transparent-input');
-            if (input) input.focus();
-          }, 80);
+            if (lockInputRef.value) {
+              lockInputRef.value.focus();
+            }
+          }, 50);
         }
 
         // 返回两框初选状态
@@ -3429,17 +3502,32 @@
           }
         }
 
-        // 解锁界面：打开【忘记暗号】找回界面
+        // 解锁界面：打开【忘记暗号】找回界面并即刻聚焦答案输入框
         function handleOpenForgotPassword() {
           lockViewMode.value = 'forgot';
           lockErrorMsg.value = '';
           forgotForm.answer = '';
           forgotForm.newPassword = '';
           savedSecurityQuestion.value = localStorage.getItem('app_security_question') || '你预设的密保问题';
+
+          if (forgotInputRef.value) {
+            forgotInputRef.value.focus();
+          }
+          nextTick(() => {
+            if (forgotInputRef.value) {
+              forgotInputRef.value.focus();
+            }
+          });
+          requestAnimationFrame(() => {
+            if (forgotInputRef.value) {
+              forgotInputRef.value.focus();
+            }
+          });
           setTimeout(() => {
-            const input = document.querySelector('.lock-content-box.centered-box input');
-            if (input) input.focus();
-          }, 80);
+            if (forgotInputRef.value) {
+              forgotInputRef.value.focus();
+            }
+          }, 50);
         }
 
         // 忘记暗号界面：点击【确认重置并进入】
@@ -3509,10 +3597,24 @@
           setupForm.answer = '';
           lockErrorMsg.value = '';
           isLocked.value = true;
+          if (setupInputRef.value) {
+            setupInputRef.value.focus();
+          }
+          nextTick(() => {
+            if (setupInputRef.value) {
+              setupInputRef.value.focus();
+            }
+          });
+          requestAnimationFrame(() => {
+            if (setupInputRef.value) {
+              setupInputRef.value.focus();
+            }
+          });
           setTimeout(() => {
-            const input = document.querySelector('.lock-transparent-input');
-            if (input) input.focus();
-          }, 80);
+            if (setupInputRef.value) {
+              setupInputRef.value.focus();
+            }
+          }, 50);
         }
 
         onMounted(async () => {
@@ -3611,6 +3713,10 @@
           lockViewMode,
           isEnteringCode,
           passwordInput,
+          lockInputRef,
+          setupInputRef,
+          forgotInputRef,
+          focusLockInput,
           savedSecurityQuestion,
           setupForm,
           forgotForm,
@@ -3677,15 +3783,18 @@
           getCategoryColor,
           refreshAllData,
           openNewTxModal,
+          handleFabClick,
           setTxType,
           submitTransaction,
           confirmDeleteTx,
           openAdjustModal,
           submitAdjustBalance,
           openAddAccountModal,
+          openNewAccountModal,
           openEditAccountModal,
           submitAccountForm,
           confirmDeleteAccount,
+          confirmClearAllData,
           forceReloadApp
         };
       }
