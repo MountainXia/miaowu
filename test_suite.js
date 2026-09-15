@@ -383,30 +383,37 @@ async function runAllTests() {
     assert.ok(amounts.includes(125.6), '应包含盒马鲜生 125.60');
   });
 
-  // 10. 版本迭代历史 (Changelog) 与当前版本号规范
-  test('验证版本迭代历史 (Changelog) 与当前版本号规范', () => {
+  // 10. 极简顶栏规范与应用设置四大模块 (主题/暗号/重置/版本历史)
+  test('验证极简顶栏规范与应用设置四大模块 (主题/暗号/重置/版本历史)', () => {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
-    // 1. 响应式与数据结构检查
-    assert.ok(html.includes('showVersionModal'), 'Vue 状态中应定义 showVersionModal');
-    assert.ok(html.includes('currentVersion'), 'Vue 状态中应定义 currentVersion');
-    assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应定义 versionHistoryList');
+    // 1. 验证顶栏干净极简：只保留头像标识、应用标题、副标题、隐藏资产与刷新
+    assert.ok(html.includes('brand-cat-avatar'), '顶栏应保留应用图像标识 brand-cat-avatar');
+    assert.ok(html.includes('喵的粮仓'), '顶栏应包含品牌名称 喵的粮仓');
+    assert.ok(html.includes('一个懂事的粮仓'), '顶栏应包含纯净副标题 一个懂事的粮仓');
+    assert.ok(html.includes('toggleHideAmount'), '顶栏应保留资产隐藏/显示按钮');
+    assert.ok(html.includes('refreshAllData'), '顶栏应保留数据刷新按钮');
 
-    // 2. 检查 setup return 暴露
-    assert.ok(/return\s*\{[\s\S]*showVersionModal[\s\S]*currentVersion[\s\S]*versionHistoryList[\s\S]*\}/.test(html), 'setup 返回对象必须包含版本相关变量');
+    // 验证顶栏已彻底清除冗余元素 (无主题角标、无版本号角标、无独立图标按钮)
+    assert.ok(!html.includes('brand-tag-badge'), '顶栏不应包含版本号徽标');
+    assert.ok(!html.includes('class="icon-btn theme-btn"'), '顶栏操作区不应包含主题切换按钮');
 
-    // 3. 检查三大 UI 入口触发点
-    assert.ok(html.includes('version-tag-badge'), 'Header 副标题应包含版本号徽标入口');
-    assert.ok(html.includes('📜'), 'Header 操作区应包含 📜 迭代历史图标按钮');
-    assert.ok(html.includes('查看版本迭代历史'), '主题设置弹窗应包含进入迭代历史按钮');
+    // 2. 验证头像整合为应用设置入口
+    assert.ok(html.includes("openSettingsModal('theme')"), '点击应用头像应打开应用设置');
 
-    // 4. 检查版本历史弹窗 DOM 结构
-    assert.ok(html.includes('version-modal-box'), '应包含版本弹窗容器 .version-modal-box');
-    assert.ok(html.includes('version-current-banner'), '应包含当前运行版本突出横幅 .version-current-banner');
-    assert.ok(html.includes('version-timeline-container'), '应包含时间轴列表容器 .version-timeline-container');
-    assert.ok(html.includes('version-card'), '应包含单版本卡片 .version-card');
-    assert.ok(html.includes('version-tag-pill'), '应包含版本 Pill 徽标');
-    assert.ok(html.includes('version-date'), '应包含版本迭代时间标签');
+    // 3. 验证应用设置四大核心功能模块切换
+    assert.ok(html.includes('settings-nav-tabs'), '设置弹窗应包含四大功能导航栏 .settings-nav-tabs');
+    assert.ok(html.includes("settingsTab === 'theme'"), '包含 模块1: 主题设置');
+    assert.ok(html.includes("settingsTab === 'security'"), '包含 模块2: 暗号设置');
+    assert.ok(html.includes("settingsTab === 'reset'"), '包含 模块3: 重置设置');
+    assert.ok(html.includes("settingsTab === 'version'"), '包含 模块4: 版本历史');
+
+    // 4. 验证版本历史模块在设置内的完整呈现
+    assert.ok(html.includes('version-current-banner'), '版本历史模块应包含当前版本横幅 .version-current-banner');
+    assert.ok(html.includes('version-timeline-container'), '应包含版本时间轴容器 .version-timeline-container');
+    assert.ok(html.includes('version-card'), '应包含版本卡片 .version-card');
+    assert.ok(html.includes('version-tag-pill'), '应包含版本标签 Pill');
+    assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
     // 5. 检查版本历程数据完整性 (从 v1.0 到 v3.2)
@@ -414,6 +421,12 @@ async function runAllTests() {
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
+
+    // 6. 检查 Vue 状态与方法暴露
+    assert.ok(html.includes('settingsTab'), 'Vue 状态中应包含 settingsTab');
+    assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
+    assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
+    assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
   });
 
   console.log(`\n测试完成: 共 ${total} 项测试，通过 ${passed} 项，失败 ${total - passed} 项。`);

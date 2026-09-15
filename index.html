@@ -236,13 +236,14 @@
     }
 
     .brand-title {
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 800;
       letter-spacing: -0.3px;
       color: var(--text-main);
       display: flex;
       align-items: center;
       gap: 6px;
+      white-space: nowrap;
     }
 
     .brand-tag {
@@ -265,9 +266,10 @@
     }
 
     .brand-subtitle {
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--text-muted);
       margin-top: 1px;
+      white-space: nowrap;
     }
 
     .header-actions {
@@ -1951,6 +1953,92 @@
       background: var(--primary);
       color: #fff;
     }
+
+    /* ================================================= */
+    /* 应用设置弹窗四大功能模块样式                        */
+    /* ================================================= */
+    .settings-nav-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: var(--bg-subtle);
+      padding: 5px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .settings-nav-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 7px 2px;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .settings-nav-tab:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.35);
+    }
+
+    .settings-nav-tab.active {
+      background: var(--bg-card);
+      color: var(--primary);
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .settings-tab-icon {
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .settings-tab-text {
+      white-space: nowrap;
+      letter-spacing: -0.2px;
+    }
+
+    .settings-module-body {
+      animation: fadeInFast 0.2s ease-out;
+    }
+
+    @keyframes fadeInFast {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .settings-module-header {
+      margin-bottom: 14px;
+    }
+
+    .settings-module-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .settings-module-desc {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .settings-card-box {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px;
+    }
   </style>
 </head>
 <body>
@@ -2142,39 +2230,21 @@
       <!-- 顶部状态栏 -->
       <header class="app-header">
       <div class="brand-group">
-        <!-- 专属软萌可爱蓝猫头像 -->
+        <!-- 专属软萌可爱蓝猫头像 (点击打开粮仓应用设置) -->
         <img
           src="icons/app-logo.jpg"
           class="brand-cat-avatar"
           alt="喵的粮仓猫咪"
-          @click="showThemeModal = true"
-          title="点击切换猫咪粮仓主题"
+          @click="openSettingsModal('theme')"
+          title="点击打开粮仓应用设置"
         />
         <div>
-          <div class="brand-title">
-            喵的粮仓
-            <span class="brand-tag" @click="showThemeModal = true" :title="'当前主题: ' + currentThemeTitle">
-              <span>{{ currentThemeEmoji }}</span>
-              <span>{{ currentThemeTitle }}</span>
-            </span>
-          </div>
-          <div class="brand-subtitle" style="display: flex; align-items: center; gap: 6px;">
-            <span>一个懂事的粮仓</span>
-            <span class="version-tag-badge" @click="showVersionModal = true" title="点击查看版本迭代历史 (当前 v3.2)">v3.2</span>
-          </div>
+          <div class="brand-title">喵的粮仓</div>
+          <div class="brand-subtitle">一个懂事的粮仓</div>
         </div>
       </div>
 
       <div class="header-actions">
-        <!-- 版本迭代历史按钮 -->
-        <button class="icon-btn" @click="showVersionModal = true" title="版本迭代历史 (当前 v3.2)">
-          <span style="font-size: 15px;">📜</span>
-        </button>
-
-        <!-- 主题切换按钮 -->
-        <button class="icon-btn theme-btn" @click="showThemeModal = true" title="切换主题 (大橘为重 / 小小神金 / 我很成熟)">
-          <span>🎨</span>
-        </button>
 
         <!-- 隐私模式切换 -->
         <button class="icon-btn" @click="toggleHideAmount" :title="hideAmount ? '显示金额' : '隐藏金额'">
@@ -2679,115 +2749,251 @@
   </div> <!-- 结束 !isLocked 主界面视图 -->
 
     <!-- ============================================== -->
-    <!-- 弹窗 0: 猫咪主题切换弹窗 (大橘为重/小小神金/我很成熟) -->
+    <!-- 弹窗 0: 粮仓应用设置 (主题/暗号/重置/版本历史)     -->
     <!-- ============================================== -->
     <div v-if="showThemeModal" class="modal-backdrop" @click.self="showThemeModal = false">
-      <div class="modal-box">
+      <div class="modal-box" style="max-width: 480px;">
         <div class="modal-header">
           <div class="modal-title">
-            <span>🎨 切换猫咪粮仓主题</span>
+            <span>⚙️ 粮仓应用设置</span>
           </div>
           <button class="btn-close" @click="showThemeModal = false">✕</button>
         </div>
 
-        <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-          精选三套个性化猫咪视觉皮肤，全屏搭载专属壁纸与背景图案：
+        <!-- 四大核心功能模块切换导航 -->
+        <div class="settings-nav-tabs">
+          <button
+            type="button"
+            class="settings-nav-tab"
+            :class="{ active: settingsTab === 'theme' }"
+            @click="settingsTab = 'theme'"
+          >
+            <span class="settings-tab-icon">🎨</span>
+            <span class="settings-tab-text">主题设置</span>
+          </button>
+          <button
+            type="button"
+            class="settings-nav-tab"
+            :class="{ active: settingsTab === 'security' }"
+            @click="settingsTab = 'security'"
+          >
+            <span class="settings-tab-icon">🔐</span>
+            <span class="settings-tab-text">暗号设置</span>
+          </button>
+          <button
+            type="button"
+            class="settings-nav-tab"
+            :class="{ active: settingsTab === 'reset' }"
+            @click="settingsTab = 'reset'"
+          >
+            <span class="settings-tab-icon">🧹</span>
+            <span class="settings-tab-text">重置设置</span>
+          </button>
+          <button
+            type="button"
+            class="settings-nav-tab"
+            :class="{ active: settingsTab === 'version' }"
+            @click="settingsTab = 'version'"
+          >
+            <span class="settings-tab-icon">📜</span>
+            <span class="settings-tab-text">版本历史</span>
+          </button>
         </div>
 
-        <div class="theme-options-grid">
-          <!-- 主题 1: 大橘为重 -->
-          <div
-            class="theme-card-option"
-            :class="{ active: currentTheme === 'orange' }"
-            @click="selectTheme('orange')"
-          >
-            <div class="theme-card-preview" style="background: url('assets/bg-orange.png') center bottom / cover no-repeat; border: 1.5px solid #fdba74;">
-            </div>
-            <div class="theme-card-info">
-              <div class="theme-card-title">
-                大橘为重
-                <span class="theme-active-tag" v-if="currentTheme === 'orange'">当前使用</span>
-              </div>
-              <div class="theme-card-desc">🐱 温暖浅黄暖阳房间，地板上熟睡的小橘猫专属插画壁纸。</div>
-            </div>
+        <!-- 模块 1: 主题设置 -->
+        <div v-if="settingsTab === 'theme'" class="settings-module-body">
+          <div class="settings-module-header">
+            <div class="settings-module-title">🎨 猫咪个性化视觉主题</div>
+            <div class="settings-module-desc">精选三套个性化视觉皮肤，全屏搭载专属插画壁纸与配色：</div>
           </div>
 
-          <!-- 主题 2: 小小神金 -->
-          <div
-            class="theme-card-option"
-            :class="{ active: currentTheme === 'cow' }"
-            @click="selectTheme('cow')"
-          >
-            <div class="theme-card-preview" style="background: url('assets/bg-cow.png') center bottom / cover no-repeat; border: 1.5px solid #cbd5e1;">
-            </div>
-            <div class="theme-card-info">
-              <div class="theme-card-title">
-                小小神金
-                <span class="theme-active-tag" v-if="currentTheme === 'cow'">当前使用</span>
-              </div>
-              <div class="theme-card-desc">🐾 纯白治愈猫咪房间，地板上抱毛线球打滚的奶牛猫专属插画壁纸。</div>
-            </div>
-          </div>
-
-          <!-- 主题 3: 我很成熟 -->
-          <div
-            class="theme-card-option"
-            :class="{ active: currentTheme === 'business' }"
-            @click="selectTheme('business')"
-          >
-            <div class="theme-card-preview" style="background: linear-gradient(135deg, #1e3a8a, #2563eb, #0f172a); border: 1.5px solid #3b82f6;">
-              <span style="font-size: 26px;">💼</span>
-            </div>
-            <div class="theme-card-info">
-              <div class="theme-card-title">
-                我很成熟
-                <span class="theme-active-tag" v-if="currentTheme === 'business'">当前使用</span>
-              </div>
-              <div class="theme-card-desc">🏛️ 科技商务点阵背景，经典深蓝与理性质感，沉稳大气。</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 隐私暗号锁设置 -->
-        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">🔐 隐私暗号锁</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-              {{ hasPasswordRecord ? '已开启暗号保护 (离屏2分钟自动锁定)' : '当前未开启暗号保护' }}
-            </div>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button v-if="hasPasswordRecord" class="btn-sm danger" @click="handleRemovePassword" style="font-size: 12px;">
-              清除暗号
-            </button>
-            <button class="btn-sm" @click="handleLockNow" v-if="hasPasswordRecord" style="font-size: 12px;">
-              立即上锁
-            </button>
-            <button class="btn-sm" @click="handleOpenPasswordSetup" v-else style="font-size: 12px;">
-              设置暗号
-            </button>
-          </div>
-        </div>
-
-        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <button
-              class="btn-sm"
-              @click="showVersionModal = true; showThemeModal = false"
-              style="font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; background: var(--bg-subtle); color: var(--primary); border: 1px solid var(--border-subtle); font-weight: 600; display: flex; align-items: center; gap: 4px;"
+          <div class="theme-options-grid">
+            <!-- 主题 1: 大橘为重 -->
+            <div
+              class="theme-card-option"
+              :class="{ active: currentTheme === 'orange' }"
+              @click="selectTheme('orange')"
             >
-              📜 查看版本迭代历史 (当前 v3.2) ❯
-            </button>
-            <button class="btn-sm cancel" @click="forceReloadApp" style="font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
-              🔄 强制清除缓存刷新
-            </button>
-          </div>
-          <div style="display: flex; justify-content: flex-end;">
-            <button class="btn-sm danger" @click="confirmClearAllData" style="font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
-              🧹 清空所有测试数据 (重置空白粮仓)
-            </button>
+              <div class="theme-card-preview" style="background: url('assets/bg-orange.png') center bottom / cover no-repeat; border: 1.5px solid #fdba74;">
+              </div>
+              <div class="theme-card-info">
+                <div class="theme-card-title">
+                  大橘为重
+                  <span class="theme-active-tag" v-if="currentTheme === 'orange'">当前使用</span>
+                </div>
+                <div class="theme-card-desc">🐱 温暖浅黄暖阳房间，地板上熟睡的小橘猫专属插画壁纸。</div>
+              </div>
+            </div>
+
+            <!-- 主题 2: 小小神金 -->
+            <div
+              class="theme-card-option"
+              :class="{ active: currentTheme === 'cow' }"
+              @click="selectTheme('cow')"
+            >
+              <div class="theme-card-preview" style="background: url('assets/bg-cow.png') center bottom / cover no-repeat; border: 1.5px solid #cbd5e1;">
+              </div>
+              <div class="theme-card-info">
+                <div class="theme-card-title">
+                  小小神金
+                  <span class="theme-active-tag" v-if="currentTheme === 'cow'">当前使用</span>
+                </div>
+                <div class="theme-card-desc">🐾 纯白治愈猫咪房间，地板上抱毛线球打滚的奶牛猫专属插画壁纸。</div>
+              </div>
+            </div>
+
+            <!-- 主题 3: 我很成熟 -->
+            <div
+              class="theme-card-option"
+              :class="{ active: currentTheme === 'business' }"
+              @click="selectTheme('business')"
+            >
+              <div class="theme-card-preview" style="background: linear-gradient(135deg, #1e3a8a, #2563eb, #0f172a); border: 1.5px solid #3b82f6;">
+                <span style="font-size: 26px;">💼</span>
+              </div>
+              <div class="theme-card-info">
+                <div class="theme-card-title">
+                  我很成熟
+                  <span class="theme-active-tag" v-if="currentTheme === 'business'">当前使用</span>
+                </div>
+                <div class="theme-card-desc">🏛️ 科技商务点阵背景，经典深蓝与理性质感，沉稳大气。</div>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- 模块 2: 暗号设置 -->
+        <div v-if="settingsTab === 'security'" class="settings-module-body">
+          <div class="settings-module-header">
+            <div class="settings-module-title">🔐 本地隐私暗号与密保</div>
+            <div class="settings-module-desc">采用纯本地 SHA-256 哈希加密防护，离开后台 2 分钟自动锁定防窥。</div>
+          </div>
+
+          <div class="settings-card-box">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 22px;">{{ hasPasswordRecord ? '🛡️' : '🔓' }}</span>
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">
+                    {{ hasPasswordRecord ? '已开启暗号保护' : '未开启暗号保护' }}
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                    {{ hasPasswordRecord ? '离开后台超 2 分钟将自动锁屏防窥' : '无需暗号，打开即可直接访问粮仓' }}
+                  </div>
+                </div>
+              </div>
+              <span class="version-current-badge" :style="{ background: hasPasswordRecord ? 'rgba(34, 197, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)', color: hasPasswordRecord ? '#16a34a' : '#d97706', border: '1px solid ' + (hasPasswordRecord ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)') }">
+                {{ hasPasswordRecord ? '● 已防护' : '○ 未保护' }}
+              </span>
+            </div>
+
+            <div v-if="hasPasswordRecord && savedSecurityQuestion" style="background: var(--bg-card); padding: 10px 12px; border-radius: 8px; font-size: 12px; color: var(--text-main); margin-bottom: 14px; border: 1px dashed var(--border-subtle);">
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 2px;">当前绑定的密保问题：</div>
+              <div style="font-weight: 600;">🐾 {{ savedSecurityQuestion }}</div>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+              <button v-if="!hasPasswordRecord" class="btn-primary" style="flex: 1; justify-content: center; padding: 10px; font-size: 13px;" @click="handleOpenPasswordSetup">
+                ➕ 约定一个暗号
+              </button>
+              <template v-else>
+                <button class="btn-secondary" style="flex: 1; justify-content: center; padding: 10px; font-size: 13px;" @click="handleLockNow">
+                  🔒 立即上锁
+                </button>
+                <button class="btn-secondary danger" style="flex: 1; justify-content: center; padding: 10px; font-size: 13px;" @click="handleRemovePassword">
+                  🗑️ 清除暗号
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <!-- 模块 3: 重置设置 -->
+        <div v-if="settingsTab === 'reset'" class="settings-module-body">
+          <div class="settings-module-header">
+            <div class="settings-module-title">🧹 数据重置与缓存维护</div>
+            <div class="settings-module-desc">管理本地离线 PWA 缓存与 IndexedDB 资产账目数据：</div>
+          </div>
+
+          <!-- 维护选项 1: 离线缓存重载 -->
+          <div class="settings-card-box" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">🔄 离线缓存刷新</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                  清除 Service Worker 离线缓存并自动重载最新静态代码。
+                </div>
+              </div>
+              <button class="btn-sm" @click="forceReloadApp" style="white-space: nowrap; font-size: 12px; padding: 6px 12px; border-radius: 8px;">
+                强制重载
+              </button>
+            </div>
+          </div>
+
+          <!-- 维护选项 2: 危险区域 - 清空所有测试数据 -->
+          <div class="settings-card-box" style="border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.03);">
+            <div style="font-size: 13px; font-weight: 700; color: var(--danger); display: flex; align-items: center; gap: 6px;">
+              <span>⚠️ 危险区域</span>
+              <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(不可撤销)</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 3px; line-height: 1.4;">
+              清空本地存储的所有账户、流水明细及资产增长趋势快照，重置为空白粮仓。
+            </div>
+            <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+              <button class="btn-sm danger" @click="confirmClearAllData" style="font-size: 12px; padding: 7px 14px; border-radius: 8px;">
+                🧹 清空所有数据 (重置空白粮仓)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 模块 4: 版本历史 -->
+        <div v-if="settingsTab === 'version'" class="settings-module-body">
+          <div class="settings-module-header">
+            <div class="settings-module-title">📜 粮仓版本迭代历史</div>
+            <div class="settings-module-desc">记录喵的粮仓自诞生起每一次功能演进与体验升级：</div>
+          </div>
+
+          <!-- 当前版本突出卡片 -->
+          <div class="version-current-banner" style="margin-bottom: 12px;">
+            <div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">当前运行版本</div>
+              <div style="font-size: 17px; font-weight: 800; color: var(--text-main); margin-top: 2px;">
+                喵的粮仓 {{ currentVersion }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                更新时间: 2026-09-15 · 纯本地离线 PWA
+              </div>
+            </div>
+            <div class="version-current-badge">
+              <span>🟢</span>
+              <span>最新稳定版</span>
+            </div>
+          </div>
+
+          <!-- 版本时间轴列表 (滚动展示) -->
+          <div class="version-timeline-container" style="max-height: 48vh; overflow-y: auto; padding-right: 2px;">
+            <div
+              v-for="ver in versionHistoryList"
+              :key="ver.version"
+              class="version-card"
+              :class="{ 'is-current': ver.version === currentVersion }"
+            >
+              <div class="version-card-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="version-tag-pill">{{ ver.version }}</span>
+                  <span v-if="ver.version === currentVersion" style="font-size: 11px; color: var(--primary); font-weight: 700;">★ 当前版本</span>
+                </div>
+                <span class="version-date">📅 {{ ver.date }}</span>
+              </div>
+              <div class="version-title">{{ ver.title }}</div>
+              <ul class="version-features-list">
+                <li v-for="(feat, fIdx) in ver.features" :key="fIdx">{{ feat }}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -3012,66 +3218,7 @@
       </div>
     </div>
 
-    <!-- ============================================== -->
-    <!-- 弹窗: 版本迭代历史时间轴                         -->
-    <!-- ============================================== -->
-    <div v-if="showVersionModal" class="modal-backdrop" @click.self="showVersionModal = false">
-      <div class="modal-box version-modal-box">
-        <div class="modal-header">
-          <div class="modal-title">
-            <span>📜 粮仓版本迭代历史</span>
-          </div>
-          <button class="btn-close" @click="showVersionModal = false">✕</button>
-        </div>
 
-        <!-- 当前版本突出卡片 -->
-        <div class="version-current-banner">
-          <div>
-            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">当前运行版本</div>
-            <div style="font-size: 17px; font-weight: 800; color: var(--text-main); margin-top: 2px;">
-              喵的粮仓 {{ currentVersion }}
-            </div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-              更新时间: 2026-09-15 · 纯本地离线 PWA
-            </div>
-          </div>
-          <div class="version-current-badge">
-            <span>🟢</span>
-            <span>最新稳定版</span>
-          </div>
-        </div>
-
-        <!-- 版本时间轴列表 -->
-        <div class="version-timeline-container">
-          <div
-            v-for="ver in versionHistoryList"
-            :key="ver.version"
-            class="version-card"
-            :class="{ 'is-current': ver.version === currentVersion }"
-          >
-            <div class="version-card-header">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="version-tag-pill">{{ ver.version }}</span>
-                <span v-if="ver.version === currentVersion" style="font-size: 11px; color: var(--primary); font-weight: 700;">★ 当前版本</span>
-              </div>
-              <span class="version-date">📅 {{ ver.date }}</span>
-            </div>
-            <div class="version-title">{{ ver.title }}</div>
-            <ul class="version-features-list">
-              <li v-for="(feat, fIdx) in ver.features" :key="fIdx">{{ feat }}</li>
-            </ul>
-          </div>
-        </div>
-
-        <button
-          class="btn-primary"
-          style="width: 100%; justify-content: center; padding: 12px; margin-top: 16px;"
-          @click="showVersionModal = false"
-        >
-          我知道啦喵 ✨
-        </button>
-      </div>
-    </div>
 
     <!-- ============================================== -->
     <!-- 弹窗 2: 直接调整余额弹窗                         -->
@@ -3205,7 +3352,21 @@
         const hideAmount = ref(localStorage.getItem('hideAmount') === 'true');
         const toastMessage = ref('');
         const showThemeModal = ref(false);
-        const showVersionModal = ref(false);
+        const settingsTab = ref('theme'); // 'theme' | 'security' | 'reset' | 'version'
+        const openSettingsModal = (tab = 'theme') => {
+          settingsTab.value = tab;
+          showThemeModal.value = true;
+        };
+        const showVersionModal = computed({
+          get: () => showThemeModal.value && settingsTab.value === 'version',
+          set: (val) => {
+            if (val) {
+              openSettingsModal('version');
+            } else if (settingsTab.value === 'version') {
+              showThemeModal.value = false;
+            }
+          }
+        });
         const currentVersion = ref('v3.2');
         const versionHistoryList = [
           {
@@ -4857,6 +5018,8 @@
           currentDateText,
           toastMessage,
           showThemeModal,
+          settingsTab,
+          openSettingsModal,
           showVersionModal,
           currentVersion,
           versionHistoryList,
