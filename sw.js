@@ -3,7 +3,8 @@
  * 实现网络优先(页面) + 缓存优先(静态资源) 的智能离线策略
  */
 
-const CACHE_NAME = 'personal-asset-pwa-v15';
+const CACHE_NAME = 'personal-asset-pwa-v16';
+const OCR_CACHE_NAME = 'ocr-cache-v1';
 
 const STATIC_ASSETS = [
   './',
@@ -34,14 +35,14 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 激活阶段：立即清除所有旧缓存，并接管当前客户端
+// 激活阶段：立即清除所有旧缓存，并接管当前客户端 (保护 ocr-cache-v1 缓存池)
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating new Service Worker version:', CACHE_NAME);
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && key !== OCR_CACHE_NAME) {
             console.log('[SW] Purging old cache version:', key);
             return caches.delete(key);
           }
@@ -59,6 +60,41 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+
+  // 策略 0: Tesseract.js OCR 资源动态拦截缓存 (Cache-First -> ocr-cache-v1)
+  // 涵盖 tesseract 脚本、worker、wasm、chi_sim.traineddata 等大文件
+  const isOcrResource =
+    (url.hostname.includes('jsdelivr.net') && (url.pathname.includes('tesseract') || url.pathname.includes('tessdata'))) ||
+    (url.hostname.includes('unpkg.com') && url.pathname.includes('tesseract')) ||
+    url.hostname.includes('projectnaptha.com') ||
+    url.pathname.includes('tesseract') ||
+    url.pathname.includes('.traineddata') ||
+    url.pathname.includes('tessdata') ||
+    url.pathname.endsWith('.wasm');
+
+  if (isOcrResource) {
+    event.respondWith(
+      caches.open(OCR_CACHE_NAME).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        try {
+          const networkResponse = await fetch(request);
+          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+            cache.put(request, networkResponse.clone());
+          }
+          return networkResponse;
+        } catch (fetchErr) {
+          console.warn('[SW-OCR] Network fetch failed for OCR resource:', request.url, fetchErr);
+          if (cachedResponse) return cachedResponse;
+          throw fetchErr;
+        }
+      })
+    );
+    return;
+  }
+
   const isHtml = request.mode === 'navigate' ||
     (request.headers.get('accept') && request.headers.get('accept').includes('text/html')) ||
     url.pathname.endsWith('/') ||

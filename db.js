@@ -7,7 +7,13 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = factory();
   } else {
-    root.AssetDB = factory();
+    const dbInstance = factory();
+    root.AssetDB = dbInstance;
+    root.assetDB = dbInstance;
+    if (typeof window !== 'undefined') {
+      window.assetDB = dbInstance;
+      window.AssetDB = dbInstance;
+    }
   }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
@@ -704,6 +710,7 @@
     getAllTransactions,
     getTransaction,
     addTransaction,
+    recordTransaction: addTransaction,
     deleteTransaction,
     // Snapshots
     updateTodaySnapshot,

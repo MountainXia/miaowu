@@ -316,6 +316,73 @@ async function runAllTests() {
     await new Promise((resolve) => testServer.close(resolve));
   });
 
+  // 8. OCR 离线识别基建与接口规范检验
+  test('验证 OCR 离线识别基建 (sw.js 独立缓存池、db.js recordTransaction 与按需加载)', () => {
+    const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+    assert.ok(swContent.includes('ocr-cache-v1'), 'sw.js 应定义并维护 ocr-cache-v1 独立缓存池');
+    assert.ok(swContent.includes('key !== OCR_CACHE_NAME'), 'sw.js 激活阶段必须保护 ocr-cache-v1 不被常规版本清除');
+    assert.ok(swContent.includes('isOcrResource'), 'sw.js 应拦截 Tesseract/WASM/Traineddata 资源并动态缓存');
+
+    const dbContent = fs.readFileSync(path.join(ROOT, 'db.js'), 'utf8');
+    assert.ok(dbContent.includes('recordTransaction'), 'db.js 应导出 recordTransaction 别名以支持批量入账');
+
+    const htmlContent = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    assert.ok(!htmlContent.includes('<script src="https://cdn.jsdelivr.net/npm/tesseract.js'), 'index.html head 绝不可静态引入 Tesseract.js');
+    assert.ok(htmlContent.includes('智能识别票据/长图'), 'index.html 应包含智能识别票据按钮');
+    assert.ok(htmlContent.includes('showBatchModal'), 'index.html 应包含批量核对弹窗');
+    assert.ok(htmlContent.includes('ocrLoading'), 'index.html 应包含 OCR 进度提示遮罩');
+    assert.ok(htmlContent.includes('preprocessReceiptImage'), 'index.html 应包含 Canvas 二值化图像预处理');
+    assert.ok(htmlContent.includes('batchTxList'), 'index.html 应维护 batchTxList 响应式流水数组');
+  });
+
+  // 9. OCR 正则提取引擎准确性检验
+  test('测试 OCR 票据与长图正则提取引擎解析精度', () => {
+    // 提取 index.html 中的 parseReceiptText 逻辑并进行纯函数单元测试
+    const htmlContent = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const fnMatch = htmlContent.match(/function parseReceiptText\([\s\S]*?\n\s{8}\}/);
+    assert.ok(fnMatch, '必须能从 index.html 中提取 parseReceiptText 引擎实现');
+
+    const parseReceiptText = new Function(`${fnMatch[0]}; return parseReceiptText;`)();
+
+    // 场景 A: 超市单张消费小票测试
+    const receiptSample = `
+      欢迎光临
+      永辉超市 (天山路旗舰店)
+      收银员: 008
+      可口可乐 330ml  x2  ¥6.00
+      特仑苏纯牛奶 1箱    ¥58.80
+      鲜鸡蛋 1盒          ¥19.90
+      ------------------------------
+      件数: 4
+      合计: ¥ 84.70
+      实付: 84.70
+      微信支付: 84.70
+      谢谢惠顾，欢迎再次光临！
+    `;
+    const receiptResult = parseReceiptText(receiptSample);
+    assert.ok(receiptResult.length >= 1, '应成功匹配到单张小票消费');
+    assert.strictEqual(receiptResult[0].amount, 84.7, '应精准提取实付金额 84.70');
+    assert.ok(receiptResult[0].note.includes('永辉超市'), '应提取商户名称 永辉超市');
+
+    // 场景 B: 微信/支付宝长图电子账单明细测试
+    const billListSample = `
+      2026-09-14
+      美团外卖 -28.50
+      滴滴出行 - 42.00
+      瑞幸咖啡
+      -18.00
+      盒马鲜生 -¥125.60
+      2026-09-13
+    `;
+    const billResult = parseReceiptText(billListSample);
+    assert.ok(billResult.length >= 3, '长图模式应提取出至少 3 笔流水明细');
+    const amounts = billResult.map(r => r.amount);
+    assert.ok(amounts.includes(28.5), '应包含美团外卖 28.50');
+    assert.ok(amounts.includes(42), '应包含滴滴出行 42.00');
+    assert.ok(amounts.includes(18), '应包含两行模式的瑞幸咖啡 18.00');
+    assert.ok(amounts.includes(125.6), '应包含盒马鲜生 125.60');
+  });
+
   console.log(`\n测试完成: 共 ${total} 项测试，通过 ${passed} 项，失败 ${total - passed} 项。`);
   if (passed === total) {
     console.log('🎉 所有自动化测试通过！应用各模块准备就绪。');

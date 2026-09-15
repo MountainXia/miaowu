@@ -1603,6 +1603,220 @@
       30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
       40%, 60% { transform: translate3d(6px, 0, 0); }
     }
+
+    /* ============================================== */
+    /* OCR 智能识别与批量核对样式                      */
+    /* ============================================== */
+    .btn-ocr-trigger {
+      width: 100%;
+      background: linear-gradient(135deg, rgba(234, 88, 12, 0.12), rgba(249, 115, 22, 0.06));
+      border: 1.5px dashed var(--primary);
+      color: var(--primary);
+      font-size: 14px;
+      font-weight: 700;
+      padding: 11px 16px;
+      border-radius: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-ocr-trigger:hover {
+      background: linear-gradient(135deg, rgba(234, 88, 12, 0.20), rgba(249, 115, 22, 0.12));
+      transform: translateY(-1px);
+    }
+
+    .btn-ocr-header {
+      background: var(--bg-subtle) !important;
+      border: 1px solid var(--border-subtle) !important;
+      color: var(--text-main) !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      padding: 7px 12px !important;
+      border-radius: 10px !important;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-ocr-header:hover {
+      border-color: var(--primary) !important;
+      color: var(--primary) !important;
+    }
+
+    /* OCR 加载与进度弹窗 */
+    .ocr-loading-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(10px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .ocr-loading-box {
+      background: var(--modal-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      animation: popIn 0.25s ease-out;
+    }
+
+    .ocr-spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid var(--border-subtle);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .ocr-loading-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .ocr-loading-status {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      min-height: 20px;
+      line-height: 1.4;
+    }
+
+    .ocr-progress-track {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-subtle);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .ocr-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), #f59e0b);
+      border-radius: 999px;
+      transition: width 0.2s ease;
+    }
+
+    .ocr-progress-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+
+    .ocr-loading-tip {
+      font-size: 11px;
+      color: var(--text-muted);
+      opacity: 0.8;
+      line-height: 1.4;
+    }
+
+    /* 批量核对弹窗相关样式 */
+    .batch-modal-box {
+      max-width: 580px !important;
+    }
+
+    .batch-global-account {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    .batch-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 48vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .batch-item-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: var(--bg-card-shadow);
+      transition: all 0.2s ease;
+    }
+
+    .batch-item-card:hover {
+      border-color: var(--primary);
+    }
+
+    .batch-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .batch-item-idx {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--bg-subtle);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .batch-type-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: #e11d48;
+      background: rgba(225, 29, 72, 0.1);
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .btn-delete-row {
+      background: transparent;
+      border: none;
+      color: #e11d48;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+
+    .btn-delete-row:hover {
+      background: rgba(225, 29, 72, 0.12);
+    }
+
+    .batch-item-fields {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -2215,10 +2429,15 @@
             </svg>
             流水明细
           </div>
-          <button class="btn-primary" @click="openNewTxModal">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            记一笔
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn-ocr-header" @click="triggerOcrUpload">
+              📷 智能识别票据/长图
+            </button>
+            <button class="btn-primary" @click="openNewTxModal">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              记一笔
+            </button>
+          </div>
         </div>
 
         <!-- 筛选控件 -->
@@ -2438,6 +2657,13 @@
           <button class="btn-close" @click="showTxModal = false">✕</button>
         </div>
 
+        <!-- 📷 OCR 智能识别票据/长图快捷入口 -->
+        <div style="margin-bottom: 14px;">
+          <button type="button" class="btn-ocr-trigger" @click="triggerOcrUpload">
+            <span style="font-size: 16px;">📷</span> 智能识别票据/长图 (OCR 批量入账)
+          </button>
+        </div>
+
         <div class="tx-type-tabs">
           <button
             class="tx-type-btn expense"
@@ -2523,6 +2749,120 @@
         <button class="btn-primary" style="width: 100%; justify-content: center; padding: 13px; font-size: 15px; margin-top: 10px;" @click="submitTransaction">
           保存并自动联动更新账户
         </button>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 隐藏的文件选择器与 OCR 进度遮罩                 -->
+    <!-- ============================================== -->
+    <input
+      type="file"
+      accept="image/*"
+      ref="ocrFileInputRef"
+      @change="handleOcrImageUpload"
+      style="display: none;"
+    />
+
+    <!-- OCR 识别处理与模型加载进度遮罩 -->
+    <div v-if="ocrLoading" class="ocr-loading-backdrop">
+      <div class="ocr-loading-box">
+        <div class="ocr-spinner"></div>
+        <div class="ocr-loading-title">智能票据识别处理中</div>
+        <div class="ocr-loading-status">{{ ocrStatusText }}</div>
+        <div class="ocr-progress-track">
+          <div class="ocr-progress-bar" :style="{ width: Math.round((ocrProgress || 0) * 100) + '%' }"></div>
+        </div>
+        <div class="ocr-progress-text">{{ Math.round((ocrProgress || 0) * 100) }}%</div>
+        <div class="ocr-loading-tip">首次运行需从 CDN 按需载入离线字库模型，后续将自动离线秒级运行</div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗: 智能识别票据核对与批量入账                 -->
+    <!-- ============================================== -->
+    <div v-if="showBatchModal" class="modal-backdrop" @click.self="showBatchModal = false">
+      <div class="modal-box batch-modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>🧾 智能票据识别核对 (共 {{ batchTxList.length }} 笔)</span>
+          </div>
+          <button class="btn-close" @click="showBatchModal = false">✕</button>
+        </div>
+
+        <!-- 全局设置区：统一下扣款结算账户 -->
+        <div class="batch-global-account">
+          <label class="form-label" style="font-weight: 700; margin-bottom: 6px;">💳 统一下扣款账户</label>
+          <select v-model="batchAccountId" class="form-select" style="font-weight: 600;">
+            <option v-for="a in accounts" :key="a.id" :value="a.id">
+              {{ a.icon || '📦' }} {{ a.name }} (余额: ¥{{ formatNumber(a.balance) }})
+            </option>
+          </select>
+        </div>
+
+        <!-- 数据核对区：可二次手动修改金额与备注，删除乱码行 -->
+        <div class="batch-list-container">
+          <div v-for="(item, idx) in batchTxList" :key="item.id" class="batch-item-card">
+            <div class="batch-item-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="batch-item-idx">#{{ idx + 1 }}</span>
+                <span class="batch-type-badge">支出</span>
+              </div>
+              <button type="button" class="btn-delete-row" @click="removeBatchItem(idx)" title="删除此行">
+                🗑️ 删除此行
+              </button>
+            </div>
+
+            <div class="batch-item-fields">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 11px;">商户名 / 消费备注</label>
+                <input
+                  type="text"
+                  v-model="item.note"
+                  class="form-input"
+                  placeholder="商户名或备注说明..."
+                />
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-size: 11px;">金额 (¥)</label>
+                <div class="input-amount-wrapper">
+                  <span class="input-amount-symbol" style="font-size: 14px;">¥</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    v-model.number="item.amount"
+                    class="form-input amount-input"
+                    placeholder="0.00"
+                    style="font-size: 16px; font-weight: 700;"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="batchTxList.length === 0" style="text-align: center; padding: 24px 0; color: var(--text-muted); font-size: 13px;">
+            暂无识别流水，点击下方按钮可手动补充
+          </div>
+        </div>
+
+        <!-- 补充行与统计区 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 16px;">
+          <button type="button" class="btn-sm" @click="addEmptyBatchItem" style="border-radius: 8px; font-size: 12px; padding: 7px 14px; background: var(--bg-subtle); border: 1px dashed var(--border-subtle); cursor: pointer; color: var(--text-main);">
+            ➕ 补充一笔流水
+          </button>
+          <span style="font-size: 12px; color: var(--text-muted);">
+            合计金额: <strong style="color: var(--primary); font-size: 14px;">¥{{ formatNumber(batchTotalAmount) }}</strong>
+          </span>
+        </div>
+
+        <!-- 底部一键保存全部 -->
+        <div style="display: flex; gap: 10px;">
+          <button class="btn-secondary" style="flex: 1; justify-content: center; padding: 12px;" @click="showBatchModal = false">
+            放弃
+          </button>
+          <button class="btn-primary" style="flex: 2; justify-content: center; padding: 12px; font-size: 15px; font-weight: 700;" @click="saveAllBatchTransactions">
+            一键保存全部 ({{ batchTxList.length }} 笔)
+          </button>
+        </div>
       </div>
     </div>
 
@@ -2644,6 +2984,12 @@
   </div>
 
   <script>
+    // 全局兼容 window.assetDB.recordTransaction 批量入账规范
+    if (typeof window !== 'undefined' && window.AssetDB) {
+      window.assetDB = window.AssetDB;
+      window.assetDB.recordTransaction = window.AssetDB.addTransaction;
+    }
+
     const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
 
     createApp({
@@ -2714,6 +3060,19 @@
         const showAccountModal = ref(false);
         const isEditAccount = ref(false);
         const targetAdjustAccount = ref(null);
+
+        // OCR 离线识别与批量核对状态
+        const batchTxList = ref([]);
+        const batchAccountId = ref('');
+        const showBatchModal = ref(false);
+        const ocrLoading = ref(false);
+        const ocrStatusText = ref('正在准备识别引擎...');
+        const ocrProgress = ref(0);
+        const ocrFileInputRef = ref(null);
+
+        const batchTotalAmount = computed(() => {
+          return batchTxList.value.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        });
 
         // 筛选
         const selectedAccountCategory = ref('all');
@@ -3199,6 +3558,458 @@
           }
         }
 
+        // ==============================================
+        // Tesseract.js 纯前端离线 OCR 票据与长图识别引擎
+        // ==============================================
+
+        // 1. 触发识别文件选择
+        function triggerOcrUpload() {
+          if (accounts.value.length === 0) {
+            showToast('请先创建至少一个账户');
+            currentTab.value = 'accounts';
+            openAddAccountModal();
+            return;
+          }
+          if (ocrFileInputRef.value) {
+            ocrFileInputRef.value.value = '';
+            ocrFileInputRef.value.click();
+          }
+        }
+
+        // 2. 按需动态加载 Tesseract.js 脚本 (不阻塞首屏秒开)
+        let tesseractLoadingPromise = null;
+        function ensureTesseractLoaded() {
+          if (window.Tesseract) {
+            return Promise.resolve(window.Tesseract);
+          }
+          if (tesseractLoadingPromise) {
+            return tesseractLoadingPromise;
+          }
+          tesseractLoadingPromise = new Promise((resolve, reject) => {
+            ocrStatusText.value = '正在下载离线识别引擎(约15MB)...';
+            ocrProgress.value = 0.08;
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+            script.async = true;
+            script.onload = () => {
+              console.log('[OCR] Tesseract.js loaded successfully from jsdelivr');
+              resolve(window.Tesseract);
+            };
+            script.onerror = () => {
+              console.warn('[OCR] jsdelivr failed, fallback to unpkg...');
+              const fallback = document.createElement('script');
+              fallback.src = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
+              fallback.async = true;
+              fallback.onload = () => resolve(window.Tesseract);
+              fallback.onerror = (err) => {
+                tesseractLoadingPromise = null;
+                reject(new Error('无法下载 Tesseract 离线引擎，请检查网络'));
+              };
+              document.head.appendChild(fallback);
+            };
+            document.head.appendChild(script);
+          });
+          return tesseractLoadingPromise;
+        }
+
+        // 3. 图像预处理流水线：Canvas 灰度化 (Grayscale) 与 Otsu 自适应二值化 (Binarization) 彻底去除阴影
+        function preprocessReceiptImage(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('读取图片文件失败'));
+            reader.onload = (e) => {
+              const img = new Image();
+              img.onerror = () => reject(new Error('图片格式不受支持或损坏'));
+              img.onload = () => {
+                try {
+                  // 控制最大尺寸，防止高像素手机照片撑爆移动端 Canvas 内存
+                  const maxDim = 2000;
+                  let width = img.width;
+                  let height = img.height;
+                  if (width > maxDim || height > maxDim) {
+                    if (width > height) {
+                      height = Math.round((height * maxDim) / width);
+                      width = maxDim;
+                    } else {
+                      width = Math.round((width * maxDim) / height);
+                      height = maxDim;
+                    }
+                  }
+
+                  const canvas = document.createElement('canvas');
+                  canvas.width = width;
+                  canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, 0, 0, width, height);
+
+                  const imgData = ctx.getImageData(0, 0, width, height);
+                  const data = imgData.data;
+                  const totalPixels = width * height;
+
+                  // 3.1 灰度化 (Grayscale)
+                  const gray = new Uint8Array(totalPixels);
+                  const hist = new Int32Array(256);
+                  for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+                    const g = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+                    gray[j] = g;
+                    hist[g]++;
+                  }
+
+                  // 3.2 Otsu's Algorithm 计算全局自适应最优阈值 (去除背景暗部、折痕与光晕阴影)
+                  let sum = 0;
+                  for (let t = 0; t < 256; t++) sum += t * hist[t];
+
+                  let sumB = 0;
+                  let wB = 0;
+                  let maxVariance = 0;
+                  let optimalThreshold = 128;
+
+                  for (let t = 0; t < 256; t++) {
+                    wB += hist[t];
+                    if (wB === 0) continue;
+                    const wF = totalPixels - wB;
+                    if (wF === 0) break;
+
+                    sumB += t * hist[t];
+                    const mB = sumB / wB;
+                    const mF = (sum - sumB) / wF;
+                    const variance = wB * wF * (mB - mF) * (mB - mF);
+                    if (variance > maxVariance) {
+                      maxVariance = variance;
+                      optimalThreshold = t;
+                    }
+                  }
+
+                  // 阈值保护在合理区间 [70, 200]
+                  optimalThreshold = Math.max(70, Math.min(200, optimalThreshold));
+
+                  // 3.3 二值化高对比度写回 (文字纯黑 0，背景纯白 255)
+                  for (let i = 0, j = 0; i < data.length; i += 4, j++) {
+                    const v = gray[j] > optimalThreshold ? 255 : 0;
+                    data[i] = v;
+                    data[i + 1] = v;
+                    data[i + 2] = v;
+                    data[i + 3] = 255;
+                  }
+
+                  ctx.putImageData(imgData, 0, 0);
+                  const processedBase64 = canvas.toDataURL('image/png');
+                  resolve(processedBase64);
+                } catch (err) {
+                  reject(err);
+                }
+              };
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+
+        // 4. 智能消费分类推断辅助
+        function guessCategoryFromNote(note = '') {
+          const n = (note || '').toLowerCase();
+          if (/饭|餐|吃|麦当劳|肯德基|汉堡|星巴克|咖啡|奶茶|瑞幸|饿了么|美团|外卖|火锅|烧烤|面|菜|酒|食堂|面包|烘焙|茶|肉|米线|小吃|美食|烘培/.test(n)) {
+            return '餐饮美食';
+          }
+          if (/超市|便利店|7-11|全家|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货/.test(n)) {
+            return '日用百货';
+          }
+          if (/滴滴|打车|出行|高德|地铁|公交|火车|机票|停车|加油|高速|充值|铁路|车票|etc|单车|租车/.test(n)) {
+            return '交通出行';
+          }
+          if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(n)) {
+            return '医疗健康';
+          }
+          if (/电影|影院|ktv|游戏|网易|腾讯|剧场|门票|充值|游乐|娱乐|网吧|电竞/.test(n)) {
+            return '休闲娱乐';
+          }
+          if (/猫|狗|宠物|兽医|罐头|猫砂|粮|绝育|妙鲜包|宠/.test(n)) {
+            return '爱宠专项';
+          }
+          return '餐饮美食';
+        }
+
+        // 5. 账单数据批量正则提取引擎 (单张小票 + 电子账单长图)
+        function parseReceiptText(text) {
+          if (!text || typeof text !== 'string') return [];
+          const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          if (rawLines.length === 0) return [];
+
+          const results = [];
+
+          // 5.1 电子账单长图特征 (微信/支付宝/银行账单截图)
+          // 典型行特征:
+          // 单行: [商户名] -18.50 或 [商户名] -¥24.00 或 [商户名] - 35.00
+          // 跨行: 第 1 行商户名，第 2 行负号金额
+          const elecSingleRegex = /^([\u4e00-\u9fa5A-Za-z0-9\s（）()·\-_&]{2,30})[\s\t]+[-－—–]\s*[¥￥$]?\s*([0-9]+(?:\.[0-9]{1,2})?)/;
+          const elecNegativeAmountRegex = /^[-－—–]\s*[¥￥$]?\s*([0-9]+(?:\.[0-9]{1,2})?)$/;
+
+          for (let i = 0; i < rawLines.length; i++) {
+            const line = rawLines[i];
+
+            // 检查单行商户 + 负号金额
+            const singleMatch = line.match(elecSingleRegex);
+            if (singleMatch) {
+              const merchant = singleMatch[1].trim();
+              const amt = parseFloat(singleMatch[2]);
+              if (!isNaN(amt) && amt > 0 && amt < 1000000) {
+                if (!/^\d{4}[-/年]/.test(merchant)) {
+                  results.push({
+                    id: Date.now() + Math.random(),
+                    note: merchant,
+                    amount: amt,
+                    type: 'expense'
+                  });
+                  continue;
+                }
+              }
+            }
+
+            // 检查两行结构: 行 i 为商户，行 i+1 为负号金额
+            if (i < rawLines.length - 1) {
+              const nextLine = rawLines[i + 1].trim();
+              const negMatch = nextLine.match(elecNegativeAmountRegex);
+              if (negMatch) {
+                const amt = parseFloat(negMatch[1]);
+                if (/[\u4e00-\u9fa5]/.test(line) && !/^\d{4}[-/年]/.test(line) && !/^(今日|昨日|星期)/.test(line)) {
+                  results.push({
+                    id: Date.now() + Math.random(),
+                    note: line,
+                    amount: amt,
+                    type: 'expense'
+                  });
+                  i++; // 跳过下一行
+                  continue;
+                }
+              }
+            }
+          }
+
+          // 如果长图模式成功识别出流水，直接返回
+          if (results.length > 0) {
+            return results;
+          }
+
+          // 5.2 单张消费小票特征 (超市/便利店/餐厅 纸质消费小票)
+          // 提取商户名: 优先前 5 行中带有实体店关键词的行，或前 3 行最长汉字行
+          let merchantName = '';
+          for (let i = 0; i < Math.min(rawLines.length, 5); i++) {
+            const l = rawLines[i];
+            if (/超市|便利店|餐厅|餐饮|火锅|咖啡|奶茶|烘焙|面包|大药房|商行|分店|生活馆|旗舰店|有限公司|饭店|酒楼|食堂|百货|水果|生鲜|菜场/.test(l)) {
+              merchantName = l.replace(/^[#*欢迎光临销售凭单结账单\s]+/, '').trim();
+              break;
+            }
+          }
+          if (!merchantName) {
+            for (let i = 0; i < Math.min(rawLines.length, 3); i++) {
+              const l = rawLines[i];
+              if (/[\u4e00-\u9fa5]{2,}/.test(l) && !/欢迎|收银|结账|单号|销售|发票|凭条/.test(l)) {
+                merchantName = l;
+                break;
+              }
+            }
+          }
+
+          // 提取小票总额: 合计、总计、应付、已支付、实付款、实付、¥、￥
+          let totalAmount = null;
+          const totalRegexList = [
+            /(?:实付款|实付金额|实际支付|已支付|实付)[\s:：¥￥$]*([0-9]+(?:\.[0-9]{1,2})?)/i,
+            /(?:合计|总计|应收金额|应付金额|应付|小计|交易金额|消费金额)[\s:：¥￥$]*([0-9]+(?:\.[0-9]{1,2})?)/i,
+            /(?:[¥￥$])\s*([0-9]+(?:\.[0-9]{1,2})?)/
+          ];
+
+          for (const reg of totalRegexList) {
+            for (let i = rawLines.length - 1; i >= 0; i--) {
+              const line = rawLines[i];
+              const m = line.match(reg);
+              if (m) {
+                const amt = parseFloat(m[1]);
+                if (!isNaN(amt) && amt > 0 && amt < 500000) {
+                  totalAmount = amt;
+                  break;
+                }
+              }
+            }
+            if (totalAmount !== null) break;
+          }
+
+          if (totalAmount !== null) {
+            results.push({
+              id: Date.now(),
+              note: merchantName || '小票消费',
+              amount: totalAmount,
+              type: 'expense'
+            });
+            return results;
+          }
+
+          // 兜底匹配：提取文本中出现的最后两行有效浮点金额
+          for (let i = rawLines.length - 1; i >= 0; i--) {
+            const numMatch = rawLines[i].match(/([0-9]+\.[0-9]{2})/);
+            if (numMatch) {
+              const amt = parseFloat(numMatch[1]);
+              if (amt > 0 && amt < 100000) {
+                results.push({
+                  id: Date.now(),
+                  note: merchantName || rawLines[0] || '票据消费',
+                  amount: amt,
+                  type: 'expense'
+                });
+                break;
+              }
+            }
+          }
+
+          return results;
+        }
+
+        // 6. OCR 执行主流程 (上传 -> 预处理 -> OCR识别 -> 正则提取)
+        async function handleOcrImageUpload(event) {
+          const file = event.target.files && event.target.files[0];
+          if (!file) return;
+
+          // 默认扣款账户设置
+          if (!batchAccountId.value && accounts.value.length > 0) {
+            batchAccountId.value = accounts.value[0].id;
+          }
+
+          ocrLoading.value = true;
+          ocrProgress.value = 0.05;
+          ocrStatusText.value = '正在准备离线识别环境...';
+
+          try {
+            // 步骤 A: 按需加载 Tesseract.js
+            const Tesseract = await ensureTesseractLoaded();
+
+            // 步骤 B: Canvas 灰度化与二值化高对比度增强
+            ocrStatusText.value = '正在图像预处理 (灰度化与 Otsu 二值化降噪)...';
+            ocrProgress.value = 0.22;
+            const processedBase64 = await preprocessReceiptImage(file);
+
+            // 步骤 C: 调度识别引擎 (chi_sim + eng)
+            ocrStatusText.value = '正在加载语言模型 (首次约15MB)...';
+            ocrProgress.value = 0.35;
+
+            const worker = await Tesseract.createWorker(['chi_sim', 'eng'], 1, {
+              logger: m => {
+                if (m.status) {
+                  if (m.status.includes('loading') || m.status.includes('download')) {
+                    ocrStatusText.value = `正在下载离线模型资源... ${Math.round((m.progress || 0) * 100)}%`;
+                    ocrProgress.value = 0.35 + (m.progress || 0) * 0.3;
+                  } else if (m.status.includes('recogniz')) {
+                    ocrStatusText.value = `正在深度识别票据文字... ${Math.round((m.progress || 0) * 100)}%`;
+                    ocrProgress.value = 0.65 + (m.progress || 0) * 0.3;
+                  }
+                }
+              }
+            });
+
+            ocrStatusText.value = '正在执行文字解析...';
+            const ret = await worker.recognize(processedBase64);
+            await worker.terminate();
+
+            const recognizedText = ret && ret.data ? ret.data.text : '';
+            console.log('[OCR Recognized Text]:\n', recognizedText);
+
+            // 步骤 D: 账单数据批量正则提取
+            ocrStatusText.value = '正在智能提取商户名与金额...';
+            ocrProgress.value = 0.98;
+            const parsedList = parseReceiptText(recognizedText);
+
+            ocrLoading.value = false;
+            showTxModal.value = false;
+
+            if (parsedList.length > 0) {
+              batchTxList.value = parsedList;
+              showBatchModal.value = true;
+              showToast(`🎯 OCR 识别成功，提取出 ${parsedList.length} 笔流水！`);
+            } else {
+              // 交互兜底：未能精确提取时，依然展示核对窗口提供 1 行供用户填写
+              const cleanFirstLine = (recognizedText.slice(0, 30) || '小票消费').replace(/[\r\n\t]+/g, ' ').trim();
+              batchTxList.value = [
+                { id: Date.now(), note: cleanFirstLine, amount: '', type: 'expense' }
+              ];
+              showBatchModal.value = true;
+              showToast('已读取票据，未完全匹配到金额，请核对并手动补全~');
+            }
+          } catch (err) {
+            console.error('[OCR Error]:', err);
+            ocrLoading.value = false;
+            alert('票据识别失败: ' + (err.message || '请重试'));
+          }
+        }
+
+        // 7. 批量核对卡片操作
+        function removeBatchItem(index) {
+          batchTxList.value.splice(index, 1);
+        }
+
+        function addEmptyBatchItem() {
+          batchTxList.value.push({
+            id: Date.now() + Math.random(),
+            note: '',
+            amount: '',
+            type: 'expense'
+          });
+        }
+
+        // 8. 一键批量保存全部流水并联动更新大盘
+        async function saveAllBatchTransactions() {
+          if (batchTxList.value.length === 0) {
+            showToast('核对列表为空，请先添加至少一笔记录');
+            return;
+          }
+          if (!batchAccountId.value) {
+            showToast('请先选择统一下扣款的账户');
+            return;
+          }
+
+          // 校验金额合法性
+          for (let i = 0; i < batchTxList.value.length; i++) {
+            const item = batchTxList.value[i];
+            const amt = Number(item.amount);
+            if (isNaN(amt) || amt <= 0) {
+              showToast(`第 ${i + 1} 笔流水金额无效，请输入有效金额`);
+              return;
+            }
+          }
+
+          try {
+            let savedCount = 0;
+            const targetAccountId = batchAccountId.value;
+            const todayStr = AssetDB.formatDate();
+
+            for (const item of batchTxList.value) {
+              const cat = guessCategoryFromNote(item.note);
+              const txPayload = {
+                type: item.type || 'expense',
+                amount: Number(item.amount),
+                accountId: targetAccountId,
+                toAccountId: null,
+                category: cat,
+                date: todayStr,
+                notes: item.note ? `[OCR识别] ${item.note}` : 'OCR识别流水'
+              };
+
+              // 支持通过 window.assetDB.recordTransaction 批量写入
+              if (window.assetDB && typeof window.assetDB.recordTransaction === 'function') {
+                await window.assetDB.recordTransaction(txPayload);
+              } else {
+                await AssetDB.addTransaction(txPayload);
+              }
+              savedCount++;
+            }
+
+            showBatchModal.value = false;
+            batchTxList.value = [];
+            showToast(`✨ 成功批量入账 ${savedCount} 笔流水！`);
+            await refreshAllData();
+            currentTab.value = 'transactions';
+          } catch (err) {
+            alert('批量入账失败: ' + err.message);
+          }
+        }
+
         // 调额 Modal
         function openAdjustModal(acc) {
           targetAdjustAccount.value = acc;
@@ -3653,6 +4464,7 @@
                   showTxModal.value = false;
                   showAdjustModal.value = false;
                   showAccountModal.value = false;
+                  showBatchModal.value = false;
                 }
               }
             }
@@ -3768,6 +4580,19 @@
           showTxModal,
           showAdjustModal,
           showAccountModal,
+          showBatchModal,
+          batchTxList,
+          batchAccountId,
+          batchTotalAmount,
+          ocrLoading,
+          ocrStatusText,
+          ocrProgress,
+          ocrFileInputRef,
+          triggerOcrUpload,
+          handleOcrImageUpload,
+          removeBatchItem,
+          addEmptyBatchItem,
+          saveAllBatchTransactions,
           isEditAccount,
           targetAdjustAccount,
           txForm,
