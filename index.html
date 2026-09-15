@@ -1817,6 +1817,140 @@
       grid-template-columns: 1.4fr 1fr;
       gap: 10px;
     }
+
+    /* ============================================== */
+    /* 版本迭代历史时间轴样式                          */
+    /* ============================================== */
+    .version-modal-box {
+      max-width: 580px !important;
+    }
+
+    .version-current-banner {
+      background: linear-gradient(135deg, rgba(234, 88, 12, 0.14), rgba(245, 158, 11, 0.08));
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .version-current-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .version-timeline-container {
+      max-height: 52vh;
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .version-card {
+      position: relative;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 13px 15px;
+      box-shadow: var(--bg-card-shadow);
+      transition: all 0.2s ease;
+    }
+
+    .version-card.is-current {
+      border-color: var(--primary);
+      background: var(--bg-card-hover);
+      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.12);
+    }
+
+    .version-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .version-tag-pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--bg-subtle);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .version-card.is-current .version-tag-pill {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .version-date {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .version-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .version-features-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .version-features-list li {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+
+    .version-features-list li::before {
+      content: "•";
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .version-tag-badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--bg-subtle);
+      color: var(--primary);
+      border: 1px solid var(--border-subtle);
+      padding: 1px 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .version-tag-badge:hover {
+      background: var(--primary);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
@@ -2024,11 +2158,19 @@
               <span>{{ currentThemeTitle }}</span>
             </span>
           </div>
-          <div class="brand-subtitle">一个懂事的粮仓</div>
+          <div class="brand-subtitle" style="display: flex; align-items: center; gap: 6px;">
+            <span>一个懂事的粮仓</span>
+            <span class="version-tag-badge" @click="showVersionModal = true" title="点击查看版本迭代历史 (当前 v3.2)">v3.2</span>
+          </div>
         </div>
       </div>
 
       <div class="header-actions">
+        <!-- 版本迭代历史按钮 -->
+        <button class="icon-btn" @click="showVersionModal = true" title="版本迭代历史 (当前 v3.2)">
+          <span style="font-size: 15px;">📜</span>
+        </button>
+
         <!-- 主题切换按钮 -->
         <button class="icon-btn theme-btn" @click="showThemeModal = true" title="切换主题 (大橘为重 / 小小神金 / 我很成熟)">
           <span>🎨</span>
@@ -2629,9 +2771,13 @@
 
         <div style="margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="font-size: 12px; color: var(--text-muted);">
-              版本: v1.0 (纯净正式版)
-            </div>
+            <button
+              class="btn-sm"
+              @click="showVersionModal = true; showThemeModal = false"
+              style="font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer; background: var(--bg-subtle); color: var(--primary); border: 1px solid var(--border-subtle); font-weight: 600; display: flex; align-items: center; gap: 4px;"
+            >
+              📜 查看版本迭代历史 (当前 v3.2) ❯
+            </button>
             <button class="btn-sm cancel" @click="forceReloadApp" style="font-size: 12px; padding: 6px 12px; border-radius: 8px; cursor: pointer;">
               🔄 强制清除缓存刷新
             </button>
@@ -2867,6 +3013,67 @@
     </div>
 
     <!-- ============================================== -->
+    <!-- 弹窗: 版本迭代历史时间轴                         -->
+    <!-- ============================================== -->
+    <div v-if="showVersionModal" class="modal-backdrop" @click.self="showVersionModal = false">
+      <div class="modal-box version-modal-box">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>📜 粮仓版本迭代历史</span>
+          </div>
+          <button class="btn-close" @click="showVersionModal = false">✕</button>
+        </div>
+
+        <!-- 当前版本突出卡片 -->
+        <div class="version-current-banner">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">当前运行版本</div>
+            <div style="font-size: 17px; font-weight: 800; color: var(--text-main); margin-top: 2px;">
+              喵的粮仓 {{ currentVersion }}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+              更新时间: 2026-09-15 · 纯本地离线 PWA
+            </div>
+          </div>
+          <div class="version-current-badge">
+            <span>🟢</span>
+            <span>最新稳定版</span>
+          </div>
+        </div>
+
+        <!-- 版本时间轴列表 -->
+        <div class="version-timeline-container">
+          <div
+            v-for="ver in versionHistoryList"
+            :key="ver.version"
+            class="version-card"
+            :class="{ 'is-current': ver.version === currentVersion }"
+          >
+            <div class="version-card-header">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="version-tag-pill">{{ ver.version }}</span>
+                <span v-if="ver.version === currentVersion" style="font-size: 11px; color: var(--primary); font-weight: 700;">★ 当前版本</span>
+              </div>
+              <span class="version-date">📅 {{ ver.date }}</span>
+            </div>
+            <div class="version-title">{{ ver.title }}</div>
+            <ul class="version-features-list">
+              <li v-for="(feat, fIdx) in ver.features" :key="fIdx">{{ feat }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <button
+          class="btn-primary"
+          style="width: 100%; justify-content: center; padding: 12px; margin-top: 16px;"
+          @click="showVersionModal = false"
+        >
+          我知道啦喵 ✨
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
     <!-- 弹窗 2: 直接调整余额弹窗                         -->
     <!-- ============================================== -->
     <div v-if="showAdjustModal" class="modal-backdrop" @click.self="showAdjustModal = false">
@@ -2998,6 +3205,101 @@
         const hideAmount = ref(localStorage.getItem('hideAmount') === 'true');
         const toastMessage = ref('');
         const showThemeModal = ref(false);
+        const showVersionModal = ref(false);
+        const currentVersion = ref('v3.2');
+        const versionHistoryList = [
+          {
+            version: 'v3.2',
+            date: '2026-09-15',
+            title: '📷 纯前端离线 OCR 票据识别与长图批量入账',
+            features: [
+              '零体积首屏秒开：按需动态从 CDN 载入 Tesseract.js 识别引擎与模型，提供全流程百分比进度条；',
+              'Canvas 图像预处理：灰度化 + Otsu 自适应二值化高对比度增强算法，彻底过滤小票阴影与折痕；',
+              '双模智能正则提取：精准识别单张小票总额/实付款，以及微信/支付宝长图账单明细批量提取；',
+              '智能消费分类推断：自动推导餐饮、日用、交通、医疗、娱乐、爱宠等分类与专属图标；',
+              '批量可视化核对 UI：支持统一下扣款账户、逐笔在线修改备注与金额、删除乱码、一键保存入账；',
+              'Service Worker 独立缓存池 (ocr-cache-v1)：模型资源永久离线沉淀，断网全离线秒级运行。'
+            ]
+          },
+          {
+            version: 'v3.1',
+            date: '2026-09-15',
+            title: '🔧 模态框 DOM 闭合深层架构修复',
+            features: [
+              '排查并闭合主题设置弹窗中缺失的 </div>，解决后续所有弹窗被 Vue 虚拟 DOM 剪枝剔除的问题；',
+              '彻底恢复账户页面三大“添加账户”入口（空状态按钮、顶部快速添加按钮、右侧浮动加号）；',
+              '建立 DOM 标签堆栈平衡自动化检验体系，保障后续迭代 100% 结构稳定。'
+            ]
+          },
+          {
+            version: 'v3.0',
+            date: '2026-09-14',
+            title: '🏷️ 品牌副标升级与暗号即时聚焦',
+            features: [
+              '暗号输入框改为 v-show 预挂载，轻触选项后利用同步手势栈即刻聚焦拉起软键盘；',
+              '粮仓副标题正式确立为「一个懂事的粮仓」，去除冗余日期前缀；',
+              '全透明磨砂表单配合蓝天小狸花竖屏壁纸沉浸式融合。'
+            ]
+          },
+          {
+            version: 'v2.9',
+            date: '2026-09-14',
+            title: '🔐 本地隐私暗号锁与自定义密保机制',
+            features: [
+              '采用 SHA-256 安全哈希加密，密码与密保完全保存在本地 localStorage；',
+              '区分首次欢迎界面（约定暗号 vs 我不需要暗号）与后续解锁界面；',
+              '独创密保问题与密保答案找回机制，忘记暗号时可通过预留问题重置并进入；',
+              '应用切至后台离开超过 2 分钟自动上锁防窥。'
+            ]
+          },
+          {
+            version: 'v2.6',
+            date: '2026-09-10',
+            title: '📱 手机全屏 Safe Area（安全区域）深度适配',
+            features: [
+              '补充 viewport-fit=cover 属性，彻底解决手机全屏模式下状态栏与刘海屏遮挡；',
+              'Header 顶栏注入 env(safe-area-inset-top) 安全内边距与沉浸式毛玻璃磨砂效果。'
+            ]
+          },
+          {
+            version: 'v2.5',
+            date: '2026-09-10',
+            title: '🎨 账户实时余额主题配色与纯净命名',
+            features: [
+              '大橘为重主题采用温润深棕色余额，小小神金主题采用黑曜岩石深色余额，对比度大幅提升；',
+              '全局规范「小小神金」纯净主题命名。'
+            ]
+          },
+          {
+            version: 'v2.3',
+            date: '2026-09-09',
+            title: '🐱 软萌蓝猫形象与三大专属插画壁纸',
+            features: [
+              '全量升级为您定制的合十蓝猫治愈系高清头像与桌面 PWA 启动图标；',
+              '引入三大个性化插画壁纸主题：「大橘为重」（熟睡大橘）、「小小神金」（玩毛线球奶牛猫）与「我很成熟」（经典商务点阵）。'
+            ]
+          },
+          {
+            version: 'v2.0',
+            date: '2026-09-09',
+            title: '📈 资产增长趋势图与 22 款精选图标',
+            features: [
+              '正式更名为「喵的粮仓」（桌面快捷简称「喵粮仓」）；',
+              '在【总览】新增从启用到目前的“资产增长趋势”曲线面积图，支持触摸互动与增长率计算；',
+              '引入涵盖日常银行、电子支付、理财、小鱼干私房钱等 22 款生活与萌系账户图标网格。'
+            ]
+          },
+          {
+            version: 'v1.0',
+            date: '2026-09-08',
+            title: '🌾 喵的粮仓纯本地离线 PWA 诞生',
+            features: [
+              '三大核心标签页：总览大盘、账户管理、流水明细；',
+              '100% 纯本地 IndexedDB 存储，零外网服务器依赖，保护个人绝对隐私；',
+              '支持 PWA 安装至桌面与手机主屏幕秒开运行。'
+            ]
+          }
+        ];
 
         // 密码输入框与密保 DOM 引用 (确保点击选项后可直接自动获得焦点并拉起输入法)
         const lockInputRef = ref(null);
@@ -4465,6 +4767,7 @@
                   showAdjustModal.value = false;
                   showAccountModal.value = false;
                   showBatchModal.value = false;
+                  showVersionModal.value = false;
                 }
               }
             }
@@ -4554,6 +4857,9 @@
           currentDateText,
           toastMessage,
           showThemeModal,
+          showVersionModal,
+          currentVersion,
+          versionHistoryList,
           currentTheme,
           currentThemeTitle,
           currentThemeEmoji,
