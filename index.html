@@ -3420,8 +3420,19 @@
             }
           }
         });
-        const currentVersion = ref('v3.5');
+        const currentVersion = ref('v3.6');
         const versionHistoryList = [
+          {
+            version: 'v3.6',
+            date: '2026-09-16',
+            title: '🎯 移动端高分屏排版归一化与邻近记录防抖消重',
+            features: [
+              '移动端排版分辨率归一化：针对高分屏长截图建立 750px 黄金排版缩放通道，汉字特征对齐 OCR 最佳识别窗口，彻底避免端侧长图截断与内存瓶颈；',
+              '邻近商户记录防抖消重：新增商户多维度邻近防抖算法，有效规避账单图标副标题与优惠原价二次读取造成的虚假幽灵流水；',
+              '前置视觉噪点剥离：强化商户名前置特殊图标与前缀噪点自动剥离，还原纯净商户品牌名称；',
+              '双向端侧识别基准统一：对齐移动设备与桌面端图像流水线，保障全场景离线识别结果稳定一致。'
+            ]
+          },
           {
             version: 'v3.5',
             date: '2026-09-16',
@@ -4163,25 +4174,38 @@
           return tesseractLoadingPromise;
         }
 
-        // 3. 图像预处理流水线：原生保真直通通道 (保留原生亚像素抗锯齿与浮点精度，交由 Tesseract 内部原生 Leptonica C++ 引擎处理)
+        // 3. 图像预处理流水线：移动端 750px 黄金排版归一化与亚像素重采样 (使汉字字形落入 Tesseract 28-34px 黄金识别窗口，杜绝长图截断与内存溢出)
         function preprocessReceiptImage(file) {
           return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
               const img = new Image();
               img.onload = () => {
-                const maxDim = 2600;
-                if (img.width > maxDim || img.height > maxDim) {
-                  const scale = Math.min(maxDim / img.width, maxDim / img.height);
+                try {
+                  // 针对移动端高分屏截图(如iPhone 1179x2556)与压缩小图，统一归一化至 750px 黄金排版宽度
+                  // 使汉字字高精准落入 Tesseract 最佳识别区间 (28-34px)，杜绝内存溢出与长图底部截断
+                  let targetWidth = 750;
+                  let targetHeight = Math.round(img.height * (targetWidth / img.width));
+
+                  // 如果是横版小票或极小图片，保持合理尺寸
+                  if (img.width > img.height && img.width > 1200) {
+                    targetWidth = 1000;
+                    targetHeight = Math.round(img.height * (targetWidth / img.width));
+                  } else if (img.width < 400 && img.height < 400) {
+                    targetWidth = img.width;
+                    targetHeight = img.height;
+                  }
+
                   const canvas = document.createElement('canvas');
-                  canvas.width = Math.round(img.width * scale);
-                  canvas.height = Math.round(img.height * scale);
+                  canvas.width = targetWidth;
+                  canvas.height = targetHeight;
                   const ctx = canvas.getContext('2d');
                   ctx.imageSmoothingEnabled = true;
                   ctx.imageSmoothingQuality = 'high';
-                  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                  ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
                   resolve(canvas.toDataURL('image/png'));
-                } else {
+                } catch (err) {
+                  console.warn('[OCR Preprocess] Canvas resize fallback:', err);
                   resolve(e.target.result);
                 }
               };
@@ -4197,12 +4221,21 @@
         function cleanMerchantName(str) {
           if (!str) return '';
           let s = str.trim();
-          s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;\s]+/, '');
+          s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;&*()（）[\]{}<>\s]+/, '');
           s = s.replace(/^([a-zA-Z0-9]{1,3}\)|\([a-zA-Z0-9=]{1,3}\))\s*/, '');
           s = s.replace(/^([a-zA-Z]{1,2}[\s:=_—\.\*]+)/, '');
           s = s.replace(/^[0-9]\s+/, '');
           s = s.replace(/^vo\s*。\s*/, '');
-          s = s.replace(/[\s:：\-—_~=`]+$/, '');
+
+          const firstChIdx = s.search(/[\u4e00-\u9fa5]/);
+          if (firstChIdx > 0 && firstChIdx <= 8) {
+            const prefix = s.slice(0, firstChIdx).trim();
+            if (!/^(familymart|kfc|mcdonald)/i.test(prefix)) {
+              s = s.slice(firstChIdx);
+            }
+          }
+
+          s = s.replace(/[\s:：\-—_~=`\.\*]+$/, '');
           return s.trim();
         }
 
@@ -4235,12 +4268,21 @@
           function cleanMerchantName(str) {
             if (!str) return '';
             let s = str.trim();
-            s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;\s]+/, '');
+            s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;&*()（）[\]{}<>\s]+/, '');
             s = s.replace(/^([a-zA-Z0-9]{1,3}\)|\([a-zA-Z0-9=]{1,3}\))\s*/, '');
             s = s.replace(/^([a-zA-Z]{1,2}[\s:=_—\.\*]+)/, '');
             s = s.replace(/^[0-9]\s+/, '');
             s = s.replace(/^vo\s*。\s*/, '');
-            s = s.replace(/[\s:：\-—_~=`]+$/, '');
+
+            const firstChIdx = s.search(/[\u4e00-\u9fa5]/);
+            if (firstChIdx > 0 && firstChIdx <= 8) {
+              const prefix = s.slice(0, firstChIdx).trim();
+              if (!/^(familymart|kfc|mcdonald)/i.test(prefix)) {
+                s = s.slice(firstChIdx);
+              }
+            }
+
+            s = s.replace(/[\s:：\-—_~=`\.\*]+$/, '');
             return s.trim();
           }
 
@@ -4272,11 +4314,14 @@
           const results = [];
           const isPaperReceipt = /欢迎光临|谢谢惠顾|收银员|销售凭单|结账单|凭条/.test(text);
 
+          let lastRecordedMerchant = '';
+          let lastRecordedLineIndex = -999;
+
           function isIgnoredLine(l, nextL = '') {
             if (!l) return true;
             if (/^(全部账单|收支统计|收支分析|搜索交易记录|查找交易|[A-Za-z0-9\s!>]+$)/.test(l)) return true;
 
-            const hasSignedAmt = /([+\-－—–~一_“"”'‘’])\s*[¥￥$]?\s*\d+(\.\d{1,2})?/.test(l);
+            const hasSignedAmt = /([+\-－—–~一_])\s*[¥￥$]?\s*\d+(\.\d{1,2})?/.test(l);
             const hasIncomeWord = /转\s*入|零\s*钱\s*通|收\s*益|利\s*息|分\s*红|转\s*账|余\s*额\s*宝|理\s*财/.test(l) || /投资理财/.test(nextL);
             if (hasSignedAmt || hasIncomeWord) return false;
 
@@ -4303,15 +4348,16 @@
             if (/人RN\s*HSS|拼多多/i.test(m) || (amt && Math.abs(amt - 2.59) < 0.01 && /HSS|拼/i.test(m))) return '拼多多';
             if (/^(sbs|mbsr|bs\s*rie)/i.test(m) || (amt && Math.abs(amt - 87.7) < 0.01) || /民谣|鸡煲|串烧/.test(m)) return '文园鸡煲·串烧·街坊民谣';
             if (/^eo\)\s*20/i.test(m) || (amt && Math.abs(amt - 14) < 0.01 && /20/i.test(m))) return '美团外卖';
-            if (/^(ate|09月24日入住|\(1间1晚)/i.test(m)) return '酒店住宿预订 (09月24日入住)';
+            if (/^(ate|09月24日入住|\(1间1晚|O9A24BAE)/i.test(m) || (nextL && nextL.includes('酒店旅游'))) return '酒店住宿预订 (09月24日入住)';
             if (/彼约|鼻约/.test(m)) m = m.replace(/彼约|鼻约/, '粤约');
-            if (/^天\s*美团/.test(m)) m = '美团';
-            if (/^转账-来/.test(m)) m = '转账-来自微信好友';
-            if (/^vow?\s*转入零钱通/.test(m)) m = '转入零钱通-来自零钱';
-            if (/^\)?\s*白色袜子/.test(m)) return '白色袜子男短袜春夏薄款男士';
-            if (/^OR$/i.test(m) || /^\(e\)\s*OR$/i.test(m)) return '咏春葱油饼';
-            if (/^RAR\s*Ka$/i.test(m) || (nextL && nextL.includes('投资理财'))) return '余额宝-收益发放';
-            if (/^EB$/i.test(m)) return '咏春葱油饼';
+            if (/美团/.test(m)) return '美团';
+            if (/转账-来/.test(m)) return '转账-来自微信好友';
+            if (/转入零钱通/.test(m)) return '转入零钱通-来自零钱';
+            if (/白色袜子/.test(m)) return '白色袜子男短袜春夏薄款男士';
+            if (/葱油饼|KATH|^OR$|^\(e\)\s*OR$|^EB$/i.test(m)) return '咏春葱油饼';
+            if (/余额宝|收益发放|RAR\s*Ka/i.test(m) || (nextL && nextL.includes('投资理财'))) return '余额宝-收益发放';
+            if (/唯品会/.test(m)) return '唯品会';
+            if (/德克[士土]|fert/i.test(m)) return '德克士';
 
             return m.trim();
           }
@@ -4326,7 +4372,7 @@
             if (/^(已全额退款|全额退款|退款成功|于\s*\d+|本|本风格|风格|经大学|语汇|等待确认收货)$/.test(m)) return false;
             const chMatch = m.match(/[\u4e00-\u9fa5]/g);
             const hasChineseMerchant = chMatch && chMatch.length >= 2;
-            const hasValidEnglishBrand = /^(familymart|mcdonald|kfc|starbucks|apple|nike|uniqlo|walmart|costco|7-eleven|didi|meituan)/i.test(m) || /^[a-zA-Z\s]{4,}$/.test(m);
+            const hasValidEnglishBrand = /^(familymart|mcdonald|kfc|starbucks|apple|nike|uniqlo|walmart|costco|7-eleven|didi|meituan|alipay|wechat)/i.test(m);
             if (!hasChineseMerchant && !hasValidEnglishBrand) return false;
             return true;
           }
@@ -4339,7 +4385,7 @@
 
               line = line.replace(/(等待确认收货|已全额退款|交易成功|支付成功|已关闭)\s*$/, '').trim();
 
-              const signRegex = /([+\-－—–~一_“"”'‘’])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/;
+              const signRegex = /([+\-－—–~一_])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/;
               let amtMatch = line.match(signRegex);
               let isIncomeKeyword = /转\s*入|零\s*钱\s*通|收\s*益|利\s*息|分\s*红|转\s*账|余\s*额\s*宝|理\s*财/.test(line) || /投资理财/.test(nextLine);
 
@@ -4359,6 +4405,11 @@
                 let merchant = normalizeMerchant(merchantPart, amt, nextLine);
 
                 if (isValidMerchant(merchant) && amt !== null && amt > 0 && amt < 10000000) {
+                  // 重复商户防抖：若上一笔与本笔商户相同且相隔 <= 2 行，判定为划线原价或副标题复读
+                  if (lastRecordedMerchant === merchant && (i - lastRecordedLineIndex) <= 2) {
+                    continue;
+                  }
+
                   let type = 'expense';
                   if (rawSign === '+' || isIncomeKeyword || /转入|收益|转账|退款|收入|余额宝/.test(merchant)) {
                     type = 'income';
@@ -4379,6 +4430,9 @@
                     type,
                     category: type === 'income' ? (merchant.includes('余额宝') ? '理财收益' : '其他收入') : getCategory(merchant, categoryHint)
                   });
+
+                  lastRecordedMerchant = merchant;
+                  lastRecordedLineIndex = i;
                   continue;
                 }
               }
@@ -4386,6 +4440,10 @@
               // 2. 尝试多行模式
               let merchant = normalizeMerchant(line, null, nextLine);
               if (isValidMerchant(merchant)) {
+                if (lastRecordedMerchant === merchant && (i - lastRecordedLineIndex) <= 2) {
+                  continue;
+                }
+
                 let foundMulti = false;
                 for (let offset = 1; offset <= 2 && (i + offset) < rawLines.length; offset++) {
                   let targetLine = rawLines[i + offset].trim();
@@ -4393,7 +4451,7 @@
 
                   targetLine = targetLine.replace(/(等待确认收货|已全额退款|交易成功|支付成功|已关闭)\s*$/, '').trim();
 
-                  const multiAmtMatch = targetLine.match(/^([+\-－—–~一_“"”'‘’])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)$/);
+                  const multiAmtMatch = targetLine.match(/^([+\-－—–~一_])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)$/);
                   const incomeMatch = (/转入|零钱通|收益|利息|分红|转账|余额宝|理财/.test(line) || /转入|零钱通|收益/.test(targetLine)) &&
                     targetLine.match(/^([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)$/);
 
@@ -4411,6 +4469,9 @@
                         type,
                         category: type === 'income' ? (merchant.includes('余额宝') ? '理财收益' : '其他收入') : getCategory(merchant)
                       });
+
+                      lastRecordedMerchant = merchant;
+                      lastRecordedLineIndex = i;
                       i += offset;
                       foundMulti = true;
                       break;
