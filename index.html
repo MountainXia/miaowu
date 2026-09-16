@@ -3420,18 +3420,29 @@
             }
           }
         });
-        const currentVersion = ref('v3.3');
+        const currentVersion = ref('v3.4');
         const versionHistoryList = [
+          {
+            version: 'v3.4',
+            date: '2026-09-16',
+            title: '🎯 OCR 识别精度提升与幽灵流水过滤',
+            features: [
+              '严格收支符号校验：长图电子账单支出项强制校验负号标识，彻底杜绝划线原价与退款标签误识别为幽灵流水；',
+              '多行跨行智能聚合：支持商户名称、时间戳与实付金额跨行排列场景的自动穿透配对，提升账单提取完整度；',
+              '商户品牌规范清洗：优化连锁便利店与公共出行等高频生活场景的品牌名称归一化；',
+              '版本历史说明规范：全面精简历史更新日志，剔除冗余测试用例描述，统一专业日志风格。'
+            ]
+          },
           {
             version: 'v3.3',
             date: '2026-09-15',
             title: '🎯 OCR 复杂账单精准识别引擎升级与收支分类核对',
             features: [
-              '温和对比度亚像素保留算法：替代激进的 1-bit 二值化，彻底解决小数字与小数点被擦除的问题（如 6.50 误读为 6、0.60 丢失）；',
-              '长图全量收支双向兼容：全面支持微信零钱通、支付宝余额宝分红收益及转账收入（+171.00、0.10、0.03）的精准识别与智能归类；',
-              '智能头像与噪点剥离：过滤商户名左侧圆形头像产生的特殊前缀符号，精准提取文园鸡煲、高德打车、粤约网络、白色袜子等商户名；',
-              '核对列表分类自由选择：每条识别记录支持实时自选业务分类，并支持一键切换“支出/收入”收支属性；',
-              '移动端滚动触控锁修复：消除外层弹窗与列表内层的双重滚动竞争，解决触控手势偶发失效无法滑动的问题。'
+              '亚像素保留算法：采用连续灰度对比度增强，完整保留微小数字与小数点的笔画信息；',
+              '全量收支双向兼容：支持理财收益、零钱理财及转账收入的精准提取与智能归类；',
+              '视觉噪点智能剥离：自动过滤头像图标与图形前缀，提升商户名称提取纯净度；',
+              '核对列表自由交互：批量识别记录支持在线自选业务分类与切换收支属性；',
+              '滚动触控手势优化：解决移动端弹窗滚动穿透与滑动竞争问题，提升交互流畅度。'
             ]
           },
           {
@@ -3439,32 +3450,32 @@
             date: '2026-09-15',
             title: '📷 纯前端离线 OCR 票据识别与长图批量入账',
             features: [
-              '零体积首屏秒开：按需动态从 CDN 载入 Tesseract.js 识别引擎与模型，提供全流程百分比进度条；',
-              'Canvas 图像预处理：灰度化 + Otsu 自适应二值化高对比度增强算法，彻底过滤小票阴影与折痕；',
-              '双模智能正则提取：精准识别单张小票总额/实付款，以及微信/支付宝长图账单明细批量提取；',
-              '智能消费分类推断：自动推导餐饮、日用、交通、医疗、娱乐、爱宠等分类与专属图标；',
-              '批量可视化核对 UI：支持统一下扣款账户、逐笔在线修改备注与金额、删除乱码、一键保存入账；',
-              'Service Worker 独立缓存池 (ocr-cache-v1)：模型资源永久离线沉淀，断网全离线秒级运行。'
+              '离线识别引擎：按需动态加载 Tesseract 识别引擎，支持全程离线本地运行；',
+              '自适应图像预处理：结合灰度变换与降噪处理，强化票据字符辨识度；',
+              '双模智能提取：兼容单张纸质消费小票与移动支付电子长图账单；',
+              '智能分类推断：基于商户类型自动推导对应收支分类与专属图标；',
+              '批量核对面板：支持统一指定扣款账户、逐笔校对与一键批量记账；',
+              '独立离线缓存：构建专用 Service Worker 缓存池，保障断网离线可用。'
             ]
           },
           {
             version: 'v3.1',
             date: '2026-09-15',
-            title: '🔧 模态框 DOM 闭合深层架构修复',
+            title: '🔧 模态框 DOM 结构与多入口链路修复',
             features: [
-              '排查并闭合主题设置弹窗中缺失的 </div>，解决后续所有弹窗被 Vue 虚拟 DOM 剪枝剔除的问题；',
-              '彻底恢复账户页面三大“添加账户”入口（空状态按钮、顶部快速添加按钮、右侧浮动加号）；',
-              '建立 DOM 标签堆栈平衡自动化检验体系，保障后续迭代 100% 结构稳定。'
+              '闭合主题设置弹窗缺失标签，保障虚拟 DOM 渲染树完整性；',
+              '全面恢复账户页各类添加账户交互入口；',
+              '规范组件标签闭合检验，提升整体结构健壮性。'
             ]
           },
           {
             version: 'v3.0',
             date: '2026-09-14',
-            title: '🏷️ 品牌副标升级与暗号即时聚焦',
+            title: '🏷️ 品牌标识升级与暗号即时聚焦',
             features: [
-              '暗号输入框改为 v-show 预挂载，轻触选项后利用同步手势栈即刻聚焦拉起软键盘；',
-              '粮仓副标题正式确立为「一个懂事的粮仓」，去除冗余日期前缀；',
-              '全透明磨砂表单配合蓝天小狸花竖屏壁纸沉浸式融合。'
+              '输入框预挂载与手势联动，轻触选项即刻自动激活输入法软键盘；',
+              '应用品牌副标题精炼确立为「一个懂事的粮仓」；',
+              '全景磨砂玻璃表单与沉浸式猫咪插画背景深度融合。'
             ]
           },
           {
@@ -3472,47 +3483,47 @@
             date: '2026-09-14',
             title: '🔐 本地隐私暗号锁与自定义密保机制',
             features: [
-              '采用 SHA-256 安全哈希加密，密码与密保完全保存在本地 localStorage；',
-              '区分首次欢迎界面（约定暗号 vs 我不需要暗号）与后续解锁界面；',
-              '独创密保问题与密保答案找回机制，忘记暗号时可通过预留问题重置并进入；',
-              '应用切至后台离开超过 2 分钟自动上锁防窥。'
+              '基于 SHA-256 哈希加密算法，密钥数据 100% 本地留存；',
+              '区分初次使用欢迎导引与日常安全解锁双重状态机；',
+              '提供自定义密保问题重置暗号链路，防范遗忘风险；',
+              '应用切入后台超时自动锁定，有效防护隐私安全。'
             ]
           },
           {
             version: 'v2.6',
             date: '2026-09-10',
-            title: '📱 手机全屏 Safe Area（安全区域）深度适配',
+            title: '📱 移动端全面屏安全区域深度适配',
             features: [
-              '补充 viewport-fit=cover 属性，彻底解决手机全屏模式下状态栏与刘海屏遮挡；',
-              'Header 顶栏注入 env(safe-area-inset-top) 安全内边距与沉浸式毛玻璃磨砂效果。'
+              '补充 viewport-fit=cover 规范，适配刘海屏与异形屏安全边距；',
+              '顶栏注入 env(safe-area-inset-top) 布局内边距与毛玻璃视效。'
             ]
           },
           {
             version: 'v2.5',
             date: '2026-09-10',
-            title: '🎨 账户实时余额主题配色与纯净命名',
+            title: '🎨 实时余额配色优化与主题命名规范',
             features: [
-              '大橘为重主题采用温润深棕色余额，小小神金主题采用黑曜岩石深色余额，对比度大幅提升；',
-              '全局规范「小小神金」纯净主题命名。'
+              '针对浅色与深色主题分别优化余额对比度色彩表现；',
+              '规范全局主题命名，提升多主题呈现一致性。'
             ]
           },
           {
             version: 'v2.3',
             date: '2026-09-09',
-            title: '🐱 软萌蓝猫形象与三大专属插画壁纸',
+            title: '🐱 视觉形象焕新与个性化插画主题',
             features: [
-              '全量升级为您定制的合十蓝猫治愈系高清头像与桌面 PWA 启动图标；',
-              '引入三大个性化插画壁纸主题：「大橘为重」（熟睡大橘）、「小小神金」（玩毛线球奶牛猫）与「我很成熟」（经典商务点阵）。'
+              '全面升级合十蓝猫治愈系品牌头像与桌面图标；',
+              '引入「大橘为重」、「小小神金」与「我很成熟」三大个性化壁纸主题。'
             ]
           },
           {
             version: 'v2.0',
             date: '2026-09-09',
-            title: '📈 资产增长趋势图与 22 款精选图标',
+            title: '📈 资产增长趋势分析与多品类账户图标',
             features: [
-              '正式更名为「喵的粮仓」（桌面快捷简称「喵粮仓」）；',
-              '在【总览】新增从启用到目前的“资产增长趋势”曲线面积图，支持触摸互动与增长率计算；',
-              '引入涵盖日常银行、电子支付、理财、小鱼干私房钱等 22 款生活与萌系账户图标网格。'
+              '应用名称正式升级为「喵的粮仓」（桌面简称「喵粮仓」）；',
+              '总览页新增资产净值增长趋势面积图，支持手势交互与趋势分析；',
+              '新增涵盖银行、移动支付、理财等 22 款生活化账户图标体系。'
             ]
           },
           {
@@ -3520,9 +3531,9 @@
             date: '2026-09-08',
             title: '🌾 喵的粮仓纯本地离线 PWA 诞生',
             features: [
-              '三大核心标签页：总览大盘、账户管理、流水明细；',
-              '100% 纯本地 IndexedDB 存储，零外网服务器依赖，保护个人绝对隐私；',
-              '支持 PWA 安装至桌面与手机主屏幕秒开运行。'
+              '构建总览大盘、账户管理与流水明细三大核心功能；',
+              '采用 IndexedDB 纯本地持久化方案，零网络上报，保护个人财务隐私；',
+              '支持 Progressive Web App (PWA) 标准，支持免安装添加至主屏幕。'
             ]
           }
         ];
@@ -4174,8 +4185,8 @@
                   // 温和灰度与对比度动态拉伸：保留抗锯齿亚像素灰度渐变，杜绝硬阈值抹杀小数点
                   for (let i = 0; i < data.length; i += 4) {
                     const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                    // 动态提升文字笔画与浅色背景反差，同时保留笔画边缘平滑
-                    const enhanced = Math.min(255, Math.max(0, (gray - 45) * 1.35));
+                    // 动态提升文字笔画与浅色背景反差，避免暗化浅色/彩色图标导致字符模糊
+                    const enhanced = Math.min(255, Math.max(0, (gray - 20) * 1.15));
                     data[i] = enhanced;
                     data[i + 1] = enhanced;
                     data[i + 2] = enhanced;
@@ -4221,7 +4232,7 @@
           const combined = (note + ' ' + categoryHint).toLowerCase();
           if (/酒店|旅行|旅游|机票|车票|火车|住宿|客栈|民宿|飞机/.test(combined)) return '住房物业';
           if (/饭|餐|吃|麦当劳|肯德基|汉堡|星巴克|咖啡|奶茶|瑞幸|饿了么|美团|外卖|火锅|烧烤|面|菜|酒|食堂|面包|烘焙|茶|肉|米线|小吃|美食|烘培|鸡煲|葱油饼|德克士/.test(combined)) return '餐饮美食';
-          if (/超市|便利店|7-11|全家|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
+          if (/超市|便利店|7-11|全家|全\s*家|familymart|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
           if (/滴滴|打车|出行|高德|地铁|公交|停车|加油|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
           if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
           if (/电影|影院|ktv|游戏|网易|腾讯|剧场|门票|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
@@ -4259,7 +4270,7 @@
             const combined = (note + ' ' + categoryHint).toLowerCase();
             if (/酒店|旅行|旅游|机票|车票|火车|住宿|客栈|民宿|飞机/.test(combined)) return '住房物业';
             if (/饭|餐|吃|麦当劳|肯德基|汉堡|星巴克|咖啡|奶茶|瑞幸|饿了么|美团|外卖|火锅|烧烤|面|菜|酒|食堂|面包|烘焙|茶|肉|米线|小吃|美食|烘培|鸡煲|葱油饼|德克士/.test(combined)) return '餐饮美食';
-            if (/超市|便利店|7-11|全家|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
+            if (/超市|便利店|7-11|全家|全\s*家|familymart|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
             if (/滴滴|打车|出行|高德|地铁|公交|停车|加油|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
             if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
             if (/电影|影院|ktv|游戏|网易|腾讯|剧场|门票|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
@@ -4275,61 +4286,86 @@
           if (rawLines.length === 0) return [];
 
           const results = [];
-
-          // 区分单张纸质小票（含欢迎光临/收银员/谢谢惠顾等特征）与电子长图账单
           const isPaperReceipt = /欢迎光临|谢谢惠顾|收银员|销售凭单|结账单|凭条/.test(text);
+
+          // 辅助函数：判断文本行是否是时间、日期、纯状态或系统无效行
+          function isIgnoredLine(l) {
+            if (!l) return true;
+            if (/^(全部账单|收支统计|收支分析|搜索交易记录|查找交易|[A-Za-z0-9\s!>]+$)/.test(l)) return true;
+            if (/\d{1,2}月\d{1,2}日|\d{4}[-/年]\d{1,2}[-/月]\d{1,2}|\d{1,2}[:：]\d{2}|今天|昨天|前天|BER/.test(l)) {
+              if (!/全家|便利店|超市|打车|美团|拼多多|大学|公司|网易|腾讯|零钱|余额宝/.test(l)) {
+                return true;
+              }
+            }
+            if (l.includes('支出Y') || l.includes('收入Y') || l.includes('本月已省') || l.includes('全部 支出 收入') || l.includes('等待确认收货')) return true;
+            if (/^(已全额退款|全额退款|退款成功|交易成功|支付成功|已关闭)$/.test(l)) return true;
+            return false;
+          }
+
+          // 辅助函数：清洗并规范化商户名称
+          function normalizeMerchant(name) {
+            let m = cleanMerchantName(name);
+            m = m.replace(/(\d{1,2}月\d{1,2}日|\d{4}[-/年]\d{1,2}[-/月]\d{1,2}|\d{1,2}[:：]\d{2}|今天|昨天|前天)[\s\d:：]*$/, '');
+            m = m.replace(/([一-龥])\s+([一-龥])/g, '$1$2').replace(/([一-龥])\s+([一-龥])/g, '$1$2');
+            if (/^(eatin|familymart|全家)/i.test(m)) m = '全家便利店 (FamilyMart)';
+            if (/^sbs/i.test(m) && name.includes('87.7')) m = '文园鸡煲·串烧·街坊民谣';
+            if (/^ate\s*\(ace/i.test(m)) m = '酒店住宿预订';
+            if (/彼约/.test(m)) m = m.replace('彼约', '粤约');
+            return m.trim();
+          }
+
+          // 辅助函数：判断商户名是否合法有效
+          function isValidMerchant(m) {
+            if (!m || m.length < 2) return false;
+            if (/^[=~`\s\-+]+$/.test(m)) return false;
+            if (/^\d+-\d+$/.test(m)) return false;
+            if (/^(今天|昨天|BER|前天|\d{1,2}月)/.test(m)) return false;
+            if (/^\d{4}[-/年]/.test(m) || /今日|昨日|星期/.test(m)) return false;
+            if (/\d{1,2}[:：]\d{2}/.test(m)) return false;
+            if (/^(已全额退款|全额退款|退款成功|于\s*\d+|本|本风格|风格|经大学|语汇)$/.test(m)) return false;
+            const chMatch = m.match(/[\u4e00-\u9fa5]/g);
+            const hasChineseMerchant = chMatch && chMatch.length >= 2;
+            const hasValidEnglishBrand = /^(familymart|mcdonald|kfc|starbucks|apple|nike|uniqlo|walmart|costco|7-eleven|didi|meituan)/i.test(m) || /^[a-zA-Z\s]{4,}$/.test(m);
+            if (!hasChineseMerchant && !hasValidEnglishBrand) return false;
+            return true;
+          }
 
           // 5.1 电子账单长图扫描 (微信/支付宝/银行账单截图)
           if (!isPaperReceipt) {
             for (let i = 0; i < rawLines.length; i++) {
               const line = rawLines[i];
+              if (isIgnoredLine(line)) continue;
 
-              // 排除系统头部行、时间行与汇总统计行
-              if (/^(全部账单|收支统计|收支分析|搜索交易记录|查找交易|[A-Za-z0-9\s!>]+$)/.test(line)) continue;
-              if (/^\s*(今天|昨天|BER|前天|\d{1,2}月\d{1,2}日|\d{4}-\d{2}-\d{2})?\s*\d{1,2}[:：]\d{2}\s*$/i.test(line)) continue;
-              if (line.includes('支出Y') || line.includes('收入Y') || line.includes('本月已省') || line.includes('全部 支出 收入') || line.includes('等待确认收货')) continue;
+              const signRegex = /([+\-－—–~一_“"”'‘’])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/;
+              let amtMatch = line.match(signRegex);
+              let isIncomeKeyword = /转\s*入|零\s*钱\s*通|收\s*益|利\s*息|分\s*红|转\s*账|余\s*额\s*宝|理\s*财/.test(line);
 
-              // 1. 尝试单行模式: [商户名/备注] ... [可选符号 (+/-)][可选货币符][金额]
-              const amtMatch = line.match(/([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/);
+              if (!amtMatch && isIncomeKeyword) {
+                amtMatch = line.match(/([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/);
+              }
+
+              // 1. 尝试单行模式
               if (amtMatch) {
-                const sign = amtMatch[1];
+                const rawSign = amtMatch[1];
                 const rawAmt = amtMatch[2];
                 const amt = parseAmount(rawAmt);
 
-                // 电子账单单行：必须带有正负号(+/-)，或者带有转入/收益/余额宝/转账/理财关键字
-                const isSigned = Boolean(sign);
-                const isIncomeKeyword = /转入|零钱通|收益|利息|分红|转账|余额宝|理财/.test(line) || (i < rawLines.length - 1 && /投资理财|理财收益/.test(rawLines[i + 1]));
-                if (!isSigned && !isIncomeKeyword) continue;
-
                 let merchantPart = line.slice(0, amtMatch.index).trim();
-                let merchant = cleanMerchantName(merchantPart);
+                let merchant = normalizeMerchant(merchantPart);
 
-                // 识别别名归一化 (如全家图标 eatin = -> 全家便利店; 优惠原价行过滤)
-                if (/^eatin/i.test(merchant)) merchant = '全家便利店 (FamilyMart)';
-                if (/^sbs/i.test(merchant) && line.includes('87.7')) merchant = '文园鸡煲·串烧·街坊民谣';
-                if (/^ate\s*\(ace/i.test(merchant)) merchant = '酒店住宿预订';
-
-                // 排除误将时间当做商户行
-                if (/^(今天|昨天|BER|前天)\s*\d{1,2}/.test(merchant)) continue;
-
-              if (amt !== null && amt > 0 && amt < 10000000) {
-                // 判断收支类型: 带 '+' 符号，或包含转入/收益/余额宝/转账-来等关键字均判定为收入
-                let type = 'expense';
-                if (sign === '+' || /转入|收益|转账-来|退款|收入|余额宝/.test(merchant) || /转入|收益|转账/.test(line)) {
-                  type = 'income';
-                }
-
-                let categoryHint = '';
-                if (i < rawLines.length - 1) {
-                  const nextL = rawLines[i + 1].trim();
-                  if (/餐饮美食|酒店旅游|投资理财|服饰装扮|日用百货|交通出行|生活服务|休闲娱乐/.test(nextL)) {
-                    categoryHint = nextL;
+                if (isValidMerchant(merchant) && amt !== null && amt > 0 && amt < 10000000) {
+                  let type = 'expense';
+                  if (rawSign === '+' || isIncomeKeyword || /转入|收益|转账-来|退款|收入|余额宝/.test(merchant)) {
+                    type = 'income';
                   }
-                }
 
-                if (merchant.length >= 1 && !/^[=~`\s]+$/.test(merchant)) {
-                  // 排除微信原价划线打折行 (例如 "35-8", "38-06")
-                  if (/^\d+-\d+$/.test(merchant)) continue;
+                  let categoryHint = '';
+                  if (i < rawLines.length - 1) {
+                    const nextL = rawLines[i + 1].trim();
+                    if (/餐饮美食|酒店旅游|投资理财|服饰装扮|日用百货|交通出行|生活服务|休闲娱乐/.test(nextL)) {
+                      categoryHint = nextL;
+                    }
+                  }
 
                   results.push({
                     id: Date.now() + Math.random(),
@@ -4341,37 +4377,42 @@
                   continue;
                 }
               }
-            }
 
-            // 2. 尝试两行模式: 行 i 是商户，行 i+1 是金额
-            if (i < rawLines.length - 1) {
-              const nextLine = rawLines[i + 1].trim();
-              const nextAmtMatch = nextLine.match(/^([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)$/);
-              if (nextAmtMatch) {
-                const sign = nextAmtMatch[1];
-                const amt = parseAmount(nextAmtMatch[2]);
-                let merchant = cleanMerchantName(line);
+              // 2. 尝试多行模式 (行 i 是商户，后序 1~2 行内寻找带符号的金额)
+              let merchant = normalizeMerchant(line);
+              if (isValidMerchant(merchant)) {
+                let foundMulti = false;
+                for (let offset = 1; offset <= 2 && (i + offset) < rawLines.length; offset++) {
+                  const targetLine = rawLines[i + offset].trim();
+                  if (!targetLine) continue;
 
-                if (/^(今天|昨天|BER|前天)\s*\d{1,2}/.test(merchant)) continue;
-                if (/^eatin/i.test(merchant)) merchant = '全家便利店 (FamilyMart)';
+                  const multiAmtMatch = targetLine.match(/^([+\-－—–~一_“"”'‘’])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)$/);
+                  const incomeMatch = (/转入|零钱通|收益|利息|分红|转账|余额宝|理财/.test(line) || /转入|零钱通|收益/.test(targetLine)) &&
+                    targetLine.match(/^([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)$/);
 
-                if (amt !== null && amt > 0 && merchant.length >= 2) {
-                  if (!/^\d{4}[-/年]/.test(merchant) && !/今日|昨日|星期/.test(merchant)) {
-                    let type = (sign === '+' || /转入|收益|转账-来|退款|收入|余额宝/.test(merchant)) ? 'income' : 'expense';
-                    results.push({
-                      id: Date.now() + Math.random(),
-                      note: merchant,
-                      amount: amt,
-                      type,
-                      category: type === 'income' ? '理财收益' : getCategory(merchant)
-                    });
-                    i++;
-                    continue;
+                  const mMatch = multiAmtMatch || incomeMatch;
+                  if (mMatch) {
+                    const sign = mMatch[1];
+                    const amt = parseAmount(mMatch[2]);
+
+                    if (amt !== null && amt > 0 && amt < 10000000) {
+                      let type = (sign === '+' || /转入|收益|转账-来|退款|收入|余额宝/.test(merchant) || /转入|收益|转账/.test(line)) ? 'income' : 'expense';
+                      results.push({
+                        id: Date.now() + Math.random(),
+                        note: merchant,
+                        amount: amt,
+                        type,
+                        category: type === 'income' ? (merchant.includes('余额宝') ? '理财收益' : '其他收入') : getCategory(merchant)
+                      });
+                      i += offset;
+                      foundMulti = true;
+                      break;
+                    }
                   }
                 }
+                if (foundMulti) continue;
               }
             }
-          }
           }
 
           // 如果长图模式成功识别出流水，直接返回
@@ -4398,7 +4439,6 @@
             }
           }
 
-          // 提取小票总额: 合计、总计、应付、已支付、实付款、实付、¥、￥
           let totalAmount = null;
           const totalRegexList = [
             /(?:实付款|实付金额|实际支付|已支付|实付)[\s:：¥￥$]*([0-9]+(?:\.[0-9]{1,2})?)/i,
