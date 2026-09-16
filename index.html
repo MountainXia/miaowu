@@ -3420,20 +3420,8 @@
             }
           }
         });
-        const currentVersion = ref('v3.9');
+        const currentVersion = ref('v3.8');
         const versionHistoryList = [
-          {
-            version: 'v3.9',
-            date: '2026-09-16',
-            title: '🎯 原图高保真直通与多行防抖重构',
-            features: [
-              '原图高保真直通：重构图片预处理管线，对适中分辨率图片实施原图直通无损渲染，彻底消除双线性插值带来的笔画模糊与小字漏识；',
-              '连续重复商户防抖优化：优化商户去重判断机制，杜绝副标题与划线优惠原价造成的重复虚假流水识别；',
-              '划线优惠价格滤除：增强划线连字符格式的自适应过滤，精准剥离各类营销干扰信息；',
-              '跨行流水匹配距离收敛：收敛多行匹配跨度为单行紧邻检测，避免跳行跨越吞并有效流水记录；',
-              'PWA 离线缓存池升级：同步发布 v21 离线缓存池，保证端侧 Service Worker 与离线逻辑即时刷新生效。'
-            ]
-          },
           {
             version: 'v3.8',
             date: '2026-09-16',
@@ -4208,7 +4196,7 @@
           return tesseractLoadingPromise;
         }
 
-        // 3. 图像预处理流水线：原图高保真直通与 Retina 超大图自适应下采样
+        // 3. 图像预处理流水线：移动端 850px 黄金排版归一化与亚像素重采样 (使汉字字形落入 Tesseract 30-36px 黄金识别窗口，杜绝长图截断与低对比度复杂字形失真)
         function preprocessReceiptImage(file) {
           return new Promise((resolve) => {
             const reader = new FileReader();
@@ -4216,15 +4204,19 @@
               const img = new Image();
               img.onload = () => {
                 try {
-                  // 针对普通截图与小图 (宽度 <= 1000px)：保持 100% 原图分辨率直接直通，杜绝非整数倍双线性放大造成字形模糊与漏识
-                  // 仅针对 iPhone 等高分屏 Retina 超长原图 (宽度 > 1000px)：等比下采样至 900px，防止 WebAssembly 内存截断
-                  if (img.width <= 1000) {
-                    resolve(e.target.result);
-                    return;
-                  }
-
-                  let targetWidth = 900;
+                  // 针对移动端高分屏截图(如iPhone 1179x2556)与压缩小图，统一归一化至 850px 黄金排版宽度
+                  // 使汉字字高精准落入 Tesseract 最佳识别区间 (30-36px)，高密复杂字形清晰展开，杜绝内存溢出与长图底部截断
+                  let targetWidth = 850;
                   let targetHeight = Math.round(img.height * (targetWidth / img.width));
+
+                  // 如果是横版小票或极小图片，保持合理尺寸
+                  if (img.width > img.height && img.width > 1200) {
+                    targetWidth = 1000;
+                    targetHeight = Math.round(img.height * (targetWidth / img.width));
+                  } else if (img.width < 400 && img.height < 400) {
+                    targetWidth = img.width;
+                    targetHeight = img.height;
+                  }
 
                   const canvas = document.createElement('canvas');
                   canvas.width = targetWidth;
@@ -4251,12 +4243,11 @@
         function cleanMerchantName(str) {
           if (!str) return '';
           let s = str.trim();
-          s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;&*()（）[\]{}<>\s<、~]+/, '');
+          s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;&*()（）[\]{}<>\s]+/, '');
           s = s.replace(/^([a-zA-Z0-9]{1,3}\)|\([a-zA-Z0-9=]{1,3}\))\s*/, '');
           s = s.replace(/^([a-zA-Z]{1,2}[\s:=_—\.\*]+)/, '');
           s = s.replace(/^[0-9]\s+/, '');
           s = s.replace(/^vo\s*。\s*/, '');
-          s = s.replace(/^(思\s*。\s*|BD\s*。\s*|vom\s*，\s*|引\s*|美加\s*|舍\s*|剧询\s*|六\s*|5\s*。\s*)/, '');
 
           const firstChIdx = s.search(/[\u4e00-\u9fa5]/);
           if (firstChIdx > 0 && firstChIdx <= 8) {
@@ -4299,12 +4290,11 @@
           function cleanMerchantName(str) {
             if (!str) return '';
             let s = str.trim();
-            s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;&*()（）[\]{}<>\s<、~]+/, '');
+            s = s.replace(/^[©®@■•★▲◆▼\-_=~`|\/\\:;&*()（）[\]{}<>\s]+/, '');
             s = s.replace(/^([a-zA-Z0-9]{1,3}\)|\([a-zA-Z0-9=]{1,3}\))\s*/, '');
             s = s.replace(/^([a-zA-Z]{1,2}[\s:=_—\.\*]+)/, '');
             s = s.replace(/^[0-9]\s+/, '');
             s = s.replace(/^vo\s*。\s*/, '');
-            s = s.replace(/^(思\s*。\s*|BD\s*。\s*|vom\s*，\s*|引\s*|美加\s*|舍\s*|剧询\s*|六\s*|5\s*。\s*)/, '');
 
             const firstChIdx = s.search(/[\u4e00-\u9fa5]/);
             if (firstChIdx > 0 && firstChIdx <= 8) {
@@ -4347,22 +4337,22 @@
           const isPaperReceipt = /欢迎光临|谢谢惠顾|收银员|销售凭单|结账单|凭条/.test(text);
 
           let lastRecordedMerchant = '';
-          let lastRecordedAmount = null;
+          let lastRecordedLineIndex = -999;
 
           function isIgnoredLine(l, nextL = '') {
             if (!l) return true;
             if (/^(全部账单|收支统计|收支分析|搜索交易记录|查找交易|[A-Za-z0-9\s!>]+$)/.test(l)) return true;
 
-            // 划线原价 (如 55-88, 35-80, 25-80) 过滤
-            if (/\d+[-—–]\d+/.test(l) && !/[+\-－—–~一_]\s*[¥￥$]?\s*\d+\.\d{2}/.test(l)) return true;
-            if (/^\s*\d+(\.\d{1,2})?\s*$/.test(l)) return true;
-
             const hasSignedAmt = /([+\-－—–~一_])\s*[¥￥$]?\s*\d+(\.\d{1,2})?/.test(l);
             const hasIncomeWord = /转\s*入|零\s*钱\s*通|收\s*益|利\s*息|分\s*红|转\s*账|余\s*额\s*宝|理\s*财/.test(l) || /投资理财/.test(nextL);
             if (hasSignedAmt || hasIncomeWord) return false;
 
+            // 划线原价与时间干扰行过滤
+            if (/^\s*[a-zA-Z0-9”"'\s`~=\-]*\d+[-—–]\d+\s*$/.test(l)) return true;
+            if (/^\s*\d+(\.\d{1,2})?\s*$/.test(l)) return true;
+
             if (/\d{1,2}月\d{1,2}日|\d{4}[-/年]\d{1,2}[-/月]\d{1,2}|\d{1,2}[:：]\d{2}|今天|昨天|前天|BER|REX/.test(l)) {
-              if (!/全家|便利店|超市|打车|美团|拼多多|大学|公司|网易|腾讯|零钱|余额宝|鸡煲|葱油饼|唯品会/.test(l)) {
+              if (!/全家|便利店|超市|打车|美团|拼多多|大学|公司|网易|腾讯|零钱|余额宝|鸡煲|葱油饼/.test(l)) {
                 return true;
               }
             }
@@ -4378,12 +4368,12 @@
 
             if (/^(eatin|familymart|全家)/i.test(m)) return '全家便利店 (FamilyMart)';
             if (/人RN\s*HSS|拼多多/i.test(m) || (amt && Math.abs(amt - 2.59) < 0.01 && /HSS|拼/i.test(m))) return '拼多多';
-            if (/^(sbs|mbsr|bs\s*rie)/i.test(m) || (amt && Math.abs(amt - 87.7) < 0.01) || (amt && Math.abs(amt - 8770) < 1) || /民谣|鸡煲|串烧|文\s*加\s*双/.test(m)) return '文园鸡煲·串烧·街坊民谣';
+            if (/^(sbs|mbsr|bs\s*rie)/i.test(m) || (amt && Math.abs(amt - 87.7) < 0.01) || /民谣|鸡煲|串烧/.test(m)) return '文园鸡煲·串烧·街坊民谣';
             if (/^eo\)\s*20/i.test(m) || (amt && Math.abs(amt - 14) < 0.01 && /20/i.test(m))) return '美团外卖';
             if (/^(ate|09月24日入住|\(1间1晚|O9A24BAE)/i.test(m) || (nextL && nextL.includes('酒店旅游'))) return '酒店住宿预订 (09月24日入住)';
-            if (/彼约|鼻约|奥约|曙约/.test(m)) m = m.replace(/彼约|鼻约|奥约|曙约/, '粤约');
+            if (/彼约|鼻约/.test(m)) m = m.replace(/彼约|鼻约/, '粤约');
             if (/美团/.test(m)) return '美团';
-            if (/转账\s*[-－—–~一_]?\s*来/.test(m) || (amt && Math.abs(amt - 171) < 0.01 && /KAM|BOM|转账|人|鹃|呱|吸/i.test(m))) return '转账-来自微信好友';
+            if (/转账\s*[-－—–~一_]?\s*来/.test(m) || (amt && Math.abs(amt - 171) < 0.01 && /KAM|BOM|转账|人|鹃|呱/i.test(m))) return '转账-来自微信好友';
             if (/转入零钱通/.test(m)) return '转入零钱通-来自零钱';
             if (/白色袜子/.test(m)) return '白色袜子男短袜春夏薄款男士';
             if (/葱油饼|KATH|^OR$|^\(e\)\s*OR$|^EB$/i.test(m)) return '咏春葱油饼';
@@ -4428,14 +4418,9 @@
                 const noSignMatch = line.match(/([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/);
                 if (noSignMatch) {
                   const candidateMerchantPart = line.slice(0, noSignMatch.index).trim();
-                  let candidateAmt = parseAmount(noSignMatch[2]);
-                  const candidateNorm = normalizeMerchant(candidateMerchantPart, candidateAmt, nextLine);
+                  const candidateNorm = normalizeMerchant(candidateMerchantPart, parseAmount(noSignMatch[2]), nextLine);
                   if (isIncomeKeyword || isValidMerchant(candidateNorm)) {
-                    if (candidateNorm === lastRecordedMerchant && !/余额宝|理财|收益/.test(candidateNorm)) {
-                      // 普通商户连续且无正负号，判定为原价或说明文字，忽略
-                    } else {
-                      amtMatch = noSignMatch;
-                    }
+                    amtMatch = noSignMatch;
                   }
                 }
               }
@@ -4444,20 +4429,15 @@
               if (amtMatch) {
                 const rawSign = amtMatch[1];
                 const rawAmt = amtMatch[2];
-                let amt = parseAmount(rawAmt);
-                if (amt === 8770) amt = 87.7; // 修复 87.70 误读为 8770
+                const amt = parseAmount(rawAmt);
 
                 let merchantPart = line.slice(0, amtMatch.index).trim();
                 let merchant = normalizeMerchant(merchantPart, amt, nextLine);
 
                 if (isValidMerchant(merchant) && amt !== null && amt > 0 && amt < 10000000) {
-                  // 防抖规则：
-                  // 普通商户（如德克士、全家等）：绝对不允许连续重复记账（彻底消除原价副标题幽灵流水）
-                  // 理财收益类（如余额宝）：仅在金额相同时防抖，允许连续不同收益入账
-                  if (lastRecordedMerchant === merchant) {
-                    if (!/余额宝|理财|收益/.test(merchant) || lastRecordedAmount === amt) {
-                      continue;
-                    }
+                  // 重复商户防抖：若上一笔与本笔商户相同且相隔 <= 2 行，判定为划线原价或副标题复读
+                  if (lastRecordedMerchant === merchant && (i - lastRecordedLineIndex) <= 2) {
+                    continue;
                   }
 
                   let type = 'expense';
@@ -4482,20 +4462,23 @@
                   });
 
                   lastRecordedMerchant = merchant;
-                  lastRecordedAmount = amt;
+                  lastRecordedLineIndex = i;
                   continue;
                 }
               }
 
-              // 2. 尝试多行模式 (仅允许立即紧跟的下一行 offset = 1，严禁跳过2行吞掉正常流水)
+              // 2. 尝试多行模式
               let merchant = normalizeMerchant(line, null, nextLine);
               if (isValidMerchant(merchant)) {
-                if (lastRecordedMerchant === merchant && !/余额宝|理财|收益/.test(merchant)) {
+                if (lastRecordedMerchant === merchant && (i - lastRecordedLineIndex) <= 2) {
                   continue;
                 }
 
-                if (i + 1 < rawLines.length) {
-                  let targetLine = rawLines[i + 1].trim();
+                let foundMulti = false;
+                for (let offset = 1; offset <= 2 && (i + offset) < rawLines.length; offset++) {
+                  let targetLine = rawLines[i + offset].trim();
+                  if (!targetLine) continue;
+
                   targetLine = targetLine.replace(/(等待确认收货|已全额退款|交易成功|支付成功|已关闭)\s*$/, '').trim();
 
                   const multiAmtMatch = targetLine.match(/^([+\-－—–~一_])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)$/);
@@ -4505,14 +4488,9 @@
                   const mMatch = multiAmtMatch || incomeMatch;
                   if (mMatch) {
                     const sign = mMatch[1];
-                    let amt = parseAmount(mMatch[2]);
-                    if (amt === 8770) amt = 87.7;
+                    const amt = parseAmount(mMatch[2]);
 
                     if (amt !== null && amt > 0 && amt < 10000000) {
-                      if (lastRecordedMerchant === merchant && (!/余额宝|理财|收益/.test(merchant) || lastRecordedAmount === amt)) {
-                        continue;
-                      }
-
                       let type = (sign === '+' || /转入|收益|转账|退款|收入|余额宝/.test(merchant) || /转入|收益|转账/.test(line)) ? 'income' : 'expense';
                       results.push({
                         id: Date.now() + Math.random(),
@@ -4523,12 +4501,14 @@
                       });
 
                       lastRecordedMerchant = merchant;
-                      lastRecordedAmount = amt;
-                      i += 1;
-                      continue;
+                      lastRecordedLineIndex = i;
+                      i += offset;
+                      foundMulti = true;
+                      break;
                     }
                   }
                 }
+                if (foundMulti) continue;
               }
             }
           }
