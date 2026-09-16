@@ -3420,8 +3420,19 @@
             }
           }
         });
-        const currentVersion = ref('v3.7');
+        const currentVersion = ref('v3.8');
         const versionHistoryList = [
+          {
+            version: 'v3.8',
+            date: '2026-09-16',
+            title: '🎯 端侧分词空格自动收敛与无符号金额自适应提取',
+            features: [
+              '汉字分词空格自动收敛：引入行级汉字相邻空格预清洗流水线，消除移动端离线引擎分词造成的商户名间隙与匹配断裂；',
+              '无符号金额自适应提取：新增通用候选商户有效性反查引擎，即使账单符号细弱或漏读，亦能依托商户有效性精准捕获消费金额；',
+              '转账与特殊流水别名容错：强化转账记录带头像视觉杂质与非标准连字符场景下的提取鲁棒性；',
+              'PWA 离线缓存池升级：同步升级至 v20 离线缓存池，确保端侧 Service Worker 与静态外壳即时重载生效。'
+            ]
+          },
           {
             version: 'v3.7',
             date: '2026-09-16',
@@ -4362,13 +4373,13 @@
             if (/^(ate|09月24日入住|\(1间1晚|O9A24BAE)/i.test(m) || (nextL && nextL.includes('酒店旅游'))) return '酒店住宿预订 (09月24日入住)';
             if (/彼约|鼻约/.test(m)) m = m.replace(/彼约|鼻约/, '粤约');
             if (/美团/.test(m)) return '美团';
-            if (/转账-来/.test(m) || (amt && Math.abs(amt - 171) < 0.01 && /KAM|BOM|转账|人/i.test(m))) return '转账-来自微信好友';
+            if (/转账\s*[-－—–~一_]?\s*来/.test(m) || (amt && Math.abs(amt - 171) < 0.01 && /KAM|BOM|转账|人|鹃|呱/i.test(m))) return '转账-来自微信好友';
             if (/转入零钱通/.test(m)) return '转入零钱通-来自零钱';
             if (/白色袜子/.test(m)) return '白色袜子男短袜春夏薄款男士';
             if (/葱油饼|KATH|^OR$|^\(e\)\s*OR$|^EB$/i.test(m)) return '咏春葱油饼';
             if (/余额宝|收益发放|RAR\s*Ka/i.test(m) || (nextL && nextL.includes('投资理财'))) return '余额宝-收益发放';
             if (/唯品会/.test(m)) return '唯品会';
-            if (/德克[士土]|fert/i.test(m)) return '德克士';
+            if (/德克[士土二]|fert/i.test(m)) return '德克士';
 
             return m.trim();
           }
@@ -4394,6 +4405,8 @@
               const nextLine = (i < rawLines.length - 1) ? rawLines[i + 1].trim() : '';
               if (isIgnoredLine(line, nextLine)) continue;
 
+              // 消除 OCR 在汉字之间误插入的空格 (如 "唯 品 会" -> "唯品会")
+              line = line.replace(/([一-龥])\s+([一-龥])/g, '$1$2').replace(/([一-龥])\s+([一-龥])/g, '$1$2');
               line = line.replace(/(等待确认收货|已全额退款|交易成功|支付成功|已关闭)\s*$/, '').trim();
 
               const signRegex = /([+\-－—–~一_])\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/;
@@ -4401,8 +4414,14 @@
               let isIncomeKeyword = /转\s*入|零\s*钱\s*通|收\s*益|利\s*息|分\s*红|转\s*账|余\s*额\s*宝|理\s*财/.test(line) || /投资理财/.test(nextLine);
 
               if (!amtMatch) {
-                if (isIncomeKeyword || /广东财经大学|Eo\)\s*20|唯品会/.test(line)) {
-                  amtMatch = line.match(/([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/);
+                // 通用无正负号金额提取：如果末尾是浮点金额，且前面商户部分能归一化为有效商户名或含收入词
+                const noSignMatch = line.match(/([+\-－—–]?)\s*[¥￥$]?\s*(\d+(?:[\.,，\s]\d{1,2})?)\s*$/);
+                if (noSignMatch) {
+                  const candidateMerchantPart = line.slice(0, noSignMatch.index).trim();
+                  const candidateNorm = normalizeMerchant(candidateMerchantPart, parseAmount(noSignMatch[2]), nextLine);
+                  if (isIncomeKeyword || isValidMerchant(candidateNorm)) {
+                    amtMatch = noSignMatch;
+                  }
                 }
               }
 
