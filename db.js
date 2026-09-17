@@ -330,8 +330,32 @@
       toAccount = await getAccount(toAccountId);
       if (!toAccount) throw new Error('转入账户不存在');
 
-      fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
-      toAccount.balance = +(toAccount.balance + amount).toFixed(2);
+      // 1. 转出账户余额更新
+      if (fromAccount.type === 'credit') {
+        // 从信用卡/负债账户转出（透支取现）：负债绝对值增加
+        if (fromAccount.balance < 0) {
+          fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
+        } else {
+          fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
+        }
+      } else {
+        // 普通资产账户转出：资金减少
+        fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
+      }
+
+      // 2. 转入账户余额更新
+      if (toAccount.type === 'credit') {
+        // 转入信用卡/负债账户（还款）：负债绝对值减少，向 0 靠近
+        if (toAccount.balance < 0) {
+          toAccount.balance = +(toAccount.balance + amount).toFixed(2);
+        } else {
+          toAccount.balance = +(toAccount.balance - amount).toFixed(2);
+        }
+      } else {
+        // 普通资产账户转入：资金增加
+        toAccount.balance = +(toAccount.balance + amount).toFixed(2);
+      }
+
       fromAccount.updatedAt = new Date().toISOString();
       toAccount.updatedAt = new Date().toISOString();
     } else if (!isPureTransaction) {
@@ -405,9 +429,30 @@
       } else if (type === 'income') {
         fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
       } else if (type === 'transfer') {
-        fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
+        // 回滚转出账户 (反转 transfer 时的操作)
+        if (fromAccount.type === 'credit') {
+          // 转出时增加了负债，回滚应减少负债
+          if (fromAccount.balance < 0) {
+            fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
+          } else {
+            fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
+          }
+        } else {
+          fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
+        }
+
+        // 回滚转入账户 (反转 transfer 时的操作)
         if (toAccount) {
-          toAccount.balance = +(toAccount.balance - amount).toFixed(2);
+          if (toAccount.type === 'credit') {
+            // 转入时减少了负债，回滚应恢复负债
+            if (toAccount.balance < 0) {
+              toAccount.balance = +(toAccount.balance - amount).toFixed(2);
+            } else {
+              toAccount.balance = +(toAccount.balance + amount).toFixed(2);
+            }
+          } else {
+            toAccount.balance = +(toAccount.balance - amount).toFixed(2);
+          }
         }
       }
       fromAccount.updatedAt = new Date().toISOString();
@@ -455,12 +500,8 @@
       balances[acc.id] = bal;
 
       if (acc.type === 'credit') {
-        // 信用卡类型：若是正数通常为欠款金额，或者是负余额。统一定义：欠款为负债
-        if (bal < 0) {
-          totalLiability += Math.abs(bal);
-        } else {
-          totalLiability += bal;
-        }
+        // 信用卡/借贷账户：统一定义欠款为负债 (取绝对值 Math.abs，清零时为 0)
+        totalLiability += Math.abs(bal);
       } else {
         if (bal >= 0) {
           totalAsset += bal;

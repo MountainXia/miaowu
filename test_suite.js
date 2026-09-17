@@ -267,6 +267,55 @@ async function runAllTests() {
     await AssetDB.deleteTransaction(pureTx.id);
     const acc1AfterDeletePure = await AssetDB.getAccount('test_bank');
     assert.strictEqual(acc1AfterDeletePure.balance, 12000, '删除纯流水不影响账户余额');
+
+    // 7. 验证转账至负债账户（信用卡）的逻辑：转账还款冲减负债，避免双倍扣减净资产
+    const creditAcc = await AssetDB.addAccount({
+      id: 'test_credit',
+      name: '招商信用卡',
+      type: 'credit',
+      balance: 500.00 // 欠款 500
+    });
+    assert.strictEqual(creditAcc.balance, 500);
+
+    // 还款前检查总资产、总负债与净资产:
+    // 资产: 12000 (test_bank) + 2000 (test_wallet) = 14000
+    // 负债: 500 (test_credit)
+    // 净资产: 14000 - 500 = 13500
+    const statsBeforeRepay = await AssetDB.getOverviewStats();
+    assert.strictEqual(statsBeforeRepay.totalAsset, 14000);
+    assert.strictEqual(statsBeforeRepay.totalLiability, 500);
+    assert.strictEqual(statsBeforeRepay.netAsset, 13500);
+
+    // 从储蓄卡转出 500 还款给信用卡
+    const repayTx = await AssetDB.addTransaction({
+      type: 'transfer',
+      amount: 500.00,
+      accountId: 'test_bank',
+      toAccountId: 'test_credit',
+      category: '内部转账',
+      date: '2026-09-09'
+    });
+
+    const bankAfterRepay = await AssetDB.getAccount('test_bank');
+    const creditAfterRepay = await AssetDB.getAccount('test_credit');
+    assert.strictEqual(bankAfterRepay.balance, 11500, '转出储蓄卡扣减500还款额');
+    assert.strictEqual(creditAfterRepay.balance, 0, '信用卡还款后欠款应冲减清零，由500变为0');
+
+    // 还款后净资产应保持不变: 资产 11500 + 2000 = 13500, 负债 0, 净资产 13500
+    const statsAfterRepay = await AssetDB.getOverviewStats();
+    assert.strictEqual(statsAfterRepay.totalAsset, 13500);
+    assert.strictEqual(statsAfterRepay.totalLiability, 0);
+    assert.strictEqual(statsAfterRepay.netAsset, 13500, '转账还款后净资产不应产生双倍扣减，保持13500');
+
+    // 删除还款流水，验证反向回滚
+    await AssetDB.deleteTransaction(repayTx.id);
+    const bankAfterRollback = await AssetDB.getAccount('test_bank');
+    const creditAfterRollback = await AssetDB.getAccount('test_credit');
+    assert.strictEqual(bankAfterRollback.balance, 12000, '删除流水后储蓄卡回滚+500');
+    assert.strictEqual(creditAfterRollback.balance, 500, '删除流水后信用卡欠款恢复为500');
+
+    const statsAfterRollback = await AssetDB.getOverviewStats();
+    assert.strictEqual(statsAfterRollback.netAsset, 13500, '回滚后净资产恢复为13500');
   });
 
   // 6. 隐私暗号锁功能与安全规范检验
@@ -471,6 +520,11 @@ async function runAllTests() {
     assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
     assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
     assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
+
+    // 7. 检查内部转账提示与 SW 缓存版本升级
+    assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
+    const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+    assert.ok(swContent.includes('personal-asset-pwa-v26'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v26');
   });
 
   console.log(`\n测试完成: 共 ${total} 项测试，通过 ${passed} 项，失败 ${total - passed} 项。`);
