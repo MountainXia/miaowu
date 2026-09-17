@@ -1283,20 +1283,87 @@
       color: var(--text-secondary);
     }
 
+    /* 表单控件统一尺寸与对齐规范 */
     .form-input, .form-select {
       width: 100%;
+      height: 42px;
+      min-height: 42px;
+      max-height: 42px;
+      box-sizing: border-box;
       background: var(--input-bg);
       border: 1px solid var(--border-subtle);
       border-radius: 12px;
       color: var(--text-main);
-      padding: 12px 14px;
-      font-size: 14px;
+      padding: 0 12px;
+      font-size: 13.5px;
+      line-height: 40px;
+      font-family: inherit;
       outline: none;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-select {
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 30px;
     }
 
     .form-input:focus, .form-select:focus {
       border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
+    }
+
+    /* 记账日期输入框 UI 消除原生过度留白，与 select/input 严格高度对齐与视觉统一 */
+    .form-input[type="date"],
+    .form-date-input {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 42px;
+      min-height: 42px;
+      max-height: 42px;
+      padding: 0 10px;
+      margin: 0;
+      box-sizing: border-box;
+      line-height: 40px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .form-input[type="date"]::-webkit-datetime-edit {
+      padding: 0;
+      line-height: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .form-input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+      padding: 0;
+    }
+
+    .form-input[type="date"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      opacity: 0.65;
+      padding: 0;
+      margin: 0;
+      width: 16px;
+      height: 16px;
+      transition: opacity 0.15s ease;
+    }
+
+    .form-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
+    }
+
+    body[data-theme="business"] .form-input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.85);
     }
 
     .input-amount-wrapper {
@@ -1314,60 +1381,57 @@
     }
 
     .form-input.amount-input {
+      height: 52px;
+      min-height: 52px;
+      max-height: 52px;
+      line-height: 50px;
       padding-left: 36px;
       font-size: 24px;
       font-weight: 800;
       letter-spacing: -0.5px;
     }
 
-    /* 记账分类紧凑双行横滑容器 (首屏友好) */
+    /* 记账分类网格 (四列排布，空间充裕、指尖易点且一目了然) */
     .cat-grid {
       display: grid;
-      grid-template-rows: repeat(2, 34px);
-      grid-auto-flow: column;
-      grid-auto-columns: max-content;
-      gap: 6px 8px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 2px 2px 6px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
       margin-top: 4px;
-      scrollbar-width: none;
-    }
-    .cat-grid::-webkit-scrollbar {
-      display: none;
     }
 
     .cat-btn {
       background: var(--input-bg);
       border: 1px solid var(--border-subtle);
-      border-radius: 10px;
-      padding: 4px 10px;
-      display: inline-flex;
-      flex-direction: row;
+      border-radius: 12px;
+      padding: 7px 4px;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 5px;
+      justify-content: center;
+      gap: 3px;
       color: var(--text-muted);
       cursor: pointer;
       transition: all 0.15s ease;
-      white-space: nowrap;
-      height: 34px;
+      min-height: 50px;
     }
 
     .cat-btn.active {
       background: rgba(249, 115, 22, 0.18);
       border-color: var(--primary);
       color: var(--primary);
-      font-weight: 600;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2);
     }
 
     .cat-emoji {
-      font-size: 15px;
-      line-height: 1;
+      font-size: 20px;
+      line-height: 1.1;
     }
 
     .cat-title {
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
+      white-space: nowrap;
     }
 
     /* 记账弹窗吸底与滚动优化 */
@@ -3408,7 +3472,7 @@
                 喵的粮仓 {{ currentVersion }}
               </div>
               <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                更新时间: 2026-09-15 · 纯本地离线 PWA
+                更新时间: 2026-09-17 · 纯本地离线 PWA
               </div>
             </div>
             <div class="version-current-badge">
@@ -3502,30 +3566,49 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <!-- 支出与收入模式：结算账户 与 记账日期 左右对称并排 (1fr 1fr)，节省一整行纵向空间，分类选择区域更宽裕 -->
+          <div v-if="txForm.type !== 'transfer'" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div class="form-group">
-              <label class="form-label">{{ txForm.type === 'transfer' ? '转出账户' : '结算账户' }}</label>
+              <label class="form-label">结算账户</label>
               <select v-model="txForm.accountId" class="form-select">
-                <option v-if="txForm.type !== 'transfer'" value="">仅记录流水 (不计入资产)</option>
+                <option value="">仅记录流水 (不计入资产)</option>
                 <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
               </select>
             </div>
 
-            <div v-if="txForm.type === 'transfer'" class="form-group">
+            <div class="form-group">
+              <label class="form-label">记账日期</label>
+              <input type="date" v-model="txForm.date" class="form-input form-date-input" />
+            </div>
+          </div>
+
+          <!-- 内部转账模式：转出账户 与 转入账户 并排，记账日期居其下方整行 -->
+          <div v-else style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label">转出账户</label>
+              <select v-model="txForm.accountId" class="form-select">
+                <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label class="form-label">转入账户</label>
               <select v-model="txForm.toAccountId" class="form-select">
                 <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.icon || '' }} {{ a.name }}</option>
               </select>
             </div>
 
-            <div :style="txForm.type === 'transfer' ? '' : 'grid-column: span 2;'" class="form-group">
+            <div class="form-group" style="grid-column: span 2;">
               <label class="form-label">记账日期</label>
-              <input type="date" v-model="txForm.date" class="form-input" />
+              <input type="date" v-model="txForm.date" class="form-input form-date-input" />
             </div>
           </div>
 
           <div v-if="txForm.type !== 'transfer'" class="form-group">
-            <label class="form-label">分类选择</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <label class="form-label" style="margin-bottom: 0;">分类选择</label>
+              <span style="font-size: 11px; color: var(--text-muted);">已选: <b style="color: var(--primary);">{{ txForm.category }}</b></span>
+            </div>
             <div class="cat-grid">
               <button
                 v-for="cat in currentCategoryList"
@@ -3836,21 +3919,31 @@
             }
           }
         });
-        const currentVersion = ref('v4.0');
+        const currentVersion = ref('v4.1');
         const versionHistoryList = [
+          {
+            version: 'v4.1',
+            date: '2026-09-17',
+            title: '✨ 记一笔表单紧凑排版、日期控件留白调优与版本升级',
+            features: [
+              '记一笔表单布局重构：支出与收入模式下，将“记账日期”紧凑并排至“结算账户”右侧，大幅释放纵向高度，为分类选择腾出充裕可视空间；',
+              '原生日期输入框 UI 与留白调优：深度消除原生 date 控件多余内边距与留白膨胀，高度、圆角与字体完美对齐 select 账户下拉框，视觉统一和谐；',
+              '分类选择四列全景展开：分类按钮优化为舒适四列平铺网格，触控区域更宽大，无需横向滑动即可一目了然快捷点选；',
+              '流水统计年度分析与纯 CSS 圆锥渐变饼图：支持按月度/年度整年聚合计算收支，分类排行上方内嵌原生 conic-gradient 极简环形饼图；',
+              '移动端首屏吸底固定：表单底部“保存”按钮原生吸底固定（sticky），各机型移动端首屏 100% 展开即见无需滑动；',
+              '隐私锁离屏防窥超时优化：切入后台自动上锁时间延长至 5 分钟，降低短时切出被锁频次；',
+              'PWA 离线缓存池升级：同步升级至 v24 离线缓存池，确保所有新界面与交互逻辑即时重载生效。'
+            ]
+          },
           {
             version: 'v4.0',
             date: '2026-09-17',
-            title: '🚀 流水资产解耦、年度/月度统计分析与纯CSS饼图、记一笔首屏吸底与体验大优化',
+            title: '🚀 流水与资产解耦、月度统计面板与四大消费分类扩充',
             features: [
               '流水与资产解耦记账模式：新增“纯流水”模式（不计入资产），支持单笔记账与批量 OCR 录入时选择不关联账户，资产总额与净资产计算实现严格物理隔离；',
-              '流水统计年度分析与纯 CSS 圆锥渐变 (conic-gradient) 极简环形饼图：新增月度/年度 Tab 切换支持按整年聚合计算，分类排行上方内嵌原生圆锥渐变环形饼图与核心分类图例；',
-              '记一笔表单移动端首屏吸底优化：分类选择采用紧凑双行横滑交互，底部“保存”按钮原生吸底固定，移动端首屏 100% 直观可见无需滑动；',
-              '隐私锁离屏超时调优：后台离屏自动防窥上锁时间延长至 5 分钟，降低短时切出被锁频次；',
-              '消费分类支出排行榜：按当期支出额降序展示消费分类、Emoji、支出金额、百分占比及极简流畅的原生 CSS 进度条；',
+              '独立月度统计分析面板：全新第4导航标签页，内置原生年月选择器，全景计算当月支出、收入、净结余及流水笔数（全面包含纯流水）；',
               '四大全新消费分类体系：新增“美容美发”、“学习教育”、“礼金人情”、“旅游探索”4个常用分类，全局统一高质感配色与 Emoji 标识；',
-              'OCR 自动分类词典无损扩展：在不破坏核心文字识别引擎的前提下，智能匹配拓展至理发/护肤、课程/培训、礼金/红包、酒店/机票等全场景账单；',
-              'PWA 离线缓存池升级：同步升级至 v23 离线缓存池，确保所有新特性与静态资源在移动端即时生效。'
+              'OCR 自动分类词典无损扩展：在不破坏核心文字识别引擎的前提下，智能匹配拓展至理发/护肤、课程/培训、礼金/红包、酒店/机票等全场景账单。'
             ]
           },
           {

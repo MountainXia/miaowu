@@ -304,7 +304,8 @@ async function runAllTests() {
     assert.ok(html.includes('conic-gradient'), '缺少 conic-gradient 圆锥渐变纯 CSS 饼图实现');
     assert.ok(html.includes('pie-chart-wrapper'), '缺少 .pie-chart-wrapper 饼图容器');
     assert.ok(html.includes('tx-modal-sticky-footer'), '缺少 .tx-modal-sticky-footer 记一笔首屏吸底保存按钮');
-    assert.ok(html.includes('grid-template-rows: repeat(2, 34px)'), '缺少分类选择紧凑双行横滑样式');
+    assert.ok(html.includes('grid-template-columns: repeat(4, 1fr)'), '缺少分类选择四列全景展开网格');
+    assert.ok(html.includes('form-date-input'), '缺少记账日期专属对齐样式 .form-date-input');
   });
 
   // 7. HTTP 服务器端点响应测试
@@ -459,8 +460,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.0)
-    const expectedVersions = ['v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.1)
+    const expectedVersions = ['v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
