@@ -3,7 +3,7 @@
  * 实现网络优先(页面) + 缓存优先(静态资源) 的智能离线策略
  */
 
-const CACHE_NAME = 'personal-asset-pwa-v24';
+const CACHE_NAME = 'personal-asset-pwa-v25';
 const OCR_CACHE_NAME = 'ocr-cache-v1';
 
 const STATIC_ASSETS = [

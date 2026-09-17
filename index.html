@@ -1367,37 +1367,74 @@
       box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
     }
 
-    /* 记账日期输入框 UI 严格对齐左右边界，消除原生过度留白与突出现象 */
+    /* 记账日期输入框 UI 严格对齐左右边界，消除移动端 (iOS Safari / Android) 原生突出现象与多余留白 */
     .form-input[type="date"],
     .form-date-input {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      height: 42px;
-      min-height: 42px;
-      max-height: 42px;
-      padding: 0 10px;
-      margin: 0;
-      box-sizing: border-box;
-      line-height: 40px;
-      font-size: 13px;
+      appearance: none !important;
+      -webkit-appearance: none !important;
+      -moz-appearance: none !important;
+      display: block !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      height: 42px !important;
+      min-height: 42px !important;
+      max-height: 42px !important;
+      padding: 0 12px !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+      line-height: 40px !important;
+      font-size: 13.5px !important;
       font-weight: 600;
-      color: var(--text-main);
+      font-family: inherit !important;
+      color: var(--text-main) !important;
+      background: var(--input-bg) !important;
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: 12px !important;
+      outline: none;
       cursor: pointer;
     }
 
-    .form-input[type="date"]::-webkit-datetime-edit {
-      padding: 0;
-      line-height: 40px;
-      height: 40px;
+    .form-input[type="date"]:focus,
+    .form-date-input:focus {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15) !important;
     }
 
-    .form-input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-      padding: 0;
+    /* 移动端 WebKit (iOS Safari) 内部文字与日期值重置对齐 */
+    .form-input[type="date"]::-webkit-date-and-time-value,
+    .form-date-input::-webkit-date-and-time-value {
+      text-align: left !important;
+      line-height: 40px !important;
+      height: 40px !important;
+      min-height: 40px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      font-family: inherit !important;
     }
 
-    .form-input[type="date"]::-webkit-calendar-picker-indicator {
+    .form-input[type="date"]::-webkit-datetime-edit,
+    .form-date-input::-webkit-datetime-edit {
+      padding: 0 !important;
+      line-height: 40px !important;
+      height: 40px !important;
+    }
+
+    .form-input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+    .form-date-input::-webkit-datetime-edit-fields-wrapper {
+      padding: 0 !important;
+    }
+
+    .form-input[type="date"]::-webkit-inner-spin-button,
+    .form-date-input::-webkit-inner-spin-button,
+    .form-input[type="date"]::-webkit-clear-button,
+    .form-date-input::-webkit-clear-button {
+      display: none !important;
+      -webkit-appearance: none !important;
+    }
+
+    .form-input[type="date"]::-webkit-calendar-picker-indicator,
+    .form-date-input::-webkit-calendar-picker-indicator {
       cursor: pointer;
       opacity: 0.65;
       padding: 0;
@@ -1407,11 +1444,13 @@
       transition: opacity 0.15s ease;
     }
 
-    .form-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    .form-input[type="date"]::-webkit-calendar-picker-indicator:hover,
+    .form-date-input::-webkit-calendar-picker-indicator:hover {
       opacity: 1;
     }
 
-    body[data-theme="business"] .form-input[type="date"]::-webkit-calendar-picker-indicator {
+    body[data-theme="business"] .form-input[type="date"]::-webkit-calendar-picker-indicator,
+    body[data-theme="business"] .form-date-input::-webkit-calendar-picker-indicator {
       filter: invert(0.85);
     }
 
@@ -1495,7 +1534,7 @@
     .tx-modal-body {
       overflow-y: auto;
       flex: 1;
-      padding-right: 2px;
+      padding: 0;
       margin-bottom: 4px;
     }
 
@@ -3620,40 +3659,40 @@
           </div>
 
           <!-- 支出与收入模式：结算账户 与 记账日期 左右对称并排 (minmax(0,1fr))，严格对齐左右边界 -->
-          <div v-if="txForm.type !== 'transfer'" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;">
-            <div class="form-group">
+          <div v-if="txForm.type !== 'transfer'" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; box-sizing: border-box;">
+            <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">结算账户</label>
-              <select v-model="txForm.accountId" class="form-select">
+              <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box;">
                 <option value="">仅记录流水 (不计入资产)</option>
                 <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
               </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">记账日期</label>
-              <input type="date" v-model="txForm.date" class="form-input form-date-input" />
+              <input type="date" v-model="txForm.date" class="form-input form-date-input" style="min-width: 0; width: 100%; box-sizing: border-box;" />
             </div>
           </div>
 
           <!-- 内部转账模式：转出账户 与 转入账户 并排，记账日期居其下方整行 -->
-          <div v-else style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;">
-            <div class="form-group">
+          <div v-else style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; box-sizing: border-box;">
+            <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">转出账户</label>
-              <select v-model="txForm.accountId" class="form-select">
+              <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box;">
                 <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
               </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">转入账户</label>
-              <select v-model="txForm.toAccountId" class="form-select">
+              <select v-model="txForm.toAccountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box;">
                 <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.icon || '' }} {{ a.name }}</option>
               </select>
             </div>
 
-            <div class="form-group" style="grid-column: span 2;">
+            <div class="form-group" style="grid-column: span 2; min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">记账日期</label>
-              <input type="date" v-model="txForm.date" class="form-input form-date-input" />
+              <input type="date" v-model="txForm.date" class="form-input form-date-input" style="min-width: 0; width: 100%; box-sizing: border-box;" />
             </div>
           </div>
 
@@ -3980,13 +4019,13 @@
             title: '✨ 记一笔排版对齐调优、流水筛选构图统一与版本升级',
             features: [
               '记一笔表单布局重构：支出与收入模式下，将“记账日期”紧凑并排至“结算账户”右侧，大幅释放纵向高度，为分类选择腾出充裕可视空间；',
-              '日期方框边界对齐与留白调优：所有记账模块的日期输入框采用严格盒模型与百分比约束，彻底根除原生 date 控件单独突出现象，与账户下拉框及页面边界像素级对齐；',
+              '移动端日期方框对齐重构：深度重置移动端（iOS Safari / 微信 / Android Chrome）原生日期控件 appearance: none 与 webkit 盒模型，消除原生内部固定尺寸与多余留白，所有记账模块日期方框左右边界像素级对齐，彻底根除突出现象；',
               '流水模块筛选构图和谐统一：全部账户下拉框采用与左侧收支类型一致的胶囊（Pill）构图逻辑，高度（32px）、圆角与字号完全对齐，左右和谐统一；',
               '分类选择四列全景展开：分类按钮优化为舒适四列平铺网格，触控区域更宽大，无需横向滑动即可一目了然快捷点选；',
               '流水统计年度分析与纯 CSS 圆锥渐变饼图：支持按月度/年度整年聚合计算收支，分类排行上方内嵌原生 conic-gradient 极简环形饼图；',
               '移动端首屏吸底固定：表单底部“保存”按钮原生吸底固定（sticky），各机型移动端首屏 100% 展开即见无需滑动；',
               '隐私锁离屏防窥超时优化：切入后台自动上锁时间延长至 5 分钟，降低短时切出被锁频次；',
-              'PWA 离线缓存池升级：同步升级至 v24 离线缓存池，确保所有新界面与交互逻辑即时重载生效。'
+              'PWA 离线缓存池升级：同步升级至 v25 离线缓存池，确保移动设备端侧即时检出并激活最新界面与样式。'
             ]
           },
           {
