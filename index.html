@@ -968,25 +968,31 @@
       width: 100%;
     }
 
-    .pill.pill-select {
+    .pill.pill-select,
+    .pill.pill-select.active {
       appearance: none;
       -webkit-appearance: none;
+      background-color: var(--bg-card) !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat !important;
+      background-position: right 10px center !important;
+      background-size: 10px 10px !important;
       padding-right: 28px;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
       max-width: 150px;
       text-overflow: ellipsis;
       overflow: hidden;
       flex-shrink: 0;
+      color: var(--text-main) !important;
+      border: 1px solid var(--border-subtle) !important;
+      font-size: 12px;
+      font-weight: 500;
+      outline: none;
     }
 
+    .pill.pill-select:hover,
     .pill.pill-select.active {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-      font-weight: 700;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      border-color: var(--primary) !important;
+      font-weight: 600;
     }
 
     .accounts-grid {
@@ -4188,8 +4194,18 @@
             }
           }
         });
-        const currentVersion = ref('v4.6');
+        const currentVersion = ref('v4.7');
         const versionHistoryList = [
+          {
+            version: 'v4.7',
+            date: '2026-09-17',
+            title: '🎨 流水账户筛选下拉底纹修复与构图一致性调优',
+            features: [
+              '流水账户筛选底纹修复：根治全部账户下拉框在选中非全部账户时因 CSS 背景简写属性重置导致的红色平铺花底纹异常，确保选中任何账户均与“全部账户”保持清爽雅致的统一底色；',
+              '下拉指示器伪类保护：强化 background-repeat: no-repeat 与箭头定位保护，彻底杜绝图标素材平铺；',
+              'PWA 离线缓存池升级：同步升级至 v29 离线缓存池，端侧设备即时刷新激活无感生效。'
+            ]
+          },
           {
             version: 'v4.6',
             date: '2026-09-17',
