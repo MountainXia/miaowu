@@ -110,6 +110,7 @@
   }
 
   async function getAccount(id) {
+    if (!id) return null;
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('accounts', 'readonly');
@@ -308,40 +309,51 @@
     }
 
     const type = txData.type; // 'expense', 'income', 'transfer'
-    const accountId = txData.accountId;
-    const toAccountId = txData.toAccountId;
+    const accountId = txData.accountId || null;
+    const toAccountId = txData.toAccountId || null;
 
-    const fromAccount = await getAccount(accountId);
-    if (!fromAccount) throw new Error('关联账户不存在');
+    // 纯流水模式判定：未关联账户且非转账类型
+    const isPureTransaction = !accountId && type !== 'transfer';
 
+    let fromAccount = null;
     let toAccount = null;
+
     if (type === 'transfer') {
+      if (!accountId) {
+        throw new Error('转账必须选择转出账户');
+      }
+      fromAccount = await getAccount(accountId);
+      if (!fromAccount) throw new Error('转出账户不存在');
       if (!toAccountId || toAccountId === accountId) {
         throw new Error('转账必须选择不同的转入账户');
       }
       toAccount = await getAccount(toAccountId);
       if (!toAccount) throw new Error('转入账户不存在');
-    }
 
-    // 联动调整账户余额
-    if (type === 'expense') {
-      fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
-    } else if (type === 'income') {
-      fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
-    } else if (type === 'transfer') {
       fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
       toAccount.balance = +(toAccount.balance + amount).toFixed(2);
-    }
+      fromAccount.updatedAt = new Date().toISOString();
+      toAccount.updatedAt = new Date().toISOString();
+    } else if (!isPureTransaction) {
+      // 关联账户记账：联动更新账户余额
+      fromAccount = await getAccount(accountId);
+      if (!fromAccount) throw new Error('关联账户不存在');
 
-    fromAccount.updatedAt = new Date().toISOString();
-    if (toAccount) toAccount.updatedAt = new Date().toISOString();
+      if (type === 'expense') {
+        fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
+      } else if (type === 'income') {
+        fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
+      }
+      fromAccount.updatedAt = new Date().toISOString();
+    }
+    // 纯流水模式：不修改任何账户，跳过余额联动
 
     const newTx = {
       id: txData.id || generateId('tx'),
       type: type,
       amount: amount,
       accountId: accountId,
-      toAccountId: toAccountId || null,
+      toAccountId: toAccountId,
       category: txData.category || (type === 'transfer' ? '内部转账' : '日常收支'),
       date: txData.date || formatDate(),
       notes: txData.notes || '',
@@ -350,14 +362,17 @@
 
     const db = await openDB();
     await new Promise((resolve, reject) => {
-      const transaction = db.transaction(['transactions', 'accounts'], 'readwrite');
+      const stores = fromAccount || toAccount ? ['transactions', 'accounts'] : ['transactions'];
+      const transaction = db.transaction(stores, 'readwrite');
       const txStore = transaction.objectStore('transactions');
-      const accStore = transaction.objectStore('accounts');
 
       txStore.add(newTx);
-      accStore.put(fromAccount);
-      if (toAccount) {
-        accStore.put(toAccount);
+      if (fromAccount) {
+        const accStore = transaction.objectStore('accounts');
+        accStore.put(fromAccount);
+        if (toAccount) {
+          accStore.put(toAccount);
+        }
       }
 
       transaction.oncomplete = () => resolve(newTx);
@@ -380,10 +395,10 @@
     const accountId = txItem.accountId;
     const toAccountId = txItem.toAccountId;
 
-    const fromAccount = await getAccount(accountId);
+    const fromAccount = accountId ? await getAccount(accountId) : null;
     let toAccount = toAccountId ? await getAccount(toAccountId) : null;
 
-    // 回滚余额
+    // 回滚余额 (仅当存在关联账户时)
     if (fromAccount) {
       if (type === 'expense') {
         fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
@@ -401,13 +416,16 @@
 
     const db = await openDB();
     await new Promise((resolve, reject) => {
-      const transaction = db.transaction(['transactions', 'accounts'], 'readwrite');
+      const stores = fromAccount || toAccount ? ['transactions', 'accounts'] : ['transactions'];
+      const transaction = db.transaction(stores, 'readwrite');
       const txStore = transaction.objectStore('transactions');
-      const accStore = transaction.objectStore('accounts');
 
       txStore.delete(id);
-      if (fromAccount) accStore.put(fromAccount);
-      if (toAccount) accStore.put(toAccount);
+      if (fromAccount) {
+        const accStore = transaction.objectStore('accounts');
+        accStore.put(fromAccount);
+        if (toAccount) accStore.put(toAccount);
+      }
 
       transaction.oncomplete = () => resolve(true);
       transaction.onerror = () => reject(transaction.error);

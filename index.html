@@ -656,6 +656,76 @@
     .amt-income { color: #10b981; }
     .amt-transfer { color: #38bdf8; }
 
+    /* 纯流水徽标 */
+    .badge-pure-tx {
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--bg-subtle, rgba(255, 255, 255, 0.08));
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.2px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* 统计分析面板专属样式 */
+    .analytics-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .analytics-stat-card {
+      background: var(--bg-subtle);
+      border-radius: 12px;
+      padding: 12px 8px;
+      border: 1px solid var(--border-subtle);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .analytics-stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .analytics-stat-val {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .analytics-cat-item {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .analytics-cat-item:last-child {
+      border-bottom: none;
+    }
+
+    .analytics-progress-track {
+      width: 100%;
+      height: 7px;
+      background: var(--bg-subtle);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 6px 0 2px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .analytics-progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
     /* ================================================= */
     /* 资产增长趋势折线图模块 (放置于最下方)              */
     /* ================================================= */
@@ -2453,9 +2523,10 @@
                   <div class="tx-category">
                     {{ item.category }}
                     <span v-if="item.isAdjustment" class="tx-tag">校准</span>
+                    <span v-if="!item.accountId" class="badge-pure-tx">纯流水</span>
                   </div>
                   <div class="tx-meta">
-                    {{ item.date }} · {{ getAccountName(item.accountId) }}
+                    {{ item.date }} · {{ item.accountId ? getAccountName(item.accountId) : '纯流水 (不计入资产)' }}
                     <span v-if="item.toAccountId"> → {{ getAccountName(item.toAccountId) }}</span>
                     <span v-if="item.notes"> ({{ item.notes }})</span>
                   </div>
@@ -2700,6 +2771,7 @@
           
           <select v-model="txFilterAccountId" class="form-select" style="width: auto; padding: 6px 12px; font-size: 12px;">
             <option value="">全部账户</option>
+            <option value="pure">仅看纯流水 (不计入资产)</option>
             <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }}</option>
           </select>
         </div>
@@ -2724,9 +2796,10 @@
                 <div class="tx-category">
                   {{ item.category }}
                   <span v-if="item.isAdjustment" class="tx-tag">校准</span>
+                  <span v-if="!item.accountId" class="badge-pure-tx">纯流水</span>
                 </div>
                 <div class="tx-meta">
-                  {{ item.date }} · {{ getAccountName(item.accountId) }}
+                  {{ item.date }} · {{ item.accountId ? getAccountName(item.accountId) : '纯流水 (不计入资产)' }}
                   <span v-if="item.toAccountId"> → {{ getAccountName(item.toAccountId) }}</span>
                   <span v-if="item.notes"> ({{ item.notes }})</span>
                 </div>
@@ -2745,6 +2818,153 @@
               >
                 删除
               </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- 标签页 4: 流水统计分析 (原生时间筛选 + 排行榜)    -->
+      <!-- ============================================== -->
+      <div v-if="currentTab === 'analytics'" style="display: flex; flex-direction: column; gap: 14px;">
+
+        <!-- 1. 月份筛选与总体收支卡片 -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 18px;">📊</span>
+              <span style="font-weight: 800; font-size: 16px; color: var(--text-main);">月度流水统计分析</span>
+            </div>
+
+            <!-- 原生月份选择器 -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <button class="btn-sm" @click="changeAnalyticsMonth(-1)" title="上个月" style="padding: 4px 8px;">◀</button>
+              <input
+                type="month"
+                v-model="selectedAnalyticsMonth"
+                class="form-input"
+                style="width: auto; padding: 4px 8px; font-size: 13px; font-weight: 700; cursor: pointer;"
+              />
+              <button class="btn-sm" @click="changeAnalyticsMonth(1)" title="下个月" style="padding: 4px 8px;">▶</button>
+            </div>
+          </div>
+
+          <!-- 当月总览三指标卡片 -->
+          <div class="analytics-summary-grid">
+            <div class="analytics-stat-card">
+              <span class="analytics-stat-label">当月支出</span>
+              <span class="analytics-stat-val amt-expense">
+                ¥ {{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalExpense) }}
+              </span>
+            </div>
+            <div class="analytics-stat-card">
+              <span class="analytics-stat-label">当月收入</span>
+              <span class="analytics-stat-val amt-income">
+                ¥ {{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalIncome) }}
+              </span>
+            </div>
+            <div class="analytics-stat-card">
+              <span class="analytics-stat-label">当月结余</span>
+              <span
+                class="analytics-stat-val"
+                :class="monthlyAnalytics.balance >= 0 ? 'amt-income' : 'amt-expense'"
+              >
+                {{ monthlyAnalytics.balance >= 0 ? '+' : '' }}¥ {{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.balance) }}
+              </span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; color: var(--text-muted);">
+            <span>包含当月所有支出与收入 (含纯流水)</span>
+            <span>共 {{ monthlyAnalytics.totalCount }} 笔流水<span v-if="monthlyAnalytics.pureCount > 0"> (含 {{ monthlyAnalytics.pureCount }} 笔纯流水)</span></span>
+          </div>
+        </div>
+
+        <!-- 2. 消费支出分类排行榜 -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>🏷️ 消费支出分类排行</span>
+            </div>
+            <span style="font-size: 12px; color: var(--text-muted);">按支出金额降序</span>
+          </div>
+
+          <div v-if="monthlyCategoryExpenses.length === 0" class="empty-state">
+            <div class="empty-icon">🍃</div>
+            <div>该月份暂无支出流水记录</div>
+          </div>
+
+          <div v-else style="display: flex; flex-direction: column; gap: 8px;">
+            <div
+              v-for="item in monthlyCategoryExpenses"
+              :key="item.category"
+              class="analytics-cat-item"
+            >
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 16px;">{{ item.emoji }}</span>
+                  <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
+                  <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
+                </div>
+                <div style="text-align: right;">
+                  <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">
+                    ¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
+                  </span>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 6px;">
+                    {{ item.percent }}%
+                  </span>
+                </div>
+              </div>
+
+              <!-- 原生 CSS 进度条 -->
+              <div class="analytics-progress-track">
+                <div
+                  class="analytics-progress-fill"
+                  :style="{ width: item.percent + '%', backgroundColor: item.color }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 收入来源分类明细 (仅当有收入时呈现) -->
+        <div v-if="monthlyCategoryIncomes.length > 0" class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>💰 收入来源分类分布</span>
+            </div>
+            <span style="font-size: 12px; color: var(--text-muted);">按收入金额降序</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div
+              v-for="item in monthlyCategoryIncomes"
+              :key="item.category"
+              class="analytics-cat-item"
+            >
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 16px;">{{ item.emoji }}</span>
+                  <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
+                  <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
+                </div>
+                <div style="text-align: right;">
+                  <span style="font-size: 14px; font-weight: 700; color: #10b981;">
+                    +¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
+                  </span>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 6px;">
+                    {{ item.percent }}%
+                  </span>
+                </div>
+              </div>
+
+              <div class="analytics-progress-track">
+                <div
+                  class="analytics-progress-fill"
+                  :style="{ width: item.percent + '%', backgroundColor: item.color }"
+                ></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2774,6 +2994,14 @@
           <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
         </svg>
         流水
+      </button>
+
+      <button class="nav-tab" :class="{ active: currentTab === 'analytics' }" @click="currentTab = 'analytics'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+          <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+        </svg>
+        统计
       </button>
     </nav>
 
@@ -3096,6 +3324,7 @@
           <div class="form-group">
             <label class="form-label">{{ txForm.type === 'transfer' ? '转出账户' : '结算账户' }}</label>
             <select v-model="txForm.accountId" class="form-select">
+              <option v-if="txForm.type !== 'transfer'" value="">仅记录流水 (不计入资产)</option>
               <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
             </select>
           </div>
@@ -3182,6 +3411,7 @@
         <div class="batch-global-account">
           <label class="form-label" style="font-weight: 700; margin-bottom: 6px;">💳 统一下扣款账户</label>
           <select v-model="batchAccountId" class="form-select" style="font-weight: 600;">
+            <option value="">仅记录流水 (不计入资产)</option>
             <option v-for="a in accounts" :key="a.id" :value="a.id">
               {{ a.icon || '📦' }} {{ a.name }} (余额: ¥{{ formatNumber(a.balance) }})
             </option>
@@ -3420,8 +3650,21 @@
             }
           }
         });
-        const currentVersion = ref('v3.9');
+        const currentVersion = ref('v4.0');
         const versionHistoryList = [
+          {
+            version: 'v4.0',
+            date: '2026-09-17',
+            title: '🚀 流水资产解耦、独立月度统计分析与消费分类体系大扩充',
+            features: [
+              '流水与资产解耦记账模式：新增“纯流水”模式（不计入资产），支持单笔记账与批量 OCR 录入时选择不关联账户，资产总额与净资产计算实现严格物理隔离；',
+              '独立月度统计分析面板：全新第4导航标签页，内置原生年月选择器，全景计算当月支出、收入、净结余及流水笔数（全面包含纯流水）；',
+              '消费分类支出排行榜：按当月支出额降序展示消费分类、Emoji、支出金额、百分占比及极简流畅的原生 CSS 进度条；',
+              '四大全新消费分类体系：新增“美容美发”、“学习教育”、“礼金人情”、“旅游探索”4个常用分类，全局统一高质感配色与 Emoji 标识；',
+              'OCR 自动分类词典无损扩展：在不破坏核心文字识别引擎的前提下，智能匹配拓展至理发/护肤、课程/培训、礼金/红包、酒店/机票等全场景账单；',
+              'PWA 离线缓存池升级：同步升级至 v22 离线缓存池，确保所有新特性与静态资源在移动端即时生效。'
+            ]
+          },
           {
             version: 'v3.9',
             date: '2026-09-17',
@@ -3734,6 +3977,10 @@
           { name: '日用百货', emoji: '🧻' },
           { name: '住房物业', emoji: '🏠' },
           { name: '医疗保健', emoji: '💊' },
+          { name: '美容美发', emoji: '💇' },
+          { name: '学习教育', emoji: '📚' },
+          { name: '礼金人情', emoji: '🧧' },
+          { name: '旅游探索', emoji: '✈️' },
           { name: '其他支出', emoji: '📦' }
         ];
 
@@ -3801,20 +4048,136 @@
           return accounts.value.filter(a => a.type === selectedAccountCategory.value);
         });
 
-        // 流水筛选
+        // 流水筛选 (支持按账户或仅看纯流水)
         const filteredTransactions = computed(() => {
           let list = transactions.value;
           if (txFilterType.value) {
             list = list.filter(t => t.type === txFilterType.value);
           }
           if (txFilterAccountId.value) {
-            list = list.filter(t => t.accountId === txFilterAccountId.value || t.toAccountId === txFilterAccountId.value);
+            if (txFilterAccountId.value === 'pure') {
+              list = list.filter(t => !t.accountId);
+            } else {
+              list = list.filter(t => t.accountId === txFilterAccountId.value || t.toAccountId === txFilterAccountId.value);
+            }
           }
           return list;
         });
 
         const recentTransactions = computed(() => {
           return transactions.value.slice(0, 5);
+        });
+
+        // ==========================================
+        // 月度流水统计分析模块 (原生时间筛选 + 包含纯流水)
+        // ==========================================
+        const selectedAnalyticsMonth = ref(AssetDB.formatDate().slice(0, 7)); // 'YYYY-MM'
+
+        function changeAnalyticsMonth(delta) {
+          const parts = selectedAnalyticsMonth.value.split('-');
+          let y = parseInt(parts[0], 10);
+          let m = parseInt(parts[1], 10) + delta;
+          if (m < 1) { m = 12; y--; }
+          else if (m > 12) { m = 1; y++; }
+          selectedAnalyticsMonth.value = `${y}-${String(m).padStart(2, '0')}`;
+        }
+
+        const monthlyTransactions = computed(() => {
+          const m = selectedAnalyticsMonth.value;
+          if (!m) return [];
+          return transactions.value.filter(t => t.date && t.date.startsWith(m));
+        });
+
+        const monthlyAnalytics = computed(() => {
+          const list = monthlyTransactions.value;
+          let totalExpense = 0;
+          let totalIncome = 0;
+          let pureCount = 0;
+
+          for (const t of list) {
+            const amt = Number(t.amount) || 0;
+            if (t.type === 'expense') totalExpense += amt;
+            else if (t.type === 'income') totalIncome += amt;
+            if (!t.accountId) pureCount++;
+          }
+
+          return {
+            totalExpense: +totalExpense.toFixed(2),
+            totalIncome: +totalIncome.toFixed(2),
+            balance: +(totalIncome - totalExpense).toFixed(2),
+            totalCount: list.length,
+            pureCount: pureCount
+          };
+        });
+
+        const monthlyCategoryExpenses = computed(() => {
+          const expenses = monthlyTransactions.value.filter(t => t.type === 'expense');
+          const total = monthlyAnalytics.value.totalExpense;
+          const map = {};
+
+          for (const t of expenses) {
+            const cat = t.category || '其他支出';
+            const amt = Number(t.amount) || 0;
+            if (!map[cat]) {
+              map[cat] = {
+                category: cat,
+                emoji: getCategoryEmoji(cat),
+                color: getCategoryColor(cat, 'expense'),
+                amount: 0,
+                count: 0
+              };
+            }
+            map[cat].amount += amt;
+            map[cat].count += 1;
+          }
+
+          const result = Object.values(map).map(item => {
+            const amt = +item.amount.toFixed(2);
+            const pct = total > 0 ? +((amt / total) * 100).toFixed(1) : 0;
+            return {
+              ...item,
+              amount: amt,
+              percent: pct
+            };
+          });
+
+          result.sort((a, b) => b.amount - a.amount);
+          return result;
+        });
+
+        const monthlyCategoryIncomes = computed(() => {
+          const incomes = monthlyTransactions.value.filter(t => t.type === 'income');
+          const total = monthlyAnalytics.value.totalIncome;
+          const map = {};
+
+          for (const t of incomes) {
+            const cat = t.category || '其他收入';
+            const amt = Number(t.amount) || 0;
+            if (!map[cat]) {
+              map[cat] = {
+                category: cat,
+                emoji: getCategoryEmoji(cat),
+                color: getCategoryColor(cat, 'income'),
+                amount: 0,
+                count: 0
+              };
+            }
+            map[cat].amount += amt;
+            map[cat].count += 1;
+          }
+
+          const result = Object.values(map).map(item => {
+            const amt = +item.amount.toFixed(2);
+            const pct = total > 0 ? +((amt / total) * 100).toFixed(1) : 0;
+            return {
+              ...item,
+              amount: amt,
+              percent: pct
+            };
+          });
+
+          result.sort((a, b) => b.amount - a.amount);
+          return result;
         });
 
         // 资产类型汇总
@@ -3998,6 +4361,7 @@
         }
 
         function getAccountName(id) {
+          if (!id) return '纯流水 (不计入资产)';
           const acc = accounts.value.find(a => a.id === id);
           return acc ? (acc.icon ? acc.icon + ' ' + acc.name : acc.name) : '未知账户';
         }
@@ -4035,7 +4399,21 @@
           if (type === 'income') return '#10b981';
           if (type === 'transfer') return '#38bdf8';
           if (cat === '余额调整') return '#f59e0b';
-          return '#f43f5e';
+          const colorMap = {
+            '餐饮美食': '#f43f5e',
+            '交通出行': '#0ea5e9',
+            '购物消费': '#ec4899',
+            '休闲娱乐': '#8b5cf6',
+            '日用百货': '#f59e0b',
+            '住房物业': '#14b8a6',
+            '医疗保健': '#ef4444',
+            '美容美发': '#d946ef',
+            '学习教育': '#6366f1',
+            '礼金人情': '#e11d48',
+            '旅游探索': '#06b6d4',
+            '其他支出': '#64748b'
+          };
+          return colorMap[cat] || '#f43f5e';
         }
 
         // 数据加载与交互
@@ -4080,15 +4458,9 @@
 
         // 记账 Modal
         function openNewTxModal() {
-          if (accounts.value.length === 0) {
-            showToast('请先创建至少一个账户');
-            currentTab.value = 'accounts';
-            openAddAccountModal();
-            return;
-          }
           txForm.type = 'expense';
           txForm.amount = '';
-          txForm.accountId = accounts.value[0].id;
+          txForm.accountId = accounts.value.length > 0 ? accounts.value[0].id : '';
           txForm.toAccountId = accounts.value.length > 1 ? accounts.value[1].id : '';
           txForm.category = '餐饮美食';
           txForm.date = AssetDB.formatDate();
@@ -4126,11 +4498,16 @@
             return;
           }
 
+          if (txForm.type === 'transfer' && !txForm.accountId) {
+            showToast('转账必须选择转出账户');
+            return;
+          }
+
           try {
             await AssetDB.addTransaction({
               type: txForm.type,
               amount: amt,
-              accountId: txForm.accountId,
+              accountId: txForm.accountId || null,
               toAccountId: txForm.type === 'transfer' ? txForm.toAccountId : null,
               category: txForm.category,
               date: txForm.date,
@@ -4138,7 +4515,7 @@
             });
 
             showTxModal.value = false;
-            showToast('记账成功！账户余额已联动更新 ✨');
+            showToast(txForm.accountId ? '记账成功！账户余额已联动更新 ✨' : '纯流水记录成功！(不计入资产) ✨');
             await refreshAllData();
           } catch (err) {
             alert('保存失败: ' + err.message);
@@ -4146,9 +4523,12 @@
         }
 
         async function confirmDeleteTx(item) {
-          if (confirm(`确认删除该笔 ${item.category} (¥${item.amount}) 记录吗？\n将自动回滚对应账户的余额。`)) {
+          const promptMsg = item.accountId
+            ? `确认删除该笔 ${item.category} (¥${item.amount}) 记录吗？\n将自动回滚对应账户的余额。`
+            : `确认删除该笔纯流水 ${item.category} (¥${item.amount}) 记录吗？`;
+          if (confirm(promptMsg)) {
             await AssetDB.deleteTransaction(item.id);
-            showToast('流水已删除，账户余额已回滚');
+            showToast(item.accountId ? '流水已删除，账户余额已回滚' : '纯流水记录已删除');
             await refreshAllData();
           }
         }
@@ -4159,12 +4539,6 @@
 
         // 1. 触发识别文件选择
         function triggerOcrUpload() {
-          if (accounts.value.length === 0) {
-            showToast('请先创建至少一个账户');
-            currentTab.value = 'accounts';
-            openAddAccountModal();
-            return;
-          }
           if (ocrFileInputRef.value) {
             ocrFileInputRef.value.value = '';
             ocrFileInputRef.value.click();
@@ -4307,14 +4681,18 @@
 
         function guessCategoryFromNote(note = '', categoryHint = '') {
           const combined = (note + ' ' + categoryHint).toLowerCase();
-          if (/酒店|旅行|旅游|机票|车票|火车|住宿|客栈|民宿|飞机/.test(combined)) return '住房物业';
+          if (/理发|护肤|美容|美甲|造型|理容/.test(combined)) return '美容美发';
+          if (/培训|书店|课程|学费|教材|网课/.test(combined)) return '学习教育';
+          if (/酒店|机票|景区|门票|景点|旅行|旅游|客栈|民宿|度假/.test(combined)) return '旅游探索';
+          if (/随礼|礼金|份子钱|彩礼|红包/.test(combined)) return '礼金人情';
+          if (/车票|火车|住宿|飞机/.test(combined)) return '住房物业';
           if (/饭|餐|吃|麦当劳|肯德基|汉堡|星巴克|咖啡|奶茶|瑞幸|饿了么|美团|外卖|火锅|烧烤|面|菜|酒|食堂|面包|烘焙|茶|肉|米线|小吃|美食|烘培|鸡煲|葱油饼|德克士/.test(combined)) return '餐饮美食';
           if (/超市|便利店|7-11|全家|全\s*家|familymart|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
           if (/滴滴|打车|出行|高德|地铁|公交|停车|加油|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
           if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
-          if (/电影|影院|ktv|游戏|网易|腾讯|剧场|门票|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
+          if (/电影|影院|ktv|游戏|网易|腾讯|剧场|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
           if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '理财收益';
-          if (/转账|红包|转入|零钱通|还款/.test(combined)) return '其他收入';
+          if (/转账|转入|零钱通|还款/.test(combined)) return '其他收入';
           if (/短袜|衣服|裤|鞋|裙|服饰|装扮|内衣|袜子/.test(combined)) return '购物消费';
           if (/猫|狗|宠物|兽医|罐头|猫砂|粮|绝育|妙鲜包|宠/.test(combined)) return '其他支出';
           return '餐饮美食';
@@ -4357,14 +4735,18 @@
 
           function getCategory(note = '', categoryHint = '') {
             const combined = (note + ' ' + categoryHint).toLowerCase();
-            if (/酒店|旅行|旅游|机票|车票|火车|住宿|客栈|民宿|飞机/.test(combined)) return '住房物业';
+            if (/理发|护肤|美容|美甲|造型|理容/.test(combined)) return '美容美发';
+            if (/培训|书店|课程|学费|教材|网课/.test(combined)) return '学习教育';
+            if (/酒店|机票|景区|门票|景点|旅行|旅游|客栈|民宿|度假/.test(combined)) return '旅游探索';
+            if (/随礼|礼金|份子钱|彩礼|红包/.test(combined)) return '礼金人情';
+            if (/车票|火车|住宿|飞机/.test(combined)) return '住房物业';
             if (/饭|餐|吃|麦当劳|肯德基|汉堡|星巴克|咖啡|奶茶|瑞幸|饿了么|美团|外卖|火锅|烧烤|面|菜|酒|食堂|面包|烘焙|茶|肉|米线|小吃|美食|烘培|鸡煲|葱油饼|德克士/.test(combined)) return '餐饮美食';
             if (/超市|便利店|7-11|全家|全\s*家|familymart|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
             if (/滴滴|打车|出行|高德|地铁|公交|停车|加油|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
             if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
-            if (/电影|影院|ktv|游戏|网易|腾讯|剧场|门票|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
+            if (/电影|影院|ktv|游戏|网易|腾讯|剧场|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
             if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '理财收益';
-            if (/转账|红包|转入|零钱通|还款/.test(combined)) return '其他收入';
+            if (/转账|转入|零钱通|还款/.test(combined)) return '其他收入';
             if (/短袜|衣服|裤|鞋|裙|服饰|装扮|内衣|袜子/.test(combined)) return '购物消费';
             if (/猫|狗|宠物|兽医|罐头|猫砂|粮|绝育|妙鲜包|宠/.test(combined)) return '其他支出';
             return '餐饮美食';
@@ -4736,10 +5118,6 @@
             showToast('核对列表为空，请先添加至少一笔记录');
             return;
           }
-          if (!batchAccountId.value) {
-            showToast('请先选择统一下扣款的账户');
-            return;
-          }
 
           // 校验金额合法性
           for (let i = 0; i < batchTxList.value.length; i++) {
@@ -4753,7 +5131,7 @@
 
           try {
             let savedCount = 0;
-            const targetAccountId = batchAccountId.value;
+            const targetAccountId = batchAccountId.value || null;
             const todayStr = AssetDB.formatDate();
 
             for (const item of batchTxList.value) {
@@ -5407,7 +5785,13 @@
           submitAccountForm,
           confirmDeleteAccount,
           confirmClearAllData,
-          forceReloadApp
+          forceReloadApp,
+          selectedAnalyticsMonth,
+          changeAnalyticsMonth,
+          monthlyTransactions,
+          monthlyAnalytics,
+          monthlyCategoryExpenses,
+          monthlyCategoryIncomes
         };
       }
     }).mount('#app');

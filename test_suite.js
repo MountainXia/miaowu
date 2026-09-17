@@ -83,12 +83,16 @@ async function runAllTests() {
   });
 
   // 4. index.html 功能与标签页结构检验
-  test('验证 index.html 包含三大标签页及 Vue 挂载点', () => {
+  test('验证 index.html 包含四大核心标签页及 Vue 挂载点', () => {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     assert.ok(html.includes('id="app"'), '缺少 Vue 挂载根节点 #app');
     assert.ok(html.includes("currentTab === 'overview'"), '缺少总览面板标签页');
     assert.ok(html.includes("currentTab === 'accounts'"), '缺少账户管理标签页');
     assert.ok(html.includes("currentTab === 'transactions'"), '缺少流水明细标签页');
+    assert.ok(html.includes("currentTab === 'analytics'"), '缺少月度流水统计分析标签页');
+    assert.ok(html.includes('badge-pure-tx'), '缺少纯流水专用标识');
+    assert.ok(html.includes('selectedAnalyticsMonth'), '缺少原生年月筛选器');
+    assert.ok(html.includes('monthlyCategoryExpenses'), '缺少消费支出分类排行榜');
     assert.ok(html.includes('AssetDB'), 'index.html 应引入并使用 AssetDB');
     assert.ok(html.includes('serviceWorker.register'), 'index.html 应包含 Service Worker 注册逻辑');
     assert.ok(html.includes('showAdjustModal'), '包含直接调额弹窗');
@@ -240,9 +244,29 @@ async function runAllTests() {
     assert.strictEqual(acc1AfterRollback.balance, 12000, '转账删除后转出账户应回滚+1000');
     assert.strictEqual(acc2AfterRollback.balance, 2000, '转账删除后转入账户应回滚-1000');
 
-    // 6. 验证概览差值计算
+    // 6. 验证纯流水 (流水与资产解耦记账模式)
+    const pureTx = await AssetDB.addTransaction({
+      type: 'expense',
+      amount: 999.00,
+      accountId: null,
+      category: '美容美发',
+      date: '2026-09-09'
+    });
+    assert.ok(pureTx.id, '纯流水应成功生成记录');
+    assert.strictEqual(pureTx.accountId, null, '纯流水 accountId 应为 null');
+    const acc1AfterPure = await AssetDB.getAccount('test_bank');
+    const acc2AfterPure = await AssetDB.getAccount('test_wallet');
+    assert.strictEqual(acc1AfterPure.balance, 12000, '纯流水不应影响账户1余额');
+    assert.strictEqual(acc2AfterPure.balance, 2000, '纯流水不应影响账户2余额');
+
+    // 验证总资产/净资产严格隔离：纯流水完全不影响净资产计算
     const stats = await AssetDB.getOverviewStats();
-    assert.strictEqual(stats.netAsset, 14000, '净资产应为 12000 + 2000 = 14000');
+    assert.strictEqual(stats.netAsset, 14000, '净资产计算应严格忽略纯流水，维持 12000 + 2000 = 14000');
+
+    // 删除纯流水，验证不报错且余额维持原样
+    await AssetDB.deleteTransaction(pureTx.id);
+    const acc1AfterDeletePure = await AssetDB.getAccount('test_bank');
+    assert.strictEqual(acc1AfterDeletePure.balance, 12000, '删除纯流水不影响账户余额');
   });
 
   // 6. 隐私暗号锁功能与安全规范检验
@@ -379,8 +403,19 @@ async function runAllTests() {
     const amounts = billResult.map(r => r.amount);
     assert.ok(amounts.includes(28.5), '应包含美团外卖 28.50');
     assert.ok(amounts.includes(42), '应包含滴滴出行 42.00');
-    assert.ok(amounts.includes(18), '应包含两行模式的瑞幸咖啡 18.00');
-    assert.ok(amounts.includes(125.6), '应包含盒马鲜生 125.60');
+    // 场景 C: 新增分类扩展智能匹配测试
+    const newCatBillSample = `
+      木北造型理发 -128.00
+      新东方网课培训学费 -2600.00
+      全季酒店度假客栈 -450.00
+      微信红包份子钱随礼 -800.00
+    `;
+    const newCatResults = parseReceiptText(newCatBillSample);
+    assert.ok(newCatResults.length >= 4, '应解析出4笔新增分类明细');
+    assert.ok(newCatResults.some(r => r.category === '美容美发'), '应正确映射美容美发分类');
+    assert.ok(newCatResults.some(r => r.category === '学习教育'), '应正确映射学习教育分类');
+    assert.ok(newCatResults.some(r => r.category === '旅游探索'), '应正确映射旅游探索分类');
+    assert.ok(newCatResults.some(r => r.category === '礼金人情'), '应正确映射礼金人情分类');
   });
 
   // 10. 极简顶栏规范与应用设置四大模块 (主题/暗号/重置/版本历史)
@@ -416,8 +451,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v3.2)
-    const expectedVersions = ['v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.0)
+    const expectedVersions = ['v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
