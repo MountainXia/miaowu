@@ -316,6 +316,53 @@ async function runAllTests() {
 
     const statsAfterRollback = await AssetDB.getOverviewStats();
     assert.strictEqual(statsAfterRollback.netAsset, 13500, '回滚后净资产恢复为13500');
+
+    // 8. 验证信用卡信用额度 (creditLimit) 与额度剩余计算 (creditLimit + balance)
+    const newCreditCard = await AssetDB.addAccount({
+      id: 'test_credit_limit_card',
+      name: '招商经典白金卡',
+      type: 'credit',
+      balance: 0.00, // 初始 0
+      creditLimit: 50000.00
+    });
+    assert.strictEqual(newCreditCard.creditLimit, 50000, '信用总额度应成功持久化为 50000');
+    assert.strictEqual(newCreditCard.balance, 0, '初始欠款余额应为 0');
+
+    // 记录一笔信用卡支出 500 元
+    await AssetDB.addTransaction({
+      type: 'expense',
+      amount: 500.00,
+      accountId: 'test_credit_limit_card',
+      category: '餐饮美食',
+      date: '2026-09-09'
+    });
+
+    const cardAfterExpense = await AssetDB.getAccount('test_credit_limit_card');
+    assert.strictEqual(cardAfterExpense.balance, -500, '信用卡支出后余额应为负数 -500 (表示欠款 500)');
+    
+    // 验证额度剩余计算: creditLimit + balance = 50000 + (-500) = 49500
+    const remainingLimit = +(cardAfterExpense.creditLimit + cardAfterExpense.balance).toFixed(2);
+    assert.strictEqual(remainingLimit, 49500, '额度剩余应为 50000 - 500 = 49500');
+
+    // 验证编辑更新信用额度至 60000
+    const updatedCard = await AssetDB.updateAccount({
+      id: 'test_credit_limit_card',
+      creditLimit: 60000.00
+    });
+    assert.strictEqual(updatedCard.creditLimit, 60000, '信用额度应成功更新为 60000');
+    assert.strictEqual(+(updatedCard.creditLimit + updatedCard.balance).toFixed(2), 59500, '更新额度后额度剩余应为 60000 - 500 = 59500');
+
+    // 9. 验证调额逻辑（支持直接修改总额与增减模式）
+    // 增量模式：给 test_bank (当前 12000) 增加 500 元
+    const bankOld = await AssetDB.getAccount('test_bank');
+    const newBalAdd = +(bankOld.balance + 500).toFixed(2);
+    const bankAfterAdd = await AssetDB.adjustBalance('test_bank', newBalAdd, '增减调额:新增500');
+    assert.strictEqual(bankAfterAdd.balance, 12500, '增量模式新增500后余额应为12500');
+
+    // 增量模式：给 test_bank 减少 300 元
+    const newBalSub = +(bankAfterAdd.balance - 300).toFixed(2);
+    const bankAfterSub = await AssetDB.adjustBalance('test_bank', newBalSub, '增减调额:扣减300');
+    assert.strictEqual(bankAfterSub.balance, 12200, '增量模式减少300后余额应为12200');
   });
 
   // 6. 隐私暗号锁功能与安全规范检验
@@ -509,8 +556,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.5)
-    const expectedVersions = ['v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.6)
+    const expectedVersions = ['v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
@@ -519,13 +566,16 @@ async function runAllTests() {
     assert.ok(html.includes('settingsTab'), 'Vue 状态中应包含 settingsTab');
     assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
     assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
-    assert.ok(html.includes("currentVersion = ref('v4.5')"), '当前运行版本应为 v4.5');
+    assert.ok(html.includes("currentVersion = ref('v4.6')"), '当前运行版本应为 v4.6');
     assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
+    assert.ok(html.includes('creditLimit'), 'index.html 应包含 creditLimit 信用额度支持');
+    assert.ok(html.includes('getCreditCardRemainingLimit'), 'index.html 应包含信用卡额度剩余计算');
+    assert.ok(html.includes('按增减变动金额'), 'index.html 调额弹窗应包含增减变动金额模式');
 
     // 7. 检查内部转账提示与 SW 缓存版本升级
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v27'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v27');
+    assert.ok(swContent.includes('personal-asset-pwa-v28'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v28');
   });
 
   console.log(`\n测试完成: 共 ${total} 项测试，通过 ${passed} 项，失败 ${total - passed} 项。`);

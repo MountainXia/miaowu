@@ -132,6 +132,7 @@
       color: accountData.color || '#3b82f6',
       icon: accountData.icon || '💳',
       notes: accountData.notes || '',
+      creditLimit: accountData.creditLimit !== undefined ? Number(accountData.creditLimit) : 0,
       updatedAt: new Date().toISOString()
     };
 
@@ -157,6 +158,7 @@
       ...existing,
       ...accountData,
       balance: Number(accountData.balance !== undefined ? accountData.balance : existing.balance),
+      creditLimit: accountData.creditLimit !== undefined ? Number(accountData.creditLimit) : (existing.creditLimit || 0),
       updatedAt: new Date().toISOString()
     };
 
