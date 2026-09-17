@@ -295,8 +295,16 @@ async function runAllTests() {
     assert.ok(html.includes('不会吧不会吧，不会有人忘了暗号吧'), '缺少错误提示语【不会吧不会吧，不会有人忘了暗号吧】');
     assert.ok(html.includes('SHA-256'), '缺少 SHA-256 哈希加密算法');
     assert.ok(html.includes('visibilitychange'), '缺少 visibilitychange 离屏监听');
-    assert.ok(html.includes('120000'), '缺少 2分钟 (120,000ms) 自动上锁时间阈值');
+    assert.ok(html.includes('300000'), '缺少 5分钟 (300,000ms) 自动上锁时间阈值');
     assert.ok(html.includes('background: transparent !important'), '锁屏输入框或按钮缺少透明背景样式');
+
+    // 验证新优化项：年度分析、纯 CSS 圆锥渐变饼图与移动端记一笔吸底保存
+    assert.ok(html.includes('analyticsTimeMode'), '缺少 analyticsTimeMode 年度/月度时间模式切换');
+    assert.ok(html.includes('pieChartGradient'), '缺少 pieChartGradient 纯 CSS 圆锥渐变计算');
+    assert.ok(html.includes('conic-gradient'), '缺少 conic-gradient 圆锥渐变纯 CSS 饼图实现');
+    assert.ok(html.includes('pie-chart-wrapper'), '缺少 .pie-chart-wrapper 饼图容器');
+    assert.ok(html.includes('tx-modal-sticky-footer'), '缺少 .tx-modal-sticky-footer 记一笔首屏吸底保存按钮');
+    assert.ok(html.includes('grid-template-rows: repeat(2, 34px)'), '缺少分类选择紧凑双行横滑样式');
   });
 
   // 7. HTTP 服务器端点响应测试

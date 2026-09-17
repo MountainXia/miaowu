@@ -726,6 +726,103 @@
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    /* 原生 CSS 纯圆锥渐变 (conic-gradient) 极简环形饼图 */
+    .pie-chart-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      gap: 16px;
+      padding: 12px 6px;
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      margin: 6px 0 10px;
+    }
+
+    .pie-chart {
+      width: 128px;
+      height: 128px;
+      border-radius: 50%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+      flex-shrink: 0;
+      transition: background 0.4s ease;
+    }
+
+    .pie-chart-hole {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      border: 1px solid var(--border-subtle);
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+      padding: 4px;
+    }
+
+    .pie-center-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .pie-center-val {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-main);
+      max-width: 68px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    .pie-legend-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px 10px;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .pie-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      overflow: hidden;
+    }
+
+    .pie-legend-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .pie-legend-name {
+      color: var(--text-secondary);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pie-legend-pct {
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 10.5px;
+      flex-shrink: 0;
+    }
+
     /* ================================================= */
     /* 资产增长趋势折线图模块 (放置于最下方)              */
     /* ================================================= */
@@ -1223,26 +1320,37 @@
       letter-spacing: -0.5px;
     }
 
-    /* 记账分类网格 */
+    /* 记账分类紧凑双行横滑容器 (首屏友好) */
     .cat-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      grid-template-rows: repeat(2, 34px);
+      grid-auto-flow: column;
+      grid-auto-columns: max-content;
+      gap: 6px 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 2px 2px 6px;
       margin-top: 4px;
+      scrollbar-width: none;
+    }
+    .cat-grid::-webkit-scrollbar {
+      display: none;
     }
 
     .cat-btn {
       background: var(--input-bg);
       border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 8px 4px;
-      display: flex;
-      flex-direction: column;
+      border-radius: 10px;
+      padding: 4px 10px;
+      display: inline-flex;
+      flex-direction: row;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       color: var(--text-muted);
       cursor: pointer;
       transition: all 0.15s ease;
+      white-space: nowrap;
+      height: 34px;
     }
 
     .cat-btn.active {
@@ -1253,11 +1361,41 @@
     }
 
     .cat-emoji {
-      font-size: 20px;
+      font-size: 15px;
+      line-height: 1;
     }
 
     .cat-title {
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    /* 记账弹窗吸底与滚动优化 */
+    .tx-modal-box {
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+      overflow: hidden;
+      padding-bottom: calc(14px + var(--safe-bottom));
+    }
+
+    .tx-modal-body {
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 2px;
+      margin-bottom: 4px;
+    }
+
+    .tx-modal-sticky-footer {
+      position: sticky;
+      bottom: 0;
+      background: var(--modal-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding-top: 10px;
+      margin-top: 6px;
+      border-top: 1px solid var(--border-subtle);
+      z-index: 10;
     }
 
     /* 20+ 款图标选择网格 */
@@ -2829,43 +2967,60 @@
       <!-- ============================================== -->
       <div v-if="currentTab === 'analytics'" style="display: flex; flex-direction: column; gap: 14px;">
 
-        <!-- 1. 月份筛选与总体收支卡片 -->
+        <!-- 1. 月份/年份筛选与总体收支卡片 -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 18px;">📊</span>
-              <span style="font-weight: 800; font-size: 16px; color: var(--text-main);">月度流水统计分析</span>
+              <span style="font-weight: 800; font-size: 16px; color: var(--text-main);">{{ analyticsTimeMode === 'year' ? '年度流水统计分析' : '月度流水统计分析' }}</span>
             </div>
 
-            <!-- 原生月份选择器 -->
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <button class="btn-sm" @click="changeAnalyticsMonth(-1)" title="上个月" style="padding: 4px 8px;">◀</button>
-              <input
-                type="month"
-                v-model="selectedAnalyticsMonth"
-                class="form-input"
-                style="width: auto; padding: 4px 8px; font-size: 13px; font-weight: 700; cursor: pointer;"
-              />
-              <button class="btn-sm" @click="changeAnalyticsMonth(1)" title="下个月" style="padding: 4px 8px;">▶</button>
+            <!-- 月度 / 年度 模式切换 Tab 与时间筛选器 -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div class="filter-pills" style="margin: 0;">
+                <button class="pill" :class="{ active: analyticsTimeMode === 'month' }" @click="analyticsTimeMode = 'month'">按月</button>
+                <button class="pill" :class="{ active: analyticsTimeMode === 'year' }" @click="analyticsTimeMode = 'year'">按年</button>
+              </div>
+
+              <!-- 原生月份选择器 -->
+              <div v-if="analyticsTimeMode === 'month'" style="display: flex; align-items: center; gap: 4px;">
+                <button class="btn-sm" @click="changeAnalyticsMonth(-1)" title="上个月" style="padding: 4px 8px;">◀</button>
+                <input
+                  type="month"
+                  v-model="selectedAnalyticsMonth"
+                  class="form-input"
+                  style="width: auto; padding: 4px 8px; font-size: 13px; font-weight: 700; cursor: pointer;"
+                />
+                <button class="btn-sm" @click="changeAnalyticsMonth(1)" title="下个月" style="padding: 4px 8px;">▶</button>
+              </div>
+
+              <!-- 年度快速步进选择器 -->
+              <div v-else style="display: flex; align-items: center; gap: 4px;">
+                <button class="btn-sm" @click="changeAnalyticsYear(-1)" title="上一年" style="padding: 4px 8px;">◀</button>
+                <span style="font-size: 13px; font-weight: 800; padding: 4px 10px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-main);">
+                  {{ selectedAnalyticsYear }} 年
+                </span>
+                <button class="btn-sm" @click="changeAnalyticsYear(1)" title="下一年" style="padding: 4px 8px;">▶</button>
+              </div>
             </div>
           </div>
 
-          <!-- 当月总览三指标卡片 -->
+          <!-- 当期总览三指标卡片 -->
           <div class="analytics-summary-grid">
             <div class="analytics-stat-card">
-              <span class="analytics-stat-label">当月支出</span>
+              <span class="analytics-stat-label">{{ analyticsTimeMode === 'year' ? '全年支出' : '当月支出' }}</span>
               <span class="analytics-stat-val amt-expense">
                 ¥ {{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalExpense) }}
               </span>
             </div>
             <div class="analytics-stat-card">
-              <span class="analytics-stat-label">当月收入</span>
+              <span class="analytics-stat-label">{{ analyticsTimeMode === 'year' ? '全年收入' : '当月收入' }}</span>
               <span class="analytics-stat-val amt-income">
                 ¥ {{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalIncome) }}
               </span>
             </div>
             <div class="analytics-stat-card">
-              <span class="analytics-stat-label">当月结余</span>
+              <span class="analytics-stat-label">{{ analyticsTimeMode === 'year' ? '全年结余' : '当月结余' }}</span>
               <span
                 class="analytics-stat-val"
                 :class="monthlyAnalytics.balance >= 0 ? 'amt-income' : 'amt-expense'"
@@ -2876,12 +3031,12 @@
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; color: var(--text-muted);">
-            <span>包含当月所有支出与收入 (含纯流水)</span>
+            <span>包含{{ analyticsTimeMode === 'year' ? '全年' : '当月' }}所有支出与收入 (含纯流水)</span>
             <span>共 {{ monthlyAnalytics.totalCount }} 笔流水<span v-if="monthlyAnalytics.pureCount > 0"> (含 {{ monthlyAnalytics.pureCount }} 笔纯流水)</span></span>
           </div>
         </div>
 
-        <!-- 2. 消费支出分类排行榜 -->
+        <!-- 2. 消费支出分类排行榜与纯 CSS 圆锥渐变饼图 -->
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -2892,37 +3047,63 @@
 
           <div v-if="monthlyCategoryExpenses.length === 0" class="empty-state">
             <div class="empty-icon">🍃</div>
-            <div>该月份暂无支出流水记录</div>
+            <div>该{{ analyticsTimeMode === 'year' ? '年份' : '月份' }}暂无支出流水记录</div>
           </div>
 
-          <div v-else style="display: flex; flex-direction: column; gap: 8px;">
-            <div
-              v-for="item in monthlyCategoryExpenses"
-              :key="item.category"
-              class="analytics-cat-item"
-            >
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 16px;">{{ item.emoji }}</span>
-                  <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
-                  <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
-                </div>
-                <div style="text-align: right;">
-                  <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">
-                    ¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
-                  </span>
-                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 6px;">
-                    {{ item.percent }}%
-                  </span>
+          <div v-else style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- 原生 CSS 纯圆锥渐变 (conic-gradient) 极简环形饼图 -->
+            <div class="pie-chart-wrapper">
+              <div class="pie-chart" :style="{ background: pieChartGradient }">
+                <div class="pie-chart-hole">
+                  <div class="pie-center-label">{{ analyticsTimeMode === 'year' ? '全年支出' : '月支出' }}</div>
+                  <div class="pie-center-val">¥{{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalExpense) }}</div>
                 </div>
               </div>
 
-              <!-- 原生 CSS 进度条 -->
-              <div class="analytics-progress-track">
+              <!-- 饼图右侧核心分类图例 (Top 6) -->
+              <div class="pie-legend-grid">
                 <div
-                  class="analytics-progress-fill"
-                  :style="{ width: item.percent + '%', backgroundColor: item.color }"
-                ></div>
+                  v-for="item in monthlyCategoryExpenses.slice(0, 6)"
+                  :key="item.category"
+                  class="pie-legend-item"
+                >
+                  <span class="pie-legend-dot" :style="{ backgroundColor: item.color }"></span>
+                  <span class="pie-legend-name">{{ item.emoji }} {{ item.category }}</span>
+                  <span class="pie-legend-pct">{{ item.percent }}%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 分类进度条排行榜 -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div
+                v-for="item in monthlyCategoryExpenses"
+                :key="item.category"
+                class="analytics-cat-item"
+              >
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 16px;">{{ item.emoji }}</span>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
+                    <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
+                  </div>
+                  <div style="text-align: right;">
+                    <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">
+                      ¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
+                    </span>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 6px;">
+                      {{ item.percent }}%
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 原生 CSS 进度条 -->
+                <div class="analytics-progress-track">
+                  <div
+                    class="analytics-progress-fill"
+                    :style="{ width: item.percent + '%', backgroundColor: item.color }"
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
@@ -3131,7 +3312,7 @@
         <div v-if="settingsTab === 'security'" class="settings-module-body">
           <div class="settings-module-header">
             <div class="settings-module-title">🔐 本地隐私暗号与密保</div>
-            <div class="settings-module-desc">采用纯本地 SHA-256 哈希加密防护，离开后台 2 分钟自动锁定防窥。</div>
+            <div class="settings-module-desc">采用纯本地 SHA-256 哈希加密防护，离开后台 5 分钟自动锁定防窥。</div>
           </div>
 
           <div class="settings-card-box">
@@ -3143,7 +3324,7 @@
                     {{ hasPasswordRecord ? '已开启暗号保护' : '未开启暗号保护' }}
                   </div>
                   <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                    {{ hasPasswordRecord ? '离开后台超 2 分钟将自动锁屏防窥' : '无需暗号，打开即可直接访问粮仓' }}
+                    {{ hasPasswordRecord ? '离开后台超 5 分钟将自动锁屏防窥' : '无需暗号，打开即可直接访问粮仓' }}
                   </div>
                 </div>
               </div>
@@ -3266,7 +3447,7 @@
     <!-- 弹窗 1: 点击即开记账弹窗                         -->
     <!-- ============================================== -->
     <div v-if="showTxModal" class="modal-backdrop" @click.self="showTxModal = false">
-      <div class="modal-box">
+      <div class="modal-box tx-modal-box">
         <div class="modal-header">
           <div class="modal-title">
             <span>🐾 记一笔</span>
@@ -3274,99 +3455,104 @@
           <button class="btn-close" @click="showTxModal = false">✕</button>
         </div>
 
-        <!-- 📷 OCR 智能识别票据/长图快捷入口 -->
-        <div style="margin-bottom: 14px;">
-          <button type="button" class="btn-ocr-trigger" @click="triggerOcrUpload">
-            <span style="font-size: 16px;">📷</span> 智能识别票据/长图 (OCR 批量入账)
-          </button>
-        </div>
-
-        <div class="tx-type-tabs">
-          <button
-            class="tx-type-btn expense"
-            :class="{ active: txForm.type === 'expense' }"
-            @click="setTxType('expense')"
-          >
-            支出
-          </button>
-          <button
-            class="tx-type-btn income"
-            :class="{ active: txForm.type === 'income' }"
-            @click="setTxType('income')"
-          >
-            收入
-          </button>
-          <button
-            class="tx-type-btn transfer"
-            :class="{ active: txForm.type === 'transfer' }"
-            @click="setTxType('transfer')"
-          >
-            内部转账
-          </button>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">金额 (¥)</label>
-          <div class="input-amount-wrapper">
-            <span class="input-amount-symbol">¥</span>
-            <input
-              type="number"
-              step="0.01"
-              v-model.number="txForm.amount"
-              class="form-input amount-input"
-              placeholder="0.00"
-              autofocus
-            />
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div class="form-group">
-            <label class="form-label">{{ txForm.type === 'transfer' ? '转出账户' : '结算账户' }}</label>
-            <select v-model="txForm.accountId" class="form-select">
-              <option v-if="txForm.type !== 'transfer'" value="">仅记录流水 (不计入资产)</option>
-              <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
-            </select>
-          </div>
-
-          <div v-if="txForm.type === 'transfer'" class="form-group">
-            <label class="form-label">转入账户</label>
-            <select v-model="txForm.toAccountId" class="form-select">
-              <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.icon || '' }} {{ a.name }}</option>
-            </select>
-          </div>
-
-          <div :style="txForm.type === 'transfer' ? '' : 'grid-column: span 2;'" class="form-group">
-            <label class="form-label">记账日期</label>
-            <input type="date" v-model="txForm.date" class="form-input" />
-          </div>
-        </div>
-
-        <div v-if="txForm.type !== 'transfer'" class="form-group">
-          <label class="form-label">分类选择</label>
-          <div class="cat-grid">
-            <button
-              v-for="cat in currentCategoryList"
-              :key="cat.name"
-              type="button"
-              class="cat-btn"
-              :class="{ active: txForm.category === cat.name }"
-              @click="txForm.category = cat.name"
-            >
-              <span class="cat-emoji">{{ cat.emoji }}</span>
-              <span class="cat-title">{{ cat.name }}</span>
+        <div class="tx-modal-body">
+          <!-- 📷 OCR 智能识别票据/长图快捷入口 -->
+          <div style="margin-bottom: 12px;">
+            <button type="button" class="btn-ocr-trigger" @click="triggerOcrUpload">
+              <span style="font-size: 16px;">📷</span> 智能识别票据/长图 (OCR 批量入账)
             </button>
           </div>
+
+          <div class="tx-type-tabs">
+            <button
+              class="tx-type-btn expense"
+              :class="{ active: txForm.type === 'expense' }"
+              @click="setTxType('expense')"
+            >
+              支出
+            </button>
+            <button
+              class="tx-type-btn income"
+              :class="{ active: txForm.type === 'income' }"
+              @click="setTxType('income')"
+            >
+              收入
+            </button>
+            <button
+              class="tx-type-btn transfer"
+              :class="{ active: txForm.type === 'transfer' }"
+              @click="setTxType('transfer')"
+            >
+              内部转账
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">金额 (¥)</label>
+            <div class="input-amount-wrapper">
+              <span class="input-amount-symbol">¥</span>
+              <input
+                type="number"
+                step="0.01"
+                v-model.number="txForm.amount"
+                class="form-input amount-input"
+                placeholder="0.00"
+                autofocus
+              />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label">{{ txForm.type === 'transfer' ? '转出账户' : '结算账户' }}</label>
+              <select v-model="txForm.accountId" class="form-select">
+                <option v-if="txForm.type !== 'transfer'" value="">仅记录流水 (不计入资产)</option>
+                <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
+              </select>
+            </div>
+
+            <div v-if="txForm.type === 'transfer'" class="form-group">
+              <label class="form-label">转入账户</label>
+              <select v-model="txForm.toAccountId" class="form-select">
+                <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.icon || '' }} {{ a.name }}</option>
+              </select>
+            </div>
+
+            <div :style="txForm.type === 'transfer' ? '' : 'grid-column: span 2;'" class="form-group">
+              <label class="form-label">记账日期</label>
+              <input type="date" v-model="txForm.date" class="form-input" />
+            </div>
+          </div>
+
+          <div v-if="txForm.type !== 'transfer'" class="form-group">
+            <label class="form-label">分类选择</label>
+            <div class="cat-grid">
+              <button
+                v-for="cat in currentCategoryList"
+                :key="cat.name"
+                type="button"
+                class="cat-btn"
+                :class="{ active: txForm.category === cat.name }"
+                @click="txForm.category = cat.name"
+              >
+                <span class="cat-emoji">{{ cat.emoji }}</span>
+                <span class="cat-title">{{ cat.name }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 6px;">
+            <label class="form-label">备注 (可选)</label>
+            <input type="text" v-model="txForm.notes" class="form-input" placeholder="添加补充说明..." />
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">备注 (可选)</label>
-          <input type="text" v-model="txForm.notes" class="form-input" placeholder="添加补充说明..." />
+        <!-- 吸底固定保存按钮 (首屏 100% 可见) -->
+        <div class="tx-modal-sticky-footer">
+          <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;" @click="submitTransaction">
+            保存并自动联动更新账户
+          </button>
         </div>
-
-        <button class="btn-primary" style="width: 100%; justify-content: center; padding: 13px; font-size: 15px; margin-top: 10px;" @click="submitTransaction">
-          保存并自动联动更新账户
-        </button>
       </div>
     </div>
 
@@ -3655,14 +3841,16 @@
           {
             version: 'v4.0',
             date: '2026-09-17',
-            title: '🚀 流水资产解耦、独立月度统计分析与消费分类体系大扩充',
+            title: '🚀 流水资产解耦、年度/月度统计分析与纯CSS饼图、记一笔首屏吸底与体验大优化',
             features: [
               '流水与资产解耦记账模式：新增“纯流水”模式（不计入资产），支持单笔记账与批量 OCR 录入时选择不关联账户，资产总额与净资产计算实现严格物理隔离；',
-              '独立月度统计分析面板：全新第4导航标签页，内置原生年月选择器，全景计算当月支出、收入、净结余及流水笔数（全面包含纯流水）；',
-              '消费分类支出排行榜：按当月支出额降序展示消费分类、Emoji、支出金额、百分占比及极简流畅的原生 CSS 进度条；',
+              '流水统计年度分析与纯 CSS 圆锥渐变 (conic-gradient) 极简环形饼图：新增月度/年度 Tab 切换支持按整年聚合计算，分类排行上方内嵌原生圆锥渐变环形饼图与核心分类图例；',
+              '记一笔表单移动端首屏吸底优化：分类选择采用紧凑双行横滑交互，底部“保存”按钮原生吸底固定，移动端首屏 100% 直观可见无需滑动；',
+              '隐私锁离屏超时调优：后台离屏自动防窥上锁时间延长至 5 分钟，降低短时切出被锁频次；',
+              '消费分类支出排行榜：按当期支出额降序展示消费分类、Emoji、支出金额、百分占比及极简流畅的原生 CSS 进度条；',
               '四大全新消费分类体系：新增“美容美发”、“学习教育”、“礼金人情”、“旅游探索”4个常用分类，全局统一高质感配色与 Emoji 标识；',
               'OCR 自动分类词典无损扩展：在不破坏核心文字识别引擎的前提下，智能匹配拓展至理发/护肤、课程/培训、礼金/红包、酒店/机票等全场景账单；',
-              'PWA 离线缓存池升级：同步升级至 v22 离线缓存池，确保所有新特性与静态资源在移动端即时生效。'
+              'PWA 离线缓存池升级：同步升级至 v23 离线缓存池，确保所有新特性与静态资源在移动端即时生效。'
             ]
           },
           {
@@ -4069,9 +4257,11 @@
         });
 
         // ==========================================
-        // 月度流水统计分析模块 (原生时间筛选 + 包含纯流水)
+        // 流水统计分析模块 (月度/年度时间筛选 + 包含纯流水 + 纯CSS圆锥渐变饼图)
         // ==========================================
+        const analyticsTimeMode = ref('month'); // 'month' | 'year'
         const selectedAnalyticsMonth = ref(AssetDB.formatDate().slice(0, 7)); // 'YYYY-MM'
+        const selectedAnalyticsYear = ref(AssetDB.formatDate().slice(0, 4)); // 'YYYY'
 
         function changeAnalyticsMonth(delta) {
           const parts = selectedAnalyticsMonth.value.split('-');
@@ -4082,10 +4272,21 @@
           selectedAnalyticsMonth.value = `${y}-${String(m).padStart(2, '0')}`;
         }
 
+        function changeAnalyticsYear(delta) {
+          const y = parseInt(selectedAnalyticsYear.value, 10) + delta;
+          selectedAnalyticsYear.value = String(y);
+        }
+
         const monthlyTransactions = computed(() => {
-          const m = selectedAnalyticsMonth.value;
-          if (!m) return [];
-          return transactions.value.filter(t => t.date && t.date.startsWith(m));
+          if (analyticsTimeMode.value === 'year') {
+            const y = selectedAnalyticsYear.value;
+            if (!y) return [];
+            return transactions.value.filter(t => t.date && t.date.startsWith(y));
+          } else {
+            const m = selectedAnalyticsMonth.value;
+            if (!m) return [];
+            return transactions.value.filter(t => t.date && t.date.startsWith(m));
+          }
         });
 
         const monthlyAnalytics = computed(() => {
@@ -4143,6 +4344,26 @@
 
           result.sort((a, b) => b.amount - a.amount);
           return result;
+        });
+
+        // 纯 CSS 圆锥渐变 (conic-gradient) 饼图动态样式
+        const pieChartGradient = computed(() => {
+          const list = monthlyCategoryExpenses.value;
+          const total = monthlyAnalytics.value.totalExpense;
+          if (!list || list.length === 0 || total <= 0) {
+            return 'conic-gradient(var(--border-subtle) 0deg 360deg)';
+          }
+          let currentDeg = 0;
+          const segments = [];
+          for (let i = 0; i < list.length; i++) {
+            const item = list[i];
+            const deg = (item.amount / total) * 360;
+            const startDeg = currentDeg;
+            const endDeg = i === list.length - 1 ? 360 : +(currentDeg + deg).toFixed(1);
+            segments.push(`${item.color} ${startDeg.toFixed(1)}deg ${endDeg}deg`);
+            currentDeg = endDeg;
+          }
+          return `conic-gradient(${segments.join(', ')})`;
         });
 
         const monthlyCategoryIncomes = computed(() => {
@@ -5599,7 +5820,7 @@
             isLocked.value = !isSkipped;
           }
 
-          // 监听退到后台与回到前台（离开超过 2 分钟自动上锁）
+          // 监听退到后台与回到前台（离开超过 5 分钟自动上锁）
           const handleVisibilityChange = () => {
             const currentHash = localStorage.getItem('app_password_hash');
             if (!currentHash) return; // 未设置暗号，不触发后台锁屏
@@ -5610,7 +5831,7 @@
               const lastExit = parseInt(localStorage.getItem('lastExitTime') || '0', 10);
               if (lastExit > 0) {
                 const elapsed = Date.now() - lastExit;
-                if (elapsed >= 120000) { // 2分钟 = 120,000 毫秒
+                if (elapsed >= 300000) { // 5分钟 = 300,000 毫秒
                   isLocked.value = true;
                   lockViewMode.value = 'choice';
                   passwordInput.value = '';
@@ -5786,8 +6007,12 @@
           confirmDeleteAccount,
           confirmClearAllData,
           forceReloadApp,
+          analyticsTimeMode,
           selectedAnalyticsMonth,
+          selectedAnalyticsYear,
           changeAnalyticsMonth,
+          changeAnalyticsYear,
+          pieChartGradient,
           monthlyTransactions,
           monthlyAnalytics,
           monthlyCategoryExpenses,
