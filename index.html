@@ -915,10 +915,12 @@
 
     .filter-pills {
       display: flex;
+      align-items: center;
       gap: 8px;
       overflow-x: auto;
-      padding-bottom: 6px;
       scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding: 2px 0;
     }
 
     .filter-pills::-webkit-scrollbar {
@@ -926,22 +928,65 @@
     }
 
     .pill {
+      height: 32px;
+      line-height: 30px;
+      padding: 0 14px;
+      border-radius: 9999px;
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       color: var(--text-muted);
-      padding: 6px 14px;
-      border-radius: 20px;
       font-size: 12px;
       font-weight: 500;
       white-space: nowrap;
       cursor: pointer;
       transition: all 0.15s ease;
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .pill:hover {
+      border-color: var(--primary);
+      color: var(--text-main);
     }
 
     .pill.active {
       background: var(--primary);
       color: #fff;
       border-color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* 流水模块筛选栏与胶囊下拉框统一构图对齐 */
+    .tx-filter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .pill.pill-select {
+      appearance: none;
+      -webkit-appearance: none;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      max-width: 150px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .pill.pill-select.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      font-weight: 700;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     }
 
     .accounts-grid {
@@ -1275,6 +1320,8 @@
       flex-direction: column;
       gap: 6px;
       margin-bottom: 14px;
+      min-width: 0;
+      width: 100%;
     }
 
     .form-label {
@@ -1286,6 +1333,8 @@
     /* 表单控件统一尺寸与对齐规范 */
     .form-input, .form-select {
       width: 100%;
+      max-width: 100%;
+      min-width: 0;
       height: 42px;
       min-height: 42px;
       max-height: 42px;
@@ -1299,6 +1348,7 @@
       line-height: 40px;
       font-family: inherit;
       outline: none;
+      display: block;
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
@@ -1317,12 +1367,13 @@
       box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.15);
     }
 
-    /* 记账日期输入框 UI 消除原生过度留白，与 select/input 严格高度对齐与视觉统一 */
+    /* 记账日期输入框 UI 严格对齐左右边界，消除原生过度留白与突出现象 */
     .form-input[type="date"],
     .form-date-input {
-      display: inline-flex;
-      align-items: center;
-      justify-content: space-between;
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
       height: 42px;
       min-height: 42px;
       max-height: 42px;
@@ -1340,8 +1391,6 @@
       padding: 0;
       line-height: 40px;
       height: 40px;
-      display: inline-flex;
-      align-items: center;
     }
 
     .form-input[type="date"]::-webkit-datetime-edit-fields-wrapper {
@@ -2962,16 +3011,20 @@
           </div>
         </div>
 
-        <!-- 筛选控件 -->
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <div class="filter-pills" style="flex: 1;">
+        <!-- 筛选控件 (采用统一构图逻辑，收支类型与全部账户胶囊高度、样式及基线严格和谐对齐) -->
+        <div class="tx-filter-row">
+          <div class="filter-pills" style="flex: 1; min-width: 0;">
             <button class="pill" :class="{ active: txFilterType === '' }" @click="txFilterType = ''">全部收支</button>
             <button class="pill" :class="{ active: txFilterType === 'expense' }" @click="txFilterType = 'expense'">支出</button>
             <button class="pill" :class="{ active: txFilterType === 'income' }" @click="txFilterType = 'income'">收入</button>
             <button class="pill" :class="{ active: txFilterType === 'transfer' }" @click="txFilterType = 'transfer'">转账</button>
           </div>
           
-          <select v-model="txFilterAccountId" class="form-select" style="width: auto; padding: 6px 12px; font-size: 12px;">
+          <select
+            v-model="txFilterAccountId"
+            class="pill pill-select"
+            :class="{ active: txFilterAccountId !== '' }"
+          >
             <option value="">全部账户</option>
             <option value="pure">仅看纯流水 (不计入资产)</option>
             <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }}</option>
@@ -3566,8 +3619,8 @@
             </div>
           </div>
 
-          <!-- 支出与收入模式：结算账户 与 记账日期 左右对称并排 (1fr 1fr)，节省一整行纵向空间，分类选择区域更宽裕 -->
-          <div v-if="txForm.type !== 'transfer'" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <!-- 支出与收入模式：结算账户 与 记账日期 左右对称并排 (minmax(0,1fr))，严格对齐左右边界 -->
+          <div v-if="txForm.type !== 'transfer'" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;">
             <div class="form-group">
               <label class="form-label">结算账户</label>
               <select v-model="txForm.accountId" class="form-select">
@@ -3583,7 +3636,7 @@
           </div>
 
           <!-- 内部转账模式：转出账户 与 转入账户 并排，记账日期居其下方整行 -->
-          <div v-else style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div v-else style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;">
             <div class="form-group">
               <label class="form-label">转出账户</label>
               <select v-model="txForm.accountId" class="form-select">
@@ -3924,10 +3977,11 @@
           {
             version: 'v4.1',
             date: '2026-09-17',
-            title: '✨ 记一笔表单紧凑排版、日期控件留白调优与版本升级',
+            title: '✨ 记一笔排版对齐调优、流水筛选构图统一与版本升级',
             features: [
               '记一笔表单布局重构：支出与收入模式下，将“记账日期”紧凑并排至“结算账户”右侧，大幅释放纵向高度，为分类选择腾出充裕可视空间；',
-              '原生日期输入框 UI 与留白调优：深度消除原生 date 控件多余内边距与留白膨胀，高度、圆角与字体完美对齐 select 账户下拉框，视觉统一和谐；',
+              '日期方框边界对齐与留白调优：所有记账模块的日期输入框采用严格盒模型与百分比约束，彻底根除原生 date 控件单独突出现象，与账户下拉框及页面边界像素级对齐；',
+              '流水模块筛选构图和谐统一：全部账户下拉框采用与左侧收支类型一致的胶囊（Pill）构图逻辑，高度（32px）、圆角与字号完全对齐，左右和谐统一；',
               '分类选择四列全景展开：分类按钮优化为舒适四列平铺网格，触控区域更宽大，无需横向滑动即可一目了然快捷点选；',
               '流水统计年度分析与纯 CSS 圆锥渐变饼图：支持按月度/年度整年聚合计算收支，分类排行上方内嵌原生 conic-gradient 极简环形饼图；',
               '移动端首屏吸底固定：表单底部“保存”按钮原生吸底固定（sticky），各机型移动端首屏 100% 展开即见无需滑动；',
