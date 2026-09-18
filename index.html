@@ -4194,8 +4194,18 @@
             }
           }
         });
-        const currentVersion = ref('v4.7.1');
+        const currentVersion = ref('v4.7.2');
         const versionHistoryList = [
+          {
+            version: 'v4.7.2',
+            date: '2026-09-18',
+            title: '🔐 Android TWA 签名证书指纹更新与数字资产校验升级',
+            features: [
+              '更新 Android 数字资产链接指纹：精准同步最新 Android 签名证书 SHA-256 指纹，保障 Google Play 商店与 TWA 客户端无缝验证；',
+              '双端 .well-known 校验链路镜像：同步更新根目录与 public 目录下的 assetlinks.json 校验文件，确保多路径路由 100% 畅通；',
+              'PWA 离线缓存池升级：同步升级至 v31 离线缓存版本。'
+            ]
+          },
           {
             version: 'v4.7.1',
             date: '2026-09-18',

@@ -556,8 +556,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.7.1)
-    const expectedVersions = ['v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.7.2)
+    const expectedVersions = ['v4.7.2', 'v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
@@ -566,7 +566,7 @@ async function runAllTests() {
     assert.ok(html.includes('settingsTab'), 'Vue 状态中应包含 settingsTab');
     assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
     assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
-    assert.ok(html.includes("currentVersion = ref('v4.7.1')"), '当前运行版本应为 v4.7.1');
+    assert.ok(html.includes("currentVersion = ref('v4.7.2')"), '当前运行版本应为 v4.7.2');
     assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
     assert.ok(html.includes('creditLimit'), 'index.html 应包含 creditLimit 信用额度支持');
     assert.ok(html.includes('getCreditCardRemainingLimit'), 'index.html 应包含信用卡额度剩余计算');
@@ -576,7 +576,7 @@ async function runAllTests() {
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     assert.ok(html.includes('background-repeat: no-repeat !important'), 'pill-select 必须强制单图无平铺以杜绝花底纹');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v30'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v30');
+    assert.ok(swContent.includes('personal-asset-pwa-v31'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v31');
 
     // 8. 验证 PWABuilder 100% Store Ready Manifest 规范
     const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
@@ -607,6 +607,16 @@ async function runAllTests() {
     checkPngFile('public/icon-512.png', 512, 512);
     checkPngFile('public/screenshot-1.png', 1080, 1920);
     checkPngFile('public/screenshot-2.png', 1920, 1080);
+
+    // 10. 校验 Android TWA .well-known/assetlinks.json 一致性与最新证书指纹
+    const assetlinksRaw = fs.readFileSync(path.join(ROOT, 'public/.well-known/assetlinks.json'), 'utf8');
+    const assetlinks = JSON.parse(assetlinksRaw);
+    assert.ok(Array.isArray(assetlinks) && assetlinks.length > 0, 'assetlinks.json 应为有效数组');
+    const target = assetlinks[0].target;
+    assert.strictEqual(target.package_name, 'io.github.mountainxia.twa', 'TWA 包名应为 io.github.mountainxia.twa');
+    assert.ok(target.sha256_cert_fingerprints.includes('B1:A1:1D:C9:C6:E9:63:C4:F6:50:66:C0:4F:2E:88:ED:77:85:F3:A7:32:85:AD:96:63:1C:4F:2F:64:C7:11:7B'), '必须包含最新更新的 SHA-256 证书指纹');
+    const rootAssetlinksRaw = fs.readFileSync(path.join(ROOT, '.well-known/assetlinks.json'), 'utf8');
+    assert.strictEqual(rootAssetlinksRaw.trim(), assetlinksRaw.trim(), '根目录与 public 目录下的 assetlinks.json 必须保持严格同步');
   });
 
   console.log(`\n测试完成: 共 ${total} 项测试，通过 ${passed} 项，失败 ${total - passed} 项。`);
