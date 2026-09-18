@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.mountainxia.twa",
+        "sha256_cert_fingerprints": ["7B:A7:9A:E6:2B:CF:34:15:50:A0:1D:F5:54:A5:7C:01:FF:24:01:49:A8:D1:83:63:8D:CE:6E:23:42:67:91:DF"]
+      }
+    }]
