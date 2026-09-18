@@ -268,6 +268,21 @@ async function runAllTests() {
     const acc1AfterDeletePure = await AssetDB.getAccount('test_bank');
     assert.strictEqual(acc1AfterDeletePure.balance, 12000, '删除纯流水不影响账户余额');
 
+    // 6.1. 验证流水凭据图片 receiptImage 持久化保存
+    const receiptTx = await AssetDB.addTransaction({
+      type: 'expense',
+      amount: 168.00,
+      accountId: 'test_bank',
+      category: '餐饮美食',
+      date: '2026-09-09',
+      receiptImage: 'data:image/jpeg;base64,mockReceiptImageBase64Data123456'
+    });
+    const savedTxWithReceipt = await AssetDB.getTransaction(receiptTx.id);
+    assert.strictEqual(savedTxWithReceipt.receiptImage, 'data:image/jpeg;base64,mockReceiptImageBase64Data123456', '凭据图片 receiptImage 必须成功持久化保存到 IndexedDB');
+    await AssetDB.deleteTransaction(receiptTx.id);
+    const acc1AfterReceiptDelete = await AssetDB.getAccount('test_bank');
+    assert.strictEqual(acc1AfterReceiptDelete.balance, 12000, '删除凭据测试流水后账户恢复原样');
+
     // 7. 验证转账至负债账户（信用卡）的逻辑：转账还款冲减负债，避免双倍扣减净资产
     const creditAcc = await AssetDB.addAccount({
       id: 'test_credit',
@@ -586,17 +601,20 @@ async function runAllTests() {
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     assert.ok(html.includes('background-repeat: no-repeat !important'), 'pill-select 必须强制单图无平铺以杜绝花底纹');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v32'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v32');
+    assert.ok(swContent.includes('personal-asset-pwa-v33'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v33');
 
-    // 9. 验证 PWABuilder 100% Store Ready Manifest 规范
+    // 9. 验证 PWABuilder 100% Store Ready Manifest 规范与沉浸式 UI 适配
     const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
     assert.strictEqual(manifest.id, '/', 'manifest.json 应包含 id: "/"');
     assert.strictEqual(manifest.name, '喵的粮仓', 'manifest.json name 应为 喵的粮仓');
     assert.strictEqual(manifest.short_name, '喵的粮仓', 'manifest.json short_name 必须精准为 喵的粮仓，不可为 喵粮仓');
     assert.strictEqual(manifest.start_url, '.', 'manifest.json start_url 应为 .');
     assert.strictEqual(manifest.display, 'standalone', 'manifest.json display 应为 standalone');
-    assert.strictEqual(manifest.theme_color, '#ea580c', 'manifest.json theme_color 应为 #ea580c');
+    assert.strictEqual(manifest.theme_color, '#fbf5e7', 'manifest.json theme_color 应为 #fbf5e7 消除发红');
     assert.strictEqual(manifest.background_color, '#fbf5e7', 'manifest.json background_color 应为 #fbf5e7');
+    assert.ok(html.includes('<meta name="theme-color" content="#fbf5e7">'), 'index.html meta theme-color 应为 #fbf5e7');
+    assert.ok(html.includes('viewport-fit=cover'), 'index.html 应包含 viewport-fit=cover 沉浸式全面屏适配');
+    assert.ok(html.includes('-webkit-text-size-adjust: 100% !important'), 'index.html 应包含字体缩放锁定规则');
     assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 2, 'manifest.json icons 应至少包含两个规格图标');
     assert.ok(manifest.icons.some(i => i.sizes === '192x192' && i.type === 'image/png' && i.purpose.includes('maskable')), '包含 192x192 maskable 图标');
     assert.ok(manifest.icons.some(i => i.sizes === '512x512' && i.type === 'image/png' && i.purpose.includes('maskable')), '包含 512x512 maskable 图标');

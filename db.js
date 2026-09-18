@@ -383,6 +383,7 @@
       category: txData.category || (type === 'transfer' ? '内部转账' : '日常收支'),
       date: txData.date || formatDate(),
       notes: txData.notes || '',
+      receiptImage: txData.receiptImage || null,
       createdAt: txData.createdAt || new Date().toISOString()
     };
 
