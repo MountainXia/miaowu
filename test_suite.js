@@ -556,8 +556,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.7)
-    const expectedVersions = ['v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.7.1)
+    const expectedVersions = ['v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
@@ -566,7 +566,7 @@ async function runAllTests() {
     assert.ok(html.includes('settingsTab'), 'Vue 状态中应包含 settingsTab');
     assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
     assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
-    assert.ok(html.includes("currentVersion = ref('v4.7')"), '当前运行版本应为 v4.7');
+    assert.ok(html.includes("currentVersion = ref('v4.7.1')"), '当前运行版本应为 v4.7.1');
     assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
     assert.ok(html.includes('creditLimit'), 'index.html 应包含 creditLimit 信用额度支持');
     assert.ok(html.includes('getCreditCardRemainingLimit'), 'index.html 应包含信用卡额度剩余计算');
@@ -576,7 +576,37 @@ async function runAllTests() {
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     assert.ok(html.includes('background-repeat: no-repeat !important'), 'pill-select 必须强制单图无平铺以杜绝花底纹');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v29'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v29');
+    assert.ok(swContent.includes('personal-asset-pwa-v30'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v30');
+
+    // 8. 验证 PWABuilder 100% Store Ready Manifest 规范
+    const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
+    assert.strictEqual(manifest.id, '/', 'manifest.json 应包含 id: "/"');
+    assert.strictEqual(manifest.name, '喵的粮仓', 'manifest.json name 应为 喵的粮仓');
+    assert.strictEqual(manifest.short_name, '喵的粮仓', 'manifest.json short_name 必须精准为 喵的粮仓，不可为 喵粮仓');
+    assert.strictEqual(manifest.start_url, '.', 'manifest.json start_url 应为 .');
+    assert.strictEqual(manifest.display, 'standalone', 'manifest.json display 应为 standalone');
+    assert.strictEqual(manifest.theme_color, '#ea580c', 'manifest.json theme_color 应为 #ea580c');
+    assert.strictEqual(manifest.background_color, '#fbf5e7', 'manifest.json background_color 应为 #fbf5e7');
+    assert.ok(Array.isArray(manifest.icons) && manifest.icons.length >= 2, 'manifest.json icons 应至少包含两个规格图标');
+    assert.ok(manifest.icons.some(i => i.sizes === '192x192' && i.type === 'image/png' && i.purpose.includes('maskable')), '包含 192x192 maskable 图标');
+    assert.ok(manifest.icons.some(i => i.sizes === '512x512' && i.type === 'image/png' && i.purpose.includes('maskable')), '包含 512x512 maskable 图标');
+    assert.ok(Array.isArray(manifest.screenshots) && manifest.screenshots.length >= 2, 'manifest.json 应包含 narrow 和 wide 截图数组');
+    assert.ok(manifest.screenshots.some(s => s.form_factor === 'narrow'), '包含 narrow 移动端截图');
+    assert.ok(manifest.screenshots.some(s => s.form_factor === 'wide'), '包含 wide 宽屏截图');
+
+    // 9. 校验真实图片文件的 PNG 二进制签名与尺寸
+    const checkPngFile = (relPath, expW, expH) => {
+      const p = path.join(ROOT, relPath);
+      assert.ok(fs.existsSync(p), `图片文件 ${relPath} 必须存在`);
+      const b = fs.readFileSync(p);
+      assert.strictEqual(b.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `${relPath} 必须是真实 PNG 二进制格式`);
+      assert.strictEqual(b.readUInt32BE(16), expW, `${relPath} 宽度必须为 ${expW}`);
+      assert.strictEqual(b.readUInt32BE(20), expH, `${relPath} 高度必须为 ${expH}`);
+    };
+    checkPngFile('public/icon-192.png', 192, 192);
+    checkPngFile('public/icon-512.png', 512, 512);
+    checkPngFile('public/screenshot-1.png', 1080, 1920);
+    checkPngFile('public/screenshot-2.png', 1920, 1080);
   });
 
   console.log(`\n测试完成: 共 ${total} 项测试，通过 ${passed} 项，失败 ${total - passed} 项。`);

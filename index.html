@@ -7,7 +7,7 @@
   
   <!-- PWA Meta -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#fef9ee">
+  <meta name="theme-color" content="#ea580c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="喵的粮仓">
@@ -4194,8 +4194,19 @@
             }
           }
         });
-        const currentVersion = ref('v4.7');
+        const currentVersion = ref('v4.7.1');
         const versionHistoryList = [
+          {
+            version: 'v4.7.1',
+            date: '2026-09-18',
+            title: '📦 PWABuilder 安卓合规与应用商店发布准备 (Store Ready)',
+            features: [
+              '修复 manifest.json 尺寸与类型合规：规范 192x192 与 512x512 标准 PNG 图标配置，补充 any maskable 自适应图标支持；',
+              '新增应用截图集：配置 narrow（1080x1920 手机立屏）与 wide（1920x1080 宽屏）双端全景展示截图；',
+              '补全身份标识与名称规范：新增 id 唯一应用标识，统一全端应用名称为「喵的粮仓」；',
+              'PWA 离线缓存池升级：同步升级至 v30 离线缓存版本。'
+            ]
+          },
           {
             version: 'v4.7',
             date: '2026-09-17',
