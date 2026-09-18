@@ -4964,8 +4964,20 @@
             }
           }
         });
-        const currentVersion = ref('v4.8.0');
+        const currentVersion = ref('v4.8.1');
         const versionHistoryList = [
+          {
+            version: 'v4.8.1',
+            date: '2026-09-18',
+            title: '📱 安卓/华为沉浸式 UI 深度适配与流水凭据持久化修复',
+            features: [
+              '状态栏色彩调和：统一 PWA manifest 与 meta 沉浸式 theme_color 为暖阳浅黄（#fbf5e7），彻底消除安卓/华为设备顶部状态栏发红问题；',
+              '全面屏视口与安全区适配：启用 viewport-fit=cover 及顶级容器安全区（env safe-area-inset），顶栏背景全延展且内容智能避让摄像头刘海；',
+              '锁定全局字体缩放比：强制锁定 html/body text-size-adjust 为 100%，防止系统级超大字号撑爆界面排版；',
+              '修复流水凭据保存 Bug：修复 addTransaction 底层未映射 receiptImage 导致账单详情无法读取凭据图片的缺陷；',
+              'PWA 离线缓存池升级：升级至 personal-asset-pwa-v33 离线缓存池。'
+            ]
+          },
           {
             version: 'v4.8.0',
             date: '2026-09-18',
