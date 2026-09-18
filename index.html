@@ -3798,11 +3798,11 @@
                 <div class="calendar-day-num">{{ day.dayNum }}</div>
                 
                 <!-- 当日收支简标 -->
-                <div v-if="day.expense > 0" class="calendar-day-expense" :title="'支出: ¥' + formatNumber(day.expense)">
-                  -{{ Math.round(day.expense) }}
+                <div v-if="day.expense > 0" class="calendar-day-expense" :title="hideAmount ? '支出: •••' : ('支出: ¥' + formatNumber(day.expense))">
+                  -{{ hideAmount ? '•••' : Math.round(day.expense) }}
                 </div>
-                <div v-if="day.income > 0" class="calendar-day-income" :title="'收入: ¥' + formatNumber(day.income)">
-                  +{{ Math.round(day.income) }}
+                <div v-if="day.income > 0" class="calendar-day-income" :title="hideAmount ? '收入: •••' : ('收入: ¥' + formatNumber(day.income))">
+                  +{{ hideAmount ? '•••' : Math.round(day.income) }}
                 </div>
 
                 <!-- 小圆点指示器 (如果空间小或者显示有账单) -->
@@ -3831,9 +3831,9 @@
 
             <!-- 当日汇总小计 -->
             <div v-if="selectedDateTransactions.length > 0" style="display: flex; gap: 12px; font-size: 12px; font-weight: 700; margin-bottom: 10px; padding: 6px 10px; background: var(--bg-subtle); border-radius: 8px;">
-              <span class="amt-expense">支出: ¥ {{ formatNumber(selectedDateExpense) }}</span>
-              <span class="amt-income">收入: ¥ {{ formatNumber(selectedDateIncome) }}</span>
-              <span style="color: var(--text-muted);">结余: {{ selectedDateIncome - selectedDateExpense >= 0 ? '+' : '' }}¥ {{ formatNumber(selectedDateIncome - selectedDateExpense) }}</span>
+              <span class="amt-expense">支出: ¥ {{ hideAmount ? '•••' : formatNumber(selectedDateExpense) }}</span>
+              <span class="amt-income">收入: ¥ {{ hideAmount ? '•••' : formatNumber(selectedDateIncome) }}</span>
+              <span style="color: var(--text-muted);">结余: {{ hideAmount ? '•••' : ((selectedDateIncome - selectedDateExpense >= 0 ? '+' : '') + '¥ ' + formatNumber(selectedDateIncome - selectedDateExpense)) }}</span>
             </div>
 
             <div v-if="selectedDateTransactions.length === 0" class="empty-state" style="padding: 16px;">
@@ -4495,7 +4495,7 @@
           <!-- 金额与类型横幅 -->
           <div style="text-align: center; padding: 12px 0; border-bottom: 1px dashed var(--border-subtle);">
             <div style="font-size: 28px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;" :class="'amt-' + selectedTx.type">
-              {{ selectedTx.type === 'income' ? '+' : (selectedTx.type === 'expense' ? '-' : '⇄') }} ¥{{ formatNumber(selectedTx.amount) }}
+              {{ selectedTx.type === 'income' ? '+' : (selectedTx.type === 'expense' ? '-' : '⇄') }} ¥{{ hideAmount ? '•••' : formatNumber(selectedTx.amount) }}
             </div>
             <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-top: 4px;">
               {{ selectedTx.category }}
@@ -4964,8 +4964,20 @@
             }
           }
         });
-        const currentVersion = ref('v4.8.1');
+        const currentVersion = ref('v4.8.2');
         const versionHistoryList = [
+          {
+            version: 'v4.8.2',
+            date: '2026-09-18',
+            title: '🔒 隐私保护增强：日历日账单收支简标及小计全面受控于金额隐藏切换',
+            features: [
+              '日历格子收支隐私屏蔽：修复日历月度网格各日期格内 +/- 收支数字未随全局“隐藏金额”开关掩码的问题，开启隐私模式时统一呈现 -••• / +•••；',
+              '提示浮层气泡脱敏：日历格收支悬停气泡（title）同步脱敏，杜绝气泡泄露真实金额；',
+              '选中日账单小计隐藏：修复当日账单明细顶部“支出 / 收入 / 结余”小计栏未受隐藏限制的问题；',
+              '流水详情弹窗脱敏：单笔流水详情弹窗大字号金额同步受控于隐藏金额开关；',
+              'PWA 离线缓存池升级：升级至 personal-asset-pwa-v34 离线缓存池。'
+            ]
+          },
           {
             version: 'v4.8.1',
             date: '2026-09-18',
