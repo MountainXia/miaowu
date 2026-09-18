@@ -556,8 +556,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.7.2)
-    const expectedVersions = ['v4.7.2', 'v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.8.0)
+    const expectedVersions = ['v4.8.0', 'v4.7.2', 'v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
@@ -566,19 +566,29 @@ async function runAllTests() {
     assert.ok(html.includes('settingsTab'), 'Vue 状态中应包含 settingsTab');
     assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
     assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
-    assert.ok(html.includes("currentVersion = ref('v4.7.2')"), '当前运行版本应为 v4.7.2');
+    assert.ok(html.includes("currentVersion = ref('v4.8.0')"), '当前运行版本应为 v4.8.0');
     assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
     assert.ok(html.includes('creditLimit'), 'index.html 应包含 creditLimit 信用额度支持');
     assert.ok(html.includes('getCreditCardRemainingLimit'), 'index.html 应包含信用卡额度剩余计算');
     assert.ok(html.includes('按增减变动金额'), 'index.html 调额弹窗应包含增减变动金额模式');
 
-    // 7. 检查内部转账提示与 SW 缓存版本升级与样式底色保护
+    // 7. 检查大版本 v4.8.0 核心功能特性: 行情看板、凭据压缩、日历日账单
+    assert.ok(html.includes('showMarketBoard'), '应包含自选行情看板状态');
+    assert.ok(html.includes('fetchMarketQuotesJSONP'), '应包含行情看板 JSONP 抓取引擎');
+    assert.ok(html.includes("settingsTab === 'market'"), '设置内应包含自选行情看板管理');
+    assert.ok(html.includes('compressReceiptImage'), '应包含凭据 Canvas 强力压缩算法');
+    assert.ok(html.includes('showReceiptLightbox'), '应包含凭据全屏预览 Lightbox');
+    assert.ok(html.includes('showTxDetailModal'), '应包含单笔流水详情弹窗');
+    assert.ok(html.includes('analyticsSubView'), '应包含统计分析双子视图切换');
+    assert.ok(html.includes('calendarDays'), '应包含日历日账单 7 列月度网格算法');
+
+    // 8. 检查内部转账提示与 SW 缓存版本升级与样式底色保护
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     assert.ok(html.includes('background-repeat: no-repeat !important'), 'pill-select 必须强制单图无平铺以杜绝花底纹');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v31'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v31');
+    assert.ok(swContent.includes('personal-asset-pwa-v32'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v32');
 
-    // 8. 验证 PWABuilder 100% Store Ready Manifest 规范
+    // 9. 验证 PWABuilder 100% Store Ready Manifest 规范
     const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
     assert.strictEqual(manifest.id, '/', 'manifest.json 应包含 id: "/"');
     assert.strictEqual(manifest.name, '喵的粮仓', 'manifest.json name 应为 喵的粮仓');

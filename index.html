@@ -2442,6 +2442,281 @@
       border-radius: 14px;
       padding: 14px;
     }
+
+    /* ================================================= */
+    /* 大版本新增: 自选行情看板 (股票/黄金) 样式           */
+    /* ================================================= */
+    .market-board-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--bg-card-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.25s ease;
+    }
+    .market-board-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .market-board-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (min-width: 640px) {
+      .market-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+    .market-item {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .market-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .market-item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .market-item-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .market-item-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.05);
+      color: var(--text-muted);
+    }
+    .market-item-price {
+      font-size: 17px;
+      font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      letter-spacing: -0.5px;
+      color: var(--text-main);
+    }
+    .market-item-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .market-pill-up {
+      color: #dc2626;
+      background: #fee2e2;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .market-pill-down {
+      color: #16a34a;
+      background: #dcfce7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+    .market-pill-flat {
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.05);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    /* ================================================= */
+    /* 大版本新增: 账单凭证与图片压缩 Lightbox 样式       */
+    /* ================================================= */
+    .badge-receipt {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 10.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .badge-receipt:hover {
+      background: #dbeafe;
+      transform: scale(1.03);
+    }
+    .receipt-lightbox-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+      animation: fadeIn 0.2s ease;
+    }
+    .receipt-lightbox-img {
+      max-width: 92vw;
+      max-height: 82vh;
+      object-fit: contain;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .receipt-lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255,255,255,0.25);
+      color: #ffffff;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+    .receipt-lightbox-close:hover {
+      background: rgba(255,255,255,0.4);
+    }
+
+    /* ================================================= */
+    /* 大版本新增: 日历形式日账单视图样式                 */
+    /* ================================================= */
+    .calendar-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--bg-card-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .calendar-grid-header {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .calendar-grid-body {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 4px;
+    }
+    .calendar-cell {
+      min-height: 58px;
+      border-radius: 10px;
+      padding: 4px 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 2px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease;
+      border: 1px solid transparent;
+      box-sizing: border-box;
+      position: relative;
+    }
+    .calendar-cell:hover {
+      background: var(--bg-subtle);
+    }
+    .calendar-cell.other-month {
+      opacity: 0.35;
+      cursor: default;
+    }
+    .calendar-cell.is-selected {
+      background: var(--bg-subtle);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+    .calendar-day-num {
+      font-size: 12px;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: var(--text-main);
+    }
+    .calendar-cell.is-today .calendar-day-num {
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 800;
+    }
+    .calendar-day-expense {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #dc2626;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .calendar-day-income {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #16a34a;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .calendar-day-dots {
+      display: flex;
+      gap: 2px;
+      margin-top: 1px;
+    }
+    .cal-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+    }
+    .cal-dot.expense { background: #ef4444; }
+    .cal-dot.income { background: #10b981; }
   </style>
 </head>
 <body>
@@ -2727,6 +3002,71 @@
           </div>
         </section>
 
+        <!-- 1.5 自选行情看板 (股票/黄金) 模块 (可配置开关) -->
+        <section v-if="showMarketBoard" class="market-board-card">
+          <div class="market-board-header">
+            <div class="market-board-title">
+              <span>📈 自选行情看板</span>
+              <span v-if="marketLastUpdate" style="font-size: 11px; font-weight: 500; color: var(--text-muted);">
+                {{ marketLastUpdate }}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <button
+                type="button"
+                class="btn-sm"
+                @click="refreshMarketQuotes"
+                :title="marketLoading ? '正在刷新...' : '刷新行情'"
+                style="padding: 3px 8px; font-size: 11.5px;"
+              >
+                <span :class="{ 'spin-anim': marketLoading }">🔄</span>
+                <span>{{ marketLoading ? '更新中' : '刷新' }}</span>
+              </button>
+              <button
+                type="button"
+                class="btn-sm"
+                @click="openSettingsModal('market')"
+                title="管理自选与代码"
+                style="padding: 3px 8px; font-size: 11.5px;"
+              >
+                <span>⚙️ 自选</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 行情列表为空 -->
+          <div v-if="marketQuotes.length === 0" class="empty-state" style="padding: 14px;">
+            <div style="font-size: 12px; color: var(--text-muted);">
+              {{ marketLoading ? '正在获取实时行情中...' : '暂无自选代码，点击「⚙️ 自选」添加黄金或股票代码' }}
+            </div>
+          </div>
+
+          <!-- 行情卡片网格 -->
+          <div v-else class="market-grid">
+            <div
+              v-for="item in marketQuotes"
+              :key="item.key"
+              class="market-item"
+            >
+              <div class="market-item-top">
+                <span class="market-item-name" :title="item.name">{{ item.name }}</span>
+                <span class="market-item-tag">{{ item.type === 'gold' ? '黄金' : (item.code.startsWith('sh000') || item.code.startsWith('sz399') ? '指数' : '股票') }}</span>
+              </div>
+              <div class="market-item-price">
+                {{ formatMarketPrice(item.price) }}
+              </div>
+              <div class="market-item-bottom">
+                <span style="color: var(--text-muted); font-size: 10px;">{{ item.code.replace(/^[a-z_]+/i, '') || item.code }}</span>
+                <span
+                  :class="item.changePct > 0 ? 'market-pill-up' : (item.changePct < 0 ? 'market-pill-down' : 'market-pill-flat')"
+                >
+                  {{ item.changePct > 0 ? '+' : '' }}{{ item.changePct.toFixed(2) }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- 2. 各类型资产占比环形图模块 -->
         <section class="card chart-card">
           <div class="card-header">
@@ -2810,6 +3150,8 @@
               v-for="item in recentTransactions"
               :key="item.id"
               class="tx-item"
+              style="cursor: pointer;"
+              @click="openTxDetail(item)"
             >
               <div class="tx-left">
                 <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
@@ -2818,6 +3160,7 @@
                 <div class="tx-details">
                   <div class="tx-category">
                     {{ item.category }}
+                    <span v-if="item.receiptImage" class="badge-receipt" @click.stop="previewReceipt(item.receiptImage)" title="点击查看凭证图片">🧾 凭证</span>
                     <span v-if="item.isAdjustment" class="tx-tag">校准</span>
                     <span v-if="!item.accountId" class="badge-pure-tx">纯流水</span>
                   </div>
@@ -3123,6 +3466,8 @@
             v-for="item in filteredTransactions"
             :key="item.id"
             class="tx-item"
+            style="cursor: pointer;"
+            @click="openTxDetail(item)"
           >
             <div class="tx-left">
               <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
@@ -3131,6 +3476,7 @@
               <div class="tx-details">
                 <div class="tx-category">
                   {{ item.category }}
+                  <span v-if="item.receiptImage" class="badge-receipt" @click.stop="previewReceipt(item.receiptImage)" title="点击查看凭证图片">🧾 凭证</span>
                   <span v-if="item.isAdjustment" class="tx-tag">校准</span>
                   <span v-if="!item.accountId" class="badge-pure-tx">纯流水</span>
                 </div>
@@ -3150,7 +3496,7 @@
               <button
                 class="btn-sm danger"
                 style="padding: 2px 6px; font-size: 11px; margin-top: 4px;"
-                @click="confirmDeleteTx(item)"
+                @click.stop="confirmDeleteTx(item)"
               >
                 删除
               </button>
@@ -3165,6 +3511,27 @@
       <!-- ============================================== -->
       <div v-if="currentTab === 'analytics'" style="display: flex; flex-direction: column; gap: 14px;">
 
+        <!-- 子页面切换: 图表分析 / 日历账单 -->
+        <div class="filter-pills" style="margin-bottom: 2px; display: flex; width: 100%;">
+          <button
+            class="pill"
+            style="flex: 1; text-align: center; font-weight: 700;"
+            :class="{ active: analyticsSubView === 'chart' }"
+            @click="analyticsSubView = 'chart'"
+          >
+            📊 图表分析
+          </button>
+          <button
+            class="pill"
+            style="flex: 1; text-align: center; font-weight: 700;"
+            :class="{ active: analyticsSubView === 'calendar' }"
+            @click="analyticsSubView = 'calendar'"
+          >
+            📅 日历账单
+          </button>
+        </div>
+
+        <template v-if="analyticsSubView === 'chart'">
         <!-- 1. 月份/年份筛选与总体收支卡片 -->
         <div class="card">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -3347,6 +3714,159 @@
             </div>
           </div>
         </div>
+        </template>
+
+        <!-- 日历形式的“日账单”视图 -->
+        <div v-if="analyticsSubView === 'calendar'" style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- 1. 月份切换与当月日历汇总 -->
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">📅</span>
+                <span style="font-weight: 800; font-size: 16px; color: var(--text-main);">{{ calendarYear }} 年 {{ calendarMonth }} 月日账单</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button class="btn-sm" @click="changeCalendarMonth(-1)" title="上个月">◀</button>
+                <button class="btn-sm" @click="jumpToToday" title="返回今天">今天</button>
+                <button class="btn-sm" @click="changeCalendarMonth(1)" title="下个月">▶</button>
+              </div>
+            </div>
+
+            <!-- 当月日历汇总统计 -->
+            <div class="analytics-summary-grid" style="margin-top: 10px;">
+              <div class="analytics-stat-card">
+                <span class="analytics-stat-label">当月总支出</span>
+                <span class="analytics-stat-val amt-expense">
+                  ¥ {{ hideAmount ? '•••' : formatNumber(calendarMonthSummary.totalExpense) }}
+                </span>
+              </div>
+              <div class="analytics-stat-card">
+                <span class="analytics-stat-label">当月总收入</span>
+                <span class="analytics-stat-val amt-income">
+                  ¥ {{ hideAmount ? '•••' : formatNumber(calendarMonthSummary.totalIncome) }}
+                </span>
+              </div>
+              <div class="analytics-stat-card">
+                <span class="analytics-stat-label">记账天数</span>
+                <span class="analytics-stat-val" style="color: var(--primary);">
+                  {{ calendarMonthSummary.activeDays }} 天 / {{ calendarMonthSummary.txCount }} 笔
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. 月度日历网格 -->
+          <div class="calendar-container">
+            <!-- 星期标题 -->
+            <div class="calendar-grid-header">
+              <span v-for="w in ['一', '二', '三', '四', '五', '六', '日']" :key="w">{{ w }}</span>
+            </div>
+
+            <!-- 日期网格 -->
+            <div class="calendar-grid-body">
+              <div
+                v-for="(day, idx) in calendarDays"
+                :key="idx"
+                class="calendar-cell"
+                :class="{
+                  'other-month': !day.isCurrentMonth,
+                  'is-today': day.isToday,
+                  'is-selected': selectedCalendarDate === day.dateStr
+                }"
+                @click="selectCalendarDate(day)"
+              >
+                <div class="calendar-day-num">{{ day.dayNum }}</div>
+                
+                <!-- 当日收支简标 -->
+                <div v-if="day.expense > 0" class="calendar-day-expense" :title="'支出: ¥' + formatNumber(day.expense)">
+                  -{{ Math.round(day.expense) }}
+                </div>
+                <div v-if="day.income > 0" class="calendar-day-income" :title="'收入: ¥' + formatNumber(day.income)">
+                  +{{ Math.round(day.income) }}
+                </div>
+
+                <!-- 小圆点指示器 (如果空间小或者显示有账单) -->
+                <div v-if="day.txCount > 0 && day.expense === 0 && day.income === 0" class="calendar-day-dots">
+                  <span class="cal-dot" style="background: var(--primary);"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. 选中日期账单流水明细抽屉卡片 -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">
+                <span>📋 {{ selectedCalendarDate }} 账单明细</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 11.5px; color: var(--text-muted);">
+                  共 {{ selectedDateTransactions.length }} 笔
+                </span>
+                <button class="btn-sm" @click="openNewTxWithDate(selectedCalendarDate)">
+                  + 记一笔
+                </button>
+              </div>
+            </div>
+
+            <!-- 当日汇总小计 -->
+            <div v-if="selectedDateTransactions.length > 0" style="display: flex; gap: 12px; font-size: 12px; font-weight: 700; margin-bottom: 10px; padding: 6px 10px; background: var(--bg-subtle); border-radius: 8px;">
+              <span class="amt-expense">支出: ¥ {{ formatNumber(selectedDateExpense) }}</span>
+              <span class="amt-income">收入: ¥ {{ formatNumber(selectedDateIncome) }}</span>
+              <span style="color: var(--text-muted);">结余: {{ selectedDateIncome - selectedDateExpense >= 0 ? '+' : '' }}¥ {{ formatNumber(selectedDateIncome - selectedDateExpense) }}</span>
+            </div>
+
+            <div v-if="selectedDateTransactions.length === 0" class="empty-state" style="padding: 16px;">
+              <div class="empty-icon">🍃</div>
+              <div style="font-size: 12.5px; color: var(--text-muted);">当日无流水明细</div>
+              <button class="btn-primary" style="margin-top: 8px; font-size: 12px; padding: 6px 12px;" @click="openNewTxWithDate(selectedCalendarDate)">
+                在该日记一笔
+              </button>
+            </div>
+
+            <div v-else style="display: flex; flex-direction: column; gap: 8px;">
+              <div
+                v-for="item in selectedDateTransactions"
+                :key="item.id"
+                class="tx-item"
+                style="cursor: pointer;"
+                @click="openTxDetail(item)"
+              >
+                <div class="tx-left">
+                  <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
+                    {{ getCategoryEmoji(item.category) }}
+                  </div>
+                  <div class="tx-details">
+                    <div class="tx-category">
+                      {{ item.category }}
+                      <span v-if="item.receiptImage" class="badge-receipt" @click.stop="previewReceipt(item.receiptImage)">🧾 凭证</span>
+                      <span v-if="item.isAdjustment" class="tx-tag">校准</span>
+                    </div>
+                    <div class="tx-meta">
+                      {{ item.accountId ? getAccountName(item.accountId) : '纯流水' }}
+                      <span v-if="item.toAccountId"> → {{ getAccountName(item.toAccountId) }}</span>
+                      <span v-if="item.notes"> ({{ item.notes }})</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tx-right">
+                  <div class="tx-amount" :class="'amt-' + item.type">
+                    {{ item.type === 'income' ? '+' : (item.type === 'expense' ? '-' : '⇄') }}
+                    ¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
+                  </div>
+                  <button
+                    class="btn-sm danger"
+                    style="padding: 2px 6px; font-size: 11px; margin-top: 4px;"
+                    @click.stop="confirmDeleteTx(item)"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
       </div>
 
@@ -3432,6 +3952,15 @@
           >
             <span class="settings-tab-icon">🧹</span>
             <span class="settings-tab-text">重置设置</span>
+          </button>
+          <button
+            type="button"
+            class="settings-nav-tab"
+            :class="{ active: settingsTab === 'market' }"
+            @click="settingsTab = 'market'"
+          >
+            <span class="settings-tab-icon">📈</span>
+            <span class="settings-tab-text">行情看板</span>
           </button>
           <button
             type="button"
@@ -3638,6 +4167,95 @@
           </div>
         </div>
 
+        <!-- 模块 5: 自选行情看板配置 -->
+        <div v-if="settingsTab === 'market'" class="settings-module-body">
+          <div class="settings-module-header">
+            <div class="settings-module-title">📈 自选行情看板配置</div>
+            <div class="settings-module-desc">配置首页股票与黄金实时行情看板，纯前端无后端 JSONP 接口秒级响应：</div>
+          </div>
+
+          <!-- 开关项 -->
+          <div class="settings-card-box" style="margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">开启自选行情看板</div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">开启后将在首页总资产下方展示实时行情卡片</div>
+            </div>
+            <label class="switch-toggle">
+              <input type="checkbox" v-model="showMarketBoard" @change="saveMarketBoardSetting" />
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <!-- 自选代码管理区 -->
+          <div class="settings-card-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-weight: 700; font-size: 13px; color: var(--text-main);">📋 当前自选监控列表 ({{ marketSymbols.length }})</span>
+              <button class="btn-sm" @click="refreshMarketQuotes" style="padding: 2px 8px; font-size: 11px;">
+                🔄 立即刷新
+              </button>
+            </div>
+
+            <!-- 当前监控列表 tags -->
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;">
+              <div
+                v-for="(sym, idx) in marketSymbols"
+                :key="sym"
+                style="display: inline-flex; align-items: center; gap: 6px; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: 600;"
+              >
+                <span>{{ getSymbolDisplayLabel(sym) }}</span>
+                <span style="color: var(--text-muted); font-size: 10px;">({{ sym }})</span>
+                <button
+                  type="button"
+                  @click="removeMarketSymbol(idx)"
+                  style="border: none; background: none; color: #ef4444; font-weight: bold; cursor: pointer; padding: 0 2px; font-size: 13px;"
+                  title="移除自选"
+                >×</button>
+              </div>
+            </div>
+
+            <!-- 快捷添加常用行情 -->
+            <div style="margin-bottom: 12px;">
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600;">✨ 快捷添加常用资产:</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                <button
+                  v-for="preset in marketPresets"
+                  :key="preset.code"
+                  type="button"
+                  class="btn-sm"
+                  :disabled="marketSymbols.includes(preset.code)"
+                  @click="addMarketSymbol(preset.code)"
+                  style="padding: 4px 8px; font-size: 11px;"
+                >
+                  {{ preset.name }} ({{ preset.code }})
+                </button>
+              </div>
+            </div>
+
+            <!-- 自定义添加输入框 -->
+            <div style="display: flex; gap: 8px;">
+              <input
+                type="text"
+                v-model="customSymbolInput"
+                class="form-input"
+                placeholder="输入代码 如: sh600519、000001、XAU、GC"
+                style="flex: 1; font-size: 12.5px;"
+                @keyup.enter="handleCustomSymbolAdd"
+              />
+              <button
+                type="button"
+                class="btn-primary"
+                @click="handleCustomSymbolAdd"
+                style="padding: 6px 14px; font-size: 12.5px; white-space: nowrap;"
+              >
+                + 添加
+              </button>
+            </div>
+            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 6px;">
+              💡 提示：支持 A股/ETF (如 600519, 518880, 000001)、黄金 (XAU 现货黄金, GC 纽约金)、港股/美股代码。
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -3768,6 +4386,48 @@
             <label class="form-label">备注 (可选)</label>
             <input type="text" v-model="txForm.notes" class="form-input" placeholder="添加补充说明..." />
           </div>
+
+          <!-- 🧾 账单凭据上传与强力压缩控件 -->
+          <div class="form-group" style="margin-bottom: 8px;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>🧾 账单凭据 (拍照/相册)</span>
+              <span v-if="txForm.receiptImage" style="font-size: 11px; color: var(--primary); font-weight: 700;">{{ receiptCompressInfo }}</span>
+            </label>
+
+            <!-- 未上传状态 -->
+            <div v-if="!txForm.receiptImage">
+              <button
+                type="button"
+                class="receipt-upload-btn"
+                @click="triggerReceiptUpload"
+                style="width: 100%; padding: 8px 12px; border: 1.5px dashed var(--border-subtle); border-radius: 10px; background: var(--bg-card); color: var(--text-main); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s ease;"
+              >
+                <span>📷</span>
+                <span>拍照 / 从相册选择凭据图片 (Canvas 强力压缩)</span>
+              </button>
+            </div>
+
+            <!-- 已上传压缩后预览状态 -->
+            <div v-else style="display: flex; align-items: center; gap: 10px; background: var(--bg-subtle); padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+              <img
+                :src="txForm.receiptImage"
+                @click="previewReceipt(txForm.receiptImage)"
+                style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid rgba(0,0,0,0.1);"
+                title="点击全屏查看凭据"
+              />
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px;">
+                  <span>凭据已就绪</span>
+                  <span v-if="receiptCompressRatio" style="font-size: 10px; background: #ecfdf5; color: #059669; padding: 1px 6px; border-radius: 999px; font-weight: 700;">{{ receiptCompressRatio }}</span>
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">{{ receiptSizeText || '点击缩略图查看原图' }}</div>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button type="button" class="btn-sm" @click="triggerReceiptUpload" style="padding: 4px 8px; font-size: 11px;">重选</button>
+                <button type="button" class="btn-sm" @click="removeReceiptImage" style="padding: 4px 8px; font-size: 11px; color: #ef4444;">删除</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 吸底固定保存按钮 (首屏 100% 可见) -->
@@ -3789,6 +4449,96 @@
       @change="handleOcrImageUpload"
       style="display: none;"
     />
+
+    <!-- 凭据图片选择器 (支持拍照与相册) -->
+    <input
+      type="file"
+      accept="image/*"
+      ref="receiptFileInputRef"
+      @change="handleReceiptImageUpload"
+      style="display: none;"
+    />
+
+    <!-- ============================================== -->
+    <!-- 弹窗: 单笔流水详情查看 (含凭据图片全屏放大)        -->
+    <!-- ============================================== -->
+    <div v-if="showTxDetailModal && selectedTx" class="modal-backdrop" @click.self="showTxDetailModal = false">
+      <div class="modal-box" style="max-width: 420px;">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>🧾 流水详情</span>
+          </div>
+          <button class="btn-close" @click="showTxDetailModal = false">✕</button>
+        </div>
+
+        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px;">
+          <!-- 金额与类型横幅 -->
+          <div style="text-align: center; padding: 12px 0; border-bottom: 1px dashed var(--border-subtle);">
+            <div style="font-size: 28px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;" :class="'amt-' + selectedTx.type">
+              {{ selectedTx.type === 'income' ? '+' : (selectedTx.type === 'expense' ? '-' : '⇄') }} ¥{{ formatNumber(selectedTx.amount) }}
+            </div>
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-top: 4px;">
+              {{ selectedTx.category }}
+            </div>
+          </div>
+
+          <!-- 字段列表 -->
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">记账日期:</span>
+              <span style="font-weight: 600; color: var(--text-main);">{{ selectedTx.date }}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">结算账户:</span>
+              <span style="font-weight: 600; color: var(--text-main);">
+                {{ selectedTx.accountId ? getAccountName(selectedTx.accountId) : '纯流水 (不计入资产)' }}
+                <span v-if="selectedTx.toAccountId"> → {{ getAccountName(selectedTx.toAccountId) }}</span>
+              </span>
+            </div>
+            <div v-if="selectedTx.notes" style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">备注说明:</span>
+              <span style="font-weight: 600; color: var(--text-main);">{{ selectedTx.notes }}</span>
+            </div>
+          </div>
+
+          <!-- 凭证图片展示区域 -->
+          <div v-if="selectedTx.receiptImage" style="margin-top: 4px;">
+            <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+              <span>🖼️ 交易凭证图片</span>
+              <span style="font-size: 11px; color: var(--text-muted);">点击可全屏缩放</span>
+            </div>
+            <div
+              @click="previewReceipt(selectedTx.receiptImage)"
+              style="border-radius: 12px; overflow: hidden; border: 1px solid var(--border-subtle); max-height: 220px; display: flex; align-items: center; justify-content: center; background: #000; cursor: pointer;"
+            >
+              <img
+                :src="selectedTx.receiptImage"
+                style="max-width: 100%; max-height: 220px; object-fit: contain;"
+                alt="账单凭据"
+              />
+            </div>
+          </div>
+          <div v-else style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 6px 0;">
+            🍃 该笔账单未上传凭据图片
+          </div>
+        </div>
+
+        <div class="modal-footer" style="display: flex; justify-content: space-between;">
+          <button class="btn-sm danger" @click="deleteAndCloseTxDetail(selectedTx)">
+            🗑️ 删除该笔流水
+          </button>
+          <button class="btn-primary" @click="showTxDetailModal = false">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 全屏凭证大图 Lightbox 浏览器 -->
+    <div v-if="showReceiptLightbox" class="receipt-lightbox-backdrop" @click="showReceiptLightbox = false">
+      <button class="receipt-lightbox-close" @click.stop="showReceiptLightbox = false">✕</button>
+      <img :src="lightboxImage" class="receipt-lightbox-img" @click.stop alt="凭证高清原图" />
+    </div>
 
     <!-- OCR 识别处理与模型加载进度遮罩 -->
     <div v-if="ocrLoading" class="ocr-loading-backdrop">
@@ -4194,8 +4944,20 @@
             }
           }
         });
-        const currentVersion = ref('v4.7.2');
+        const currentVersion = ref('v4.8.0');
         const versionHistoryList = [
+          {
+            version: 'v4.8.0',
+            date: '2026-09-18',
+            title: '🚀 大版本重构：自选行情看板、账单凭据上传强力压缩、日历账单与高保真萌猫全量图标',
+            features: [
+              '自选行情看板（股票/黄金）：搭载无后端纯前端 JSONP 实时行情引擎，支持国际现货黄金（XAU）、黄金 ETF、A 股主流指数与个股秒级更新，支持应用设置内一键启闭与个性化自选代码增删管理；',
+              '账单凭据拍照上传与 Canvas 强力压缩：记一笔表单支持拍照与相册凭据上传，采用 HTML5 Canvas 像素级高保真下采样与有损压缩算法，体积大幅缩减 95% 以上，凭据数据本地加密持久化于 IndexedDB，并在账单详情提供全屏 Lightbox 交互式预览；',
+              '日历形式“日账单”视图：在统计模块新增标准 7 列月度日历网格视图，每日格内紧凑标注总收入与总支出，点击日期无缝展开当日账单流水明细与快捷记账；',
+              '应用全局图标全量升级：基于 512x512 高保真萌猫设计全量刷新 Favicon、Apple Touch Icon、品牌顶栏头像及 PWA 图标体系；',
+              'PWA 离线缓存池升级：同步升级至 v32 离线缓存池。'
+            ]
+          },
           {
             version: 'v4.7.2',
             date: '2026-09-18',
@@ -4563,7 +5325,487 @@
           toAccountId: '',
           category: '餐饮美食',
           date: '',
-          notes: ''
+          notes: '',
+          receiptImage: ''
+        });
+
+        // ==========================================
+        // 1. 自选行情看板 (股票/黄金) JSONP 引擎
+        // ==========================================
+        const showMarketBoard = ref(localStorage.getItem('cat_show_market') !== 'false');
+        const defaultMarketSymbols = ['s_sh000001', 's_sz399001', 'hf_XAU', 's_sh518880'];
+        const marketSymbols = ref([]);
+        try {
+          const stored = localStorage.getItem('cat_market_symbols');
+          marketSymbols.value = stored ? JSON.parse(stored) : defaultMarketSymbols;
+        } catch (e) {
+          marketSymbols.value = defaultMarketSymbols;
+        }
+
+        const marketQuotes = ref([]);
+        const marketLoading = ref(false);
+        const marketLastUpdate = ref('');
+        const customSymbolInput = ref('');
+
+        const marketPresets = [
+          { code: 's_sh000001', name: '上证指数' },
+          { code: 's_sz399001', name: '深证成指' },
+          { code: 's_sz399006', name: '创业板指' },
+          { code: 'hf_XAU', name: '现货黄金' },
+          { code: 's_sh518880', name: '黄金ETF' },
+          { code: 's_sh600519', name: '贵州茅台' },
+          { code: 's_sz000858', name: '五粮液' },
+          { code: 's_sh510300', name: '沪深300' }
+        ];
+
+        function saveMarketBoardSetting() {
+          localStorage.setItem('cat_show_market', showMarketBoard.value ? 'true' : 'false');
+          if (showMarketBoard.value && marketQuotes.value.length === 0) {
+            refreshMarketQuotes();
+          }
+        }
+
+        function saveMarketSymbols() {
+          localStorage.setItem('cat_market_symbols', JSON.stringify(marketSymbols.value));
+        }
+
+        function getSymbolDisplayLabel(sym) {
+          const found = marketPresets.find(p => p.code === sym);
+          if (found) return found.name;
+          const q = marketQuotes.value.find(item => item.code === sym);
+          if (q && q.name) return q.name;
+          if (sym === 'hf_XAU') return '现货黄金';
+          return sym;
+        }
+
+        function formatMarketPrice(p) {
+          if (p === undefined || p === null || isNaN(p)) return '--';
+          if (p >= 1000) return Number(p).toFixed(2);
+          if (p >= 10) return Number(p).toFixed(2);
+          return Number(p).toFixed(3);
+        }
+
+        function fetchMarketQuotesJSONP(symbols) {
+          if (!symbols || symbols.length === 0) {
+            marketQuotes.value = [];
+            return Promise.resolve([]);
+          }
+          marketLoading.value = true;
+          return new Promise((resolve) => {
+            const scriptId = 'tencent-market-script';
+            const oldScript = document.getElementById(scriptId);
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement('script');
+            script.id = scriptId;
+            script.charset = 'gbk';
+            script.src = `https://qt.gtimg.cn/q=${symbols.join(',')}&_t=${Date.now()}`;
+
+            const timer = setTimeout(() => {
+              marketLoading.value = false;
+              resolve(marketQuotes.value);
+            }, 6000);
+
+            script.onload = () => {
+              clearTimeout(timer);
+              try {
+                const results = [];
+                for (const code of symbols) {
+                  const varName = 'v_' + code;
+                  const raw = window[varName];
+                  if (!raw) continue;
+                  if (raw.includes('~')) {
+                    const parts = raw.split('~');
+                    if (parts.length >= 6) {
+                      const name = parts[1];
+                      const price = parseFloat(parts[3]) || 0;
+                      const change = parseFloat(parts[4]) || 0;
+                      const changePct = parseFloat(parts[5]) || 0;
+                      results.push({
+                        key: code,
+                        code,
+                        name: name || code,
+                        price,
+                        change,
+                        changePct,
+                        type: code.includes('51888') || code.includes('XAU') ? 'gold' : 'stock'
+                      });
+                    }
+                  } else if (raw.includes(',')) {
+                    const parts = raw.split(',');
+                    if (parts.length >= 2) {
+                      const price = parseFloat(parts[0]) || 0;
+                      const changePct = parseFloat(parts[1]) || 0;
+                      const prevClose = parseFloat(parts[7]) || price;
+                      const change = +(price - prevClose).toFixed(2);
+                      const name = parts[13] || (code === 'hf_XAU' ? '现货黄金' : code);
+                      results.push({
+                        key: code,
+                        code,
+                        name,
+                        price,
+                        change,
+                        changePct,
+                        type: 'gold'
+                      });
+                    }
+                  }
+                }
+                if (results.length > 0) {
+                  marketQuotes.value = results;
+                  const now = new Date();
+                  marketLastUpdate.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+                }
+              } catch (err) {
+                console.warn('[Market] Parse error:', err);
+              } finally {
+                marketLoading.value = false;
+                resolve(marketQuotes.value);
+              }
+            };
+
+            script.onerror = () => {
+              clearTimeout(timer);
+              marketLoading.value = false;
+              console.warn('[Market] Load script error');
+              resolve(marketQuotes.value);
+            };
+
+            document.head.appendChild(script);
+          });
+        }
+
+        async function refreshMarketQuotes() {
+          if (!marketSymbols.value || marketSymbols.value.length === 0) return;
+          await fetchMarketQuotesJSONP(marketSymbols.value);
+        }
+
+        function addMarketSymbol(code) {
+          if (!code) return;
+          const cleanCode = code.trim();
+          if (!marketSymbols.value.includes(cleanCode)) {
+            marketSymbols.value.push(cleanCode);
+            saveMarketSymbols();
+            refreshMarketQuotes();
+            showToast(`已添加自选: ${getSymbolDisplayLabel(cleanCode)} ✨`);
+          }
+        }
+
+        function removeMarketSymbol(idx) {
+          const removed = marketSymbols.value.splice(idx, 1);
+          saveMarketSymbols();
+          refreshMarketQuotes();
+          showToast(`已移除自选: ${removed[0]}`);
+        }
+
+        function handleCustomSymbolAdd() {
+          let code = (customSymbolInput.value || '').trim();
+          if (!code) return;
+          if (code.toUpperCase() === 'XAU' || code === '黄金') {
+            code = 'hf_XAU';
+          } else if (!code.startsWith('s_') && !code.startsWith('hf_')) {
+            if (/^(sh|sz|bj)\d{6}$/i.test(code)) {
+              code = 's_' + code.toLowerCase();
+            } else if (/^\d{6}$/.test(code)) {
+              if (code.startsWith('6') || code.startsWith('9') || code.startsWith('5')) {
+                code = 's_sh' + code;
+              } else if (code.startsWith('0') || code.startsWith('3') || code.startsWith('1')) {
+                code = 's_sz' + code;
+              } else if (code.startsWith('8') || code.startsWith('4')) {
+                code = 's_bj' + code;
+              }
+            }
+          }
+          addMarketSymbol(code);
+          customSymbolInput.value = '';
+        }
+
+        // ==========================================
+        // 2. 凭证图片上传、Canvas 强力压缩与全屏预览
+        // ==========================================
+        const receiptFileInputRef = ref(null);
+        const receiptCompressRatio = ref('');
+        const receiptSizeText = ref('');
+        const showReceiptLightbox = ref(false);
+        const lightboxImage = ref('');
+        const showTxDetailModal = ref(false);
+        const selectedTx = ref(null);
+
+        function triggerReceiptUpload() {
+          if (receiptFileInputRef.value) {
+            receiptFileInputRef.value.value = '';
+            receiptFileInputRef.value.click();
+          }
+        }
+
+        function compressReceiptImage(file) {
+          return new Promise((resolve, reject) => {
+            if (!file || !file.type.startsWith('image/')) {
+              reject(new Error('请选择图片文件'));
+              return;
+            }
+            const originalSizeKb = Math.round(file.size / 1024);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const img = new Image();
+              img.onload = () => {
+                try {
+                  const maxDim = 1000;
+                  let w = img.width;
+                  let h = img.height;
+                  if (w > maxDim || h > maxDim) {
+                    if (w > h) {
+                      h = Math.round((h * maxDim) / w);
+                      w = maxDim;
+                    } else {
+                      w = Math.round((w * maxDim) / h);
+                      h = maxDim;
+                    }
+                  }
+                  const canvas = document.createElement('canvas');
+                  canvas.width = w;
+                  canvas.height = h;
+                  const ctx = canvas.getContext('2d');
+                  ctx.imageSmoothingEnabled = true;
+                  ctx.imageSmoothingQuality = 'high';
+                  ctx.drawImage(img, 0, 0, w, h);
+                  const compressedBase64 = canvas.toDataURL('image/jpeg', 0.65);
+                  const compressedSizeKb = Math.round((compressedBase64.length * 0.75) / 1024);
+                  const savedPct = originalSizeKb > 0 ? Math.round((1 - (compressedSizeKb / originalSizeKb)) * 100) : 0;
+                  resolve({
+                    base64: compressedBase64,
+                    originalSizeKb,
+                    compressedSizeKb,
+                    savedPct: Math.max(0, savedPct)
+                  });
+                } catch (err) {
+                  reject(err);
+                }
+              };
+              img.onerror = () => reject(new Error('图片解析失败'));
+              img.src = e.target.result;
+            };
+            reader.onerror = () => reject(new Error('读取文件失败'));
+            reader.readAsDataURL(file);
+          });
+        }
+
+        async function handleReceiptImageUpload(e) {
+          const file = e.target.files && e.target.files[0];
+          if (!file) return;
+          try {
+            showToast('正在对凭据图片进行 Canvas 强力压缩...');
+            const result = await compressReceiptImage(file);
+            txForm.receiptImage = result.base64;
+            receiptCompressRatio.value = `-${result.savedPct}%`;
+            receiptSizeText.value = `${result.originalSizeKb}KB ➔ ${result.compressedSizeKb}KB (省流 ${result.savedPct}%)`;
+            showToast(`凭据压缩成功！体积减少 ${result.savedPct}% ✨`);
+          } catch (err) {
+            alert('凭据处理失败: ' + err.message);
+          }
+        }
+
+        function removeReceiptImage() {
+          txForm.receiptImage = '';
+          receiptCompressRatio.value = '';
+          receiptSizeText.value = '';
+          if (receiptFileInputRef.value) {
+            receiptFileInputRef.value.value = '';
+          }
+        }
+
+        function previewReceipt(imgUrl) {
+          if (!imgUrl) return;
+          lightboxImage.value = imgUrl;
+          showReceiptLightbox.value = true;
+        }
+
+        function openTxDetail(item) {
+          if (!item) return;
+          selectedTx.value = item;
+          showTxDetailModal.value = true;
+        }
+
+        async function deleteAndCloseTxDetail(item) {
+          showTxDetailModal.value = false;
+          await confirmDeleteTx(item);
+        }
+
+        // ==========================================
+        // 3. 日历形式“日账单”视图算法
+        // ==========================================
+        const analyticsSubView = ref('chart'); // 'chart' | 'calendar'
+        const calendarYear = ref(new Date().getFullYear());
+        const calendarMonth = ref(new Date().getMonth() + 1);
+        const selectedCalendarDate = ref(AssetDB.formatDate());
+
+        function changeCalendarMonth(delta) {
+          let y = calendarYear.value;
+          let m = calendarMonth.value + delta;
+          if (m < 1) { m = 12; y--; }
+          else if (m > 12) { m = 1; y++; }
+          calendarYear.value = y;
+          calendarMonth.value = m;
+        }
+
+        function jumpToToday() {
+          const now = new Date();
+          calendarYear.value = now.getFullYear();
+          calendarMonth.value = now.getMonth() + 1;
+          selectedCalendarDate.value = AssetDB.formatDate();
+        }
+
+        function selectCalendarDate(day) {
+          if (!day) return;
+          selectedCalendarDate.value = day.dateStr;
+          if (!day.isCurrentMonth) {
+            calendarYear.value = day.year;
+            calendarMonth.value = day.month;
+          }
+        }
+
+        function openNewTxWithDate(dateStr) {
+          openNewTxModal();
+          if (dateStr) {
+            txForm.date = dateStr;
+          }
+        }
+
+        const calendarDays = computed(() => {
+          const y = calendarYear.value;
+          const m = calendarMonth.value;
+          const todayStr = AssetDB.formatDate();
+
+          // 当月天数
+          const daysInMonth = new Date(y, m, 0).getDate();
+          // 当月 1 号星期几 (0:周日, 1..6:周一..周六)
+          const firstDayWeek = new Date(y, m - 1, 1).getDay();
+          const firstWeekday = firstDayWeek === 0 ? 7 : firstDayWeek;
+          const leadingDays = firstWeekday - 1;
+
+          // 上月天数
+          const prevMonthDays = new Date(y, m - 1, 0).getDate();
+
+          const cells = [];
+
+          // 1. 上月尾巴填充
+          let prevYear = m === 1 ? y - 1 : y;
+          let prevMonth = m === 1 ? 12 : m - 1;
+          for (let i = leadingDays - 1; i >= 0; i--) {
+            const dayNum = prevMonthDays - i;
+            const dateStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            cells.push({
+              year: prevYear,
+              month: prevMonth,
+              dayNum,
+              dateStr,
+              isCurrentMonth: false,
+              isToday: dateStr === todayStr,
+              expense: 0,
+              income: 0,
+              txCount: 0
+            });
+          }
+
+          // 2. 当月日期填充
+          for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            cells.push({
+              year: y,
+              month: m,
+              dayNum: d,
+              dateStr,
+              isCurrentMonth: true,
+              isToday: dateStr === todayStr,
+              expense: 0,
+              income: 0,
+              txCount: 0
+            });
+          }
+
+          // 3. 下月开头填充，补齐整行（按 7 的倍数）
+          const trailingDays = (7 - (cells.length % 7)) % 7;
+          let nextYear = m === 12 ? y + 1 : y;
+          let nextMonth = m === 12 ? 1 : m + 1;
+          for (let d = 1; d <= trailingDays; d++) {
+            const dateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            cells.push({
+              year: nextYear,
+              month: nextMonth,
+              dayNum: d,
+              dateStr,
+              isCurrentMonth: false,
+              isToday: dateStr === todayStr,
+              expense: 0,
+              income: 0,
+              txCount: 0
+            });
+          }
+
+          // 聚合流水数据到日期单元格中
+          const txList = transactions.value;
+          const dayMap = {};
+          for (const c of cells) {
+            dayMap[c.dateStr] = c;
+          }
+
+          for (const t of txList) {
+            if (!t.date || !dayMap[t.date]) continue;
+            const amt = Number(t.amount) || 0;
+            dayMap[t.date].txCount += 1;
+            if (t.type === 'expense') {
+              dayMap[t.date].expense += amt;
+            } else if (t.type === 'income') {
+              dayMap[t.date].income += amt;
+            }
+          }
+
+          return cells;
+        });
+
+        const calendarMonthSummary = computed(() => {
+          const y = calendarYear.value;
+          const m = calendarMonth.value;
+          const prefix = `${y}-${String(m).padStart(2, '0')}`;
+          let totalExpense = 0;
+          let totalIncome = 0;
+          let txCount = 0;
+          const activeDateSet = new Set();
+
+          for (const t of transactions.value) {
+            if (t.date && t.date.startsWith(prefix)) {
+              const amt = Number(t.amount) || 0;
+              if (t.type === 'expense') totalExpense += amt;
+              else if (t.type === 'income') totalIncome += amt;
+              txCount++;
+              activeDateSet.add(t.date);
+            }
+          }
+
+          return {
+            totalExpense: +totalExpense.toFixed(2),
+            totalIncome: +totalIncome.toFixed(2),
+            txCount,
+            activeDays: activeDateSet.size
+          };
+        });
+
+        const selectedDateTransactions = computed(() => {
+          const d = selectedCalendarDate.value;
+          if (!d) return [];
+          return transactions.value.filter(t => t.date === d);
+        });
+
+        const selectedDateExpense = computed(() => {
+          return selectedDateTransactions.value
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+        });
+
+        const selectedDateIncome = computed(() => {
+          return selectedDateTransactions.value
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         });
 
         const adjustForm = reactive({
@@ -5170,6 +6412,12 @@
           txForm.category = '餐饮美食';
           txForm.date = AssetDB.formatDate();
           txForm.notes = '';
+          txForm.receiptImage = '';
+          receiptCompressRatio.value = '';
+          receiptSizeText.value = '';
+          if (receiptFileInputRef.value) {
+            receiptFileInputRef.value.value = '';
+          }
           showTxModal.value = true;
         }
 
@@ -5216,7 +6464,8 @@
               toAccountId: txForm.type === 'transfer' ? txForm.toAccountId : null,
               category: txForm.category,
               date: txForm.date,
-              notes: txForm.notes
+              notes: txForm.notes,
+              receiptImage: txForm.receiptImage || null
             });
 
             showTxModal.value = false;
@@ -6381,6 +7630,16 @@
 
           await refreshAllData();
 
+          if (showMarketBoard.value) {
+            refreshMarketQuotes();
+            // 定时每 30 秒平滑静默刷新自选行情
+            setInterval(() => {
+              if (showMarketBoard.value && !document.hidden) {
+                refreshMarketQuotes();
+              }
+            }, 30000);
+          }
+
           // 注册 Service Worker 离线能力
           if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').then((reg) => {
@@ -6521,7 +7780,47 @@
           monthlyTransactions,
           monthlyAnalytics,
           monthlyCategoryExpenses,
-          monthlyCategoryIncomes
+          monthlyCategoryIncomes,
+          showMarketBoard,
+          marketSymbols,
+          marketQuotes,
+          marketLoading,
+          marketLastUpdate,
+          customSymbolInput,
+          marketPresets,
+          saveMarketBoardSetting,
+          getSymbolDisplayLabel,
+          formatMarketPrice,
+          refreshMarketQuotes,
+          addMarketSymbol,
+          removeMarketSymbol,
+          handleCustomSymbolAdd,
+          receiptFileInputRef,
+          receiptCompressRatio,
+          receiptSizeText,
+          showReceiptLightbox,
+          lightboxImage,
+          showTxDetailModal,
+          selectedTx,
+          triggerReceiptUpload,
+          handleReceiptImageUpload,
+          removeReceiptImage,
+          previewReceipt,
+          openTxDetail,
+          deleteAndCloseTxDetail,
+          analyticsSubView,
+          calendarYear,
+          calendarMonth,
+          selectedCalendarDate,
+          changeCalendarMonth,
+          jumpToToday,
+          selectCalendarDate,
+          openNewTxWithDate,
+          calendarDays,
+          calendarMonthSummary,
+          selectedDateTransactions,
+          selectedDateExpense,
+          selectedDateIncome
         };
       }
     }).mount('#app');
