@@ -189,9 +189,14 @@
   }
 
   /**
-   * 直接调整账户余额，并自动生成一条“余额调整”流水记录
+   * 直接调整/更正账户余额
+   * @param {string} id 账户ID
+   * @param {number} newBalance 调整后的目标余额
+   * @param {string} reason 调整原因
+   * @param {string|null} recordDate 记录日期
+   * @param {boolean} recordTransaction 是否生成流水记录。更正录入错误时默认为 false，不计入日常收支流水
    */
-  async function adjustBalance(id, newBalance, reason = '余额校准', recordDate = null) {
+  async function adjustBalance(id, newBalance, reason = '余额更正', recordDate = null, recordTransaction = false) {
     const targetBalance = Number(newBalance);
     const account = await getAccount(id);
     if (!account) throw new Error('账户不存在');
@@ -212,8 +217,8 @@
       req.onerror = () => reject(req.error);
     });
 
-    // 如果余额有差值，写入一条 adjustment 流水以保持记录清晰
-    if (diff !== 0) {
+    // 仅在明确指定生成流水且存在差值时，才写入一条 adjustment 流水；更正录入错误时不生成流水
+    if (recordTransaction && diff !== 0) {
       const txData = {
         id: generateId('tx'),
         type: diff > 0 ? 'income' : 'expense',

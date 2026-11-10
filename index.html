@@ -3291,10 +3291,37 @@
             </svg>
             资产账户明细
           </div>
-          <button class="btn-primary" @click="openAddAccountModal">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            快速添加账户
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn-sm" @click="showReorderModal = true" style="display: flex; align-items: center; gap: 4px; padding: 7px 11px; font-weight: 700;" title="自定义调整账户展示顺序">
+              <span>↕️</span>
+              <span>调整顺序</span>
+            </button>
+            <button class="btn-primary" @click="openAddAccountModal">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              快速添加账户
+            </button>
+          </div>
+        </div>
+
+        <!-- 账户快速查找搜索框 -->
+        <div style="position: relative; margin-top: -2px;">
+          <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            v-model="accountSearchKeyword"
+            class="form-input"
+            placeholder="🔍 快速查找账户 (输入账户名、尾号、备注或类型)..."
+            style="padding-left: 36px; padding-right: 32px; font-size: 13px; height: 38px; border-radius: 10px;"
+          />
+          <button
+            v-if="accountSearchKeyword"
+            type="button"
+            @click="accountSearchKeyword = ''"
+            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 15px; padding: 4px;"
+            title="清空查找条件"
+          >✕</button>
         </div>
 
         <!-- 分类筛选小药丸 -->
@@ -3411,6 +3438,8 @@
             <div class="acc-card-actions">
               <div class="acc-time">更新于 {{ formatTime(acc.updatedAt) }}</div>
               <div class="acc-btns">
+                <button class="btn-sm" :disabled="isFirstAccount(acc)" @click="moveAccount(acc.id, -1)" title="上移一位" style="padding: 4px 7px;">⬆</button>
+                <button class="btn-sm" :disabled="isLastAccount(acc)" @click="moveAccount(acc.id, 1)" title="下移一位" style="padding: 4px 7px;">⬇</button>
                 <button class="btn-sm" @click="openEditAccountModal(acc)">编辑</button>
                 <button class="btn-sm danger" @click="confirmDeleteAccount(acc)">删除</button>
               </div>
@@ -3421,11 +3450,19 @@
         <!-- 账户空状态 -->
         <div v-else class="card empty-state" style="margin-top: 6px; text-align: center; padding: 40px 20px;">
           <div class="empty-icon" style="font-size: 42px; margin-bottom: 8px;">🐱</div>
-          <div style="font-weight: 700; font-size: 16px; color: var(--text-main); margin-bottom: 6px;">粮仓空空如也</div>
-          <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
-            暂无资产账户，点击下方按钮添加您的第一个银行卡、零钱或理财账户吧 🐾
+          <div v-if="accountSearchKeyword" style="font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 6px;">
+            未找到匹配 “{{ accountSearchKeyword }}” 的账户
           </div>
-          <button class="btn-primary" @click="openAddAccountModal" style="margin: 0 auto; display: inline-flex;">
+          <div v-else style="font-weight: 700; font-size: 16px; color: var(--text-main); margin-bottom: 6px;">
+            粮仓空空如也
+          </div>
+          <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+            {{ accountSearchKeyword ? '可尝试更换搜索关键词或选择不同资产分类' : '暂无资产账户，点击下方按钮添加您的第一个银行卡、零钱或理财账户吧 🐾' }}
+          </div>
+          <button v-if="accountSearchKeyword" class="btn-sm" @click="accountSearchKeyword = ''" style="margin: 0 auto;">
+            清空查找关键词
+          </button>
+          <button v-else class="btn-primary" @click="openAddAccountModal" style="margin: 0 auto; display: inline-flex;">
             + 快速添加第一个账户
           </button>
         </div>
@@ -4257,8 +4294,8 @@
                 type="text"
                 v-model="customSymbolInput"
                 class="form-input"
-                placeholder="输入代码 如: sh600519、000001、XAU、GC"
-                style="flex: 1; font-size: 12.5px;"
+                placeholder="输入代码 如: 600519、000001、sh600519、XAU (不支持输入名称)"
+                style="flex: 1; font-size: 12px;"
                 @keyup.enter="handleCustomSymbolAdd"
               />
               <button
@@ -4270,8 +4307,8 @@
                 + 添加
               </button>
             </div>
-            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 6px;">
-              💡 提示：支持 A股/ETF (如 600519, 518880, 000001)、黄金 (XAU 现货黄金, GC 纽约金)、港股/美股代码。
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+              ⚠️ <strong>重要提示</strong>：必须输入股票/黄金代码（如 A股 <code>600519</code>、<code>000001</code>、黄金 <code>XAU</code>），暂不支持输入股票中文名称。
             </div>
           </div>
         </div>
@@ -4826,11 +4863,26 @@
             type="text"
             v-model="adjustForm.reason"
             class="form-input"
-            :placeholder="adjustForm.mode === 'delta' ? (adjustForm.deltaDirection === 'add' ? '如：新增入账、资金转入等' : '如：线下支出、手续费等') : '如：对账修正、利息结算、净值变动等'"
+            :placeholder="adjustForm.mode === 'delta' ? (adjustForm.deltaDirection === 'add' ? '如：新增入账、资金转入等' : '如：线下支出、手续费等') : '如：对账更正、录入纠错、净值更新等'"
           />
         </div>
 
-        <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;" @click="submitAdjustBalance">
+        <!-- 调整记账选项：更正数额模式 (默认不生成流水) -->
+        <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; margin-top: 12px;">
+          <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">
+                {{ adjustForm.recordAsTransaction ? '📝 生成平账变动流水' : '✨ 纯更正数额 (不计入收支流水)' }}
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                {{ adjustForm.recordAsTransaction ? '差额将生成一条校准明细，但已自动排除出日常消费' : '更正初始录入笔误或误差，不生成任何流水，绝不计入日常花销' }}
+              </div>
+            </div>
+            <input type="checkbox" v-model="adjustForm.recordAsTransaction" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;" />
+          </label>
+        </div>
+
+        <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 14px;" @click="submitAdjustBalance">
           确认调整
         </button>
       </div>
@@ -4886,8 +4938,12 @@
           </div>
         </div>
 
-        <div v-if="!isEditAccount" class="form-group">
-          <label class="form-label">{{ accountForm.type === 'credit' ? '初始已用欠款 / 余额 (¥)' : '初始余额 (¥)' }}</label>
+        <!-- 账户余额更正与初始化输入框 (创建或编辑均支持直接修正，更正不计入流水) -->
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label class="form-label" style="margin-bottom: 0;">{{ isEditAccount ? '账户实时余额 (¥)' : (accountForm.type === 'credit' ? '初始已用欠款 / 余额 (¥)' : '初始余额 (¥)') }}</label>
+            <span v-if="isEditAccount" style="font-size: 11px; color: #10b981; font-weight: 700;">更正不计入流水</span>
+          </div>
           <input
             type="number"
             step="0.01"
@@ -4895,6 +4951,9 @@
             class="form-input"
             :placeholder="accountForm.type === 'credit' ? '0.00 (新卡无欠款填0，已欠款填负数如 -500)' : '0.00'"
           />
+          <div v-if="isEditAccount" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+            💡 提示：若此前初始金额录入有误，可在此直接更正，系统仅更新现有资产净值，绝不会产生日常消费或支出流水。
+          </div>
         </div>
 
         <!-- 20+ 款精选标识图标选择器 -->
@@ -4922,6 +4981,57 @@
 
         <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 10px;" @click="submitAccountForm">
           {{ isEditAccount ? '保存修改' : '立即创建账户' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 4: 账户展示顺序自定义调整弹窗                -->
+    <!-- ============================================== -->
+    <div v-if="showReorderModal" class="modal-backdrop" @click.self="showReorderModal = false">
+      <div class="modal-box" style="max-width: 480px;">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span>↕️ 调整账户展示顺序</span>
+          </div>
+          <button class="btn-close" @click="showReorderModal = false">✕</button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          点击按钮可快速调整账户在列表和总览页面的展示顺序，即时生效并持久化保存：
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 58vh; overflow-y: auto; padding-right: 2px;">
+          <div
+            v-for="(acc, index) in accounts"
+            :key="acc.id"
+            style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 10px;"
+          >
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+              <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); width: 18px; text-align: center;">{{ index + 1 }}</span>
+              <span style="font-size: 20px;">{{ acc.icon || getAccountEmoji(acc.type) }}</span>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ acc.name }}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                  {{ getAccountTypeLabel(acc.type) }} · ¥{{ formatNumber(acc.balance) }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 操作按钮组: 置顶 / 上移 / 下移 / 置底 -->
+            <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+              <button class="btn-sm" :disabled="index === 0" @click="moveAccount(acc.id, 'top')" title="置顶" style="padding: 4px 7px; font-size: 11px;">🔝</button>
+              <button class="btn-sm" :disabled="index === 0" @click="moveAccount(acc.id, -1)" title="上移" style="padding: 4px 7px; font-size: 11px;">⬆</button>
+              <button class="btn-sm" :disabled="index === accounts.length - 1" @click="moveAccount(acc.id, 1)" title="下移" style="padding: 4px 7px; font-size: 11px;">⬇</button>
+              <button class="btn-sm" :disabled="index === accounts.length - 1" @click="moveAccount(acc.id, 'bottom')" title="置底" style="padding: 4px 7px; font-size: 11px;">🔚</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width: 100%; justify-content: center; padding: 11px; font-size: 14px; margin-top: 14px;" @click="showReorderModal = false">
+          完成排序
         </button>
       </div>
     </div>
@@ -4964,8 +5074,20 @@
             }
           }
         });
-        const currentVersion = ref('v4.8.2');
+        const currentVersion = ref('v4.8.3');
         const versionHistoryList = [
+          {
+            version: 'v4.8.3',
+            date: '2026-11-10',
+            title: '✨ 账户体验与行情深度优化：账户搜索、顺序自定义调整、调额不计流水与行情代码校验',
+            features: [
+              '账户快速查找功能：在账户列表顶部新增即时搜索框，支持按账户名、尾号、备注及资产分类快速检索过滤；',
+              '账户展示顺序自定义：支持在账户卡片上快速上移/下移，并新增「调整顺序」管理弹窗，支持一键置顶、置底与任意排序并永久记忆；',
+              '账户金额更正与流水解耦：账户调额及编辑更正金额默认为纯更正数额，不生成收支平账流水，彻底杜绝调额被记为日常消费花销的逻辑缺陷；',
+              '自选行情代码严格校验：添加自选行情时拦截非代码输入，友好提醒必须输入股票或黄金代码（如 600519、000001、XAU），暂不支持直接输入股票中文名称；',
+              'PWA 离线缓存池升级：升级至 personal-asset-pwa-v35 离线缓存池。'
+            ]
+          },
           {
             version: 'v4.8.2',
             date: '2026-09-18',
@@ -5381,7 +5503,12 @@
         const marketSymbols = ref([]);
         try {
           const stored = localStorage.getItem('cat_market_symbols');
-          marketSymbols.value = stored ? JSON.parse(stored) : defaultMarketSymbols;
+          let parsed = stored ? JSON.parse(stored) : defaultMarketSymbols;
+          // 清理历史中可能意外误填的中文名称或非法字符，确保皆为可请求的代码
+          if (Array.isArray(parsed)) {
+            parsed = parsed.filter(s => typeof s === 'string' && !/[\u4e00-\u9fa5]/.test(s) && /^[\w\.\-]+$/.test(s.trim()));
+          }
+          marketSymbols.value = (parsed && parsed.length > 0) ? parsed : defaultMarketSymbols;
         } catch (e) {
           marketSymbols.value = defaultMarketSymbols;
         }
@@ -5543,10 +5670,20 @@
         }
 
         function handleCustomSymbolAdd() {
-          let code = (customSymbolInput.value || '').trim();
-          if (!code) return;
+          let raw = (customSymbolInput.value || '').trim();
+          if (!raw) return;
+
+          // 核心拦截与提醒：如果包含中文字符且不是常用别名，提示必须输入代码
+          if (/[\u4e00-\u9fa5]/.test(raw) && raw !== '黄金') {
+            showToast('⚠️ 请输入股票或资产代码（如 600519、000001、XAU），暂不支持直接输入股票中文名称');
+            return;
+          }
+
+          let code = raw;
           if (code.toUpperCase() === 'XAU' || code === '黄金') {
             code = 'hf_XAU';
+          } else if (code.toUpperCase() === 'GC') {
+            code = 'hf_GC';
           } else if (!code.startsWith('s_') && !code.startsWith('hf_')) {
             if (/^(sh|sz|bj)\d{6}$/i.test(code)) {
               code = 's_' + code.toLowerCase();
@@ -5558,8 +5695,14 @@
               } else if (code.startsWith('8') || code.startsWith('4')) {
                 code = 's_bj' + code;
               }
+            } else if (/^[A-Za-z0-9_\.]{2,15}$/.test(code)) {
+              code = code.toLowerCase();
+            } else {
+              showToast('⚠️ 代码格式不正确，请输入有效的股票代码 (如 600519、000001、sh600519、XAU)');
+              return;
             }
           }
+
           addMarketSymbol(code);
           customSymbolInput.value = '';
         }
@@ -5795,6 +5938,7 @@
 
           for (const t of txList) {
             if (!t.date || !dayMap[t.date]) continue;
+            if (t.isAdjustment || t.category === '余额调整') continue; // 余额更正不计入日历收支
             const amt = Number(t.amount) || 0;
             dayMap[t.date].txCount += 1;
             if (t.type === 'expense') {
@@ -5818,6 +5962,7 @@
 
           for (const t of transactions.value) {
             if (t.date && t.date.startsWith(prefix)) {
+              if (t.isAdjustment || t.category === '余额调整') continue; // 余额更正不计入当月日历汇总收支
               const amt = Number(t.amount) || 0;
               if (t.type === 'expense') totalExpense += amt;
               else if (t.type === 'income') totalIncome += amt;
@@ -5842,22 +5987,23 @@
 
         const selectedDateExpense = computed(() => {
           return selectedDateTransactions.value
-            .filter(t => t.type === 'expense')
+            .filter(t => t.type === 'expense' && !t.isAdjustment && t.category !== '余额调整')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         });
 
         const selectedDateIncome = computed(() => {
           return selectedDateTransactions.value
-            .filter(t => t.type === 'income')
+            .filter(t => t.type === 'income' && !t.isAdjustment && t.category !== '余额调整')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         });
 
         const adjustForm = reactive({
           newBalance: 0,
-          reason: '余额校准',
+          reason: '录入更正',
           mode: 'direct', // 'direct' (直接修改总额) | 'delta' (按增减变动金额)
           deltaDirection: 'add', // 'add' (增加) | 'sub' (减少)
-          deltaAmount: ''
+          deltaAmount: '',
+          recordAsTransaction: false // 默认为 false，纯更正数额，不生成流水
         });
 
         const previewCalculatedBalance = computed(() => {
@@ -5997,10 +6143,97 @@
           return txForm.type === 'income' ? incomeCategories : expenseCategories;
         });
 
-        // 账户筛选
+        // 账户快速查找关键字与顺序调整弹窗状态
+        const accountSearchKeyword = ref('');
+        const showReorderModal = ref(false);
+
+        // 获取并持久化账户自定义排序列表
+        function getSavedAccountOrder() {
+          try {
+            return JSON.parse(localStorage.getItem('cat_account_order') || '[]');
+          } catch (e) {
+            return [];
+          }
+        }
+
+        function sortAccountsByCustomOrder(list) {
+          if (!Array.isArray(list) || list.length <= 1) return list || [];
+          const order = getSavedAccountOrder();
+          if (!order || order.length === 0) return list;
+          return [...list].sort((a, b) => {
+            const idxA = order.indexOf(a.id);
+            const idxB = order.indexOf(b.id);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return 0;
+          });
+        }
+
+        function moveAccount(accId, direction) {
+          if (!accId || accounts.value.length <= 1) return;
+          const currentList = [...accounts.value];
+          const idx = currentList.findIndex(a => a.id === accId);
+          if (idx === -1) return;
+
+          const accName = currentList[idx].name;
+
+          if (direction === -1 && idx > 0) {
+            // 上移
+            const target = currentList[idx];
+            currentList.splice(idx, 1);
+            currentList.splice(idx - 1, 0, target);
+          } else if (direction === 1 && idx < currentList.length - 1) {
+            // 下移
+            const target = currentList[idx];
+            currentList.splice(idx, 1);
+            currentList.splice(idx + 1, 0, target);
+          } else if (direction === 'top' && idx > 0) {
+            // 置顶
+            const target = currentList[idx];
+            currentList.splice(idx, 1);
+            currentList.unshift(target);
+          } else if (direction === 'bottom' && idx < currentList.length - 1) {
+            // 置底
+            const target = currentList[idx];
+            currentList.splice(idx, 1);
+            currentList.push(target);
+          } else {
+            return;
+          }
+
+          accounts.value = currentList;
+          const newOrder = currentList.map(a => a.id);
+          localStorage.setItem('cat_account_order', JSON.stringify(newOrder));
+          showToast(`已调整账户「${accName}」排序 ✨`);
+        }
+
+        function isFirstAccount(acc) {
+          if (!acc || accounts.value.length === 0) return true;
+          return accounts.value[0]?.id === acc.id;
+        }
+
+        function isLastAccount(acc) {
+          if (!acc || accounts.value.length === 0) return true;
+          return accounts.value[accounts.value.length - 1]?.id === acc.id;
+        }
+
+        // 账户筛选 (支持资产分类 + 关键字即时全局搜索)
         const filteredAccounts = computed(() => {
-          if (selectedAccountCategory.value === 'all') return accounts.value;
-          return accounts.value.filter(a => a.type === selectedAccountCategory.value);
+          let list = accounts.value;
+          if (selectedAccountCategory.value !== 'all') {
+            list = list.filter(a => a.type === selectedAccountCategory.value);
+          }
+          const kw = (accountSearchKeyword.value || '').trim().toLowerCase();
+          if (kw) {
+            list = list.filter(a => {
+              const name = (a.name || '').toLowerCase();
+              const notes = (a.notes || '').toLowerCase();
+              const typeLabel = getAccountTypeLabel(a.type).toLowerCase();
+              return name.includes(kw) || notes.includes(kw) || typeLabel.includes(kw);
+            });
+          }
+          return list;
         });
 
         // 流水筛选 (支持按账户或仅看纯流水)
@@ -6063,6 +6296,7 @@
           let pureCount = 0;
 
           for (const t of list) {
+            if (t.isAdjustment || t.category === '余额调整') continue; // 余额更正不计入日常收支
             const amt = Number(t.amount) || 0;
             if (t.type === 'expense') totalExpense += amt;
             else if (t.type === 'income') totalIncome += amt;
@@ -6079,7 +6313,7 @@
         });
 
         const monthlyCategoryExpenses = computed(() => {
-          const expenses = monthlyTransactions.value.filter(t => t.type === 'expense');
+          const expenses = monthlyTransactions.value.filter(t => t.type === 'expense' && !t.isAdjustment && t.category !== '余额调整');
           const total = monthlyAnalytics.value.totalExpense;
           const map = {};
 
@@ -6134,7 +6368,7 @@
         });
 
         const monthlyCategoryIncomes = computed(() => {
-          const incomes = monthlyTransactions.value.filter(t => t.type === 'income');
+          const incomes = monthlyTransactions.value.filter(t => t.type === 'income' && !t.isAdjustment && t.category !== '余额调整');
           const total = monthlyAnalytics.value.totalIncome;
           const map = {};
 
@@ -6417,7 +6651,7 @@
               AssetDB.getTrendSnapshots()
             ]);
 
-            accounts.value = accs;
+            accounts.value = sortAccountsByCustomOrder(accs);
             transactions.value = txs;
             Object.assign(overview, stats);
             trendSnapshots.value = trends;
@@ -7170,7 +7404,8 @@
           adjustForm.deltaDirection = 'add';
           adjustForm.deltaAmount = '';
           adjustForm.newBalance = acc.balance;
-          adjustForm.reason = '对账校准';
+          adjustForm.reason = '录入更正';
+          adjustForm.recordAsTransaction = false; // 默认纯数额更正，不生成收支流水
           showAdjustModal.value = true;
         }
 
@@ -7182,15 +7417,17 @@
               : previewCalculatedBalance.value;
             const defaultReason = adjustForm.mode === 'delta'
               ? (adjustForm.deltaDirection === 'add' ? '新增资金' : '扣减资金')
-              : '对账校准';
+              : '录入更正';
 
             await AssetDB.adjustBalance(
               targetAdjustAccount.value.id,
               finalBalance,
-              adjustForm.reason || defaultReason
+              adjustForm.reason || defaultReason,
+              null,
+              adjustForm.recordAsTransaction === true
             );
             showAdjustModal.value = false;
-            showToast('余额已调整，已自动同步净资产');
+            showToast(adjustForm.recordAsTransaction ? '余额已调整，已记录校准流水' : '金额已成功更正，未计入日常收支流水 ✨');
             await refreshAllData();
           } catch (e) {
             alert('调额失败: ' + e.message);
@@ -7240,14 +7477,15 @@
                 id: accountForm.id,
                 name: accountForm.name.trim(),
                 type: accountForm.type,
+                balance: Number(accountForm.balance) || 0,
                 creditLimit: creditLimitVal,
                 icon: accountForm.icon,
                 color: accountForm.color,
                 notes: accountForm.notes.trim()
               });
-              showToast('账户信息已更新');
+              showToast('账户信息及金额已更正 ✨');
             } else {
-              await AssetDB.addAccount({
+              const newAcc = await AssetDB.addAccount({
                 name: accountForm.name.trim(),
                 type: accountForm.type,
                 balance: Number(accountForm.balance) || 0,
@@ -7256,6 +7494,12 @@
                 color: accountForm.color,
                 notes: accountForm.notes.trim()
               });
+              // 自动将新创建账户追加到自定义排序末尾
+              const savedOrder = getSavedAccountOrder();
+              if (newAcc && newAcc.id && !savedOrder.includes(newAcc.id)) {
+                savedOrder.push(newAcc.id);
+                localStorage.setItem('cat_account_order', JSON.stringify(savedOrder));
+              }
               showToast('新账户已创建成功');
             }
             showAccountModal.value = false;
@@ -7268,6 +7512,9 @@
         async function confirmDeleteAccount(acc) {
           if (confirm(`确认删除账户【${acc.name}】吗？\n当前余额 ¥${acc.balance} 将不再计入净资产。`)) {
             await AssetDB.deleteAccount(acc.id);
+            // 从自定义排序列表中移除
+            const savedOrder = getSavedAccountOrder().filter(id => id !== acc.id);
+            localStorage.setItem('cat_account_order', JSON.stringify(savedOrder));
             showToast('账户已删除');
             await refreshAllData();
           }
@@ -7762,6 +8009,11 @@
           chartSegments,
           dominantCategoryName,
           selectedAccountCategory,
+          accountSearchKeyword,
+          showReorderModal,
+          moveAccount,
+          isFirstAccount,
+          isLastAccount,
           txFilterType,
           txFilterAccountId,
           showTxModal,
