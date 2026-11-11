@@ -2411,13 +2411,18 @@
     /* ================================================= */
     .settings-nav-tabs {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
       background: var(--bg-subtle);
       padding: 5px;
       border-radius: 14px;
       margin-bottom: 16px;
       border: 1px solid var(--border-subtle);
+    }
+
+    .settings-nav-tab .w-10 {
+      width: 20px;
+      height: 20px;
     }
 
     .settings-nav-tab {
@@ -4010,13 +4015,15 @@
     <div v-if="showThemeModal" class="modal-backdrop" @click.self="showThemeModal = false">
       <div class="modal-box" style="max-width: 480px;">
         <div class="modal-header">
-          <div class="modal-title">
-            <span>⚙️ 粮仓应用设置</span>
+          <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+            <img v-if="getCategoryImg('粮仓应用设置')" :src="getCategoryImg('粮仓应用设置')" class="w-10 h-10 object-contain" style="width: 24px; height: 24px;" alt="粮仓应用设置" />
+            <span v-else>⚙️</span>
+            <span>粮仓应用设置</span>
           </div>
           <button class="btn-close" @click="showThemeModal = false">✕</button>
         </div>
 
-        <!-- 四大核心功能模块切换导航 -->
+        <!-- 粮仓应用设置模块切换导航 -->
         <div class="settings-nav-tabs">
           <button
             type="button"
@@ -4024,7 +4031,8 @@
             :class="{ active: settingsTab === 'theme' }"
             @click="settingsTab = 'theme'"
           >
-            <span class="settings-tab-icon">🎨</span>
+            <img v-if="getCategoryImg('主题设置')" :src="getCategoryImg('主题设置')" class="w-10 h-10 object-contain" alt="主题设置" />
+            <span v-else class="settings-tab-icon">🎨</span>
             <span class="settings-tab-text">主题设置</span>
           </button>
           <button
@@ -4033,7 +4041,8 @@
             :class="{ active: settingsTab === 'security' }"
             @click="settingsTab = 'security'"
           >
-            <span class="settings-tab-icon">🔐</span>
+            <img v-if="getCategoryImg('暗号设置')" :src="getCategoryImg('暗号设置')" class="w-10 h-10 object-contain" alt="暗号设置" />
+            <span v-else class="settings-tab-icon">🔐</span>
             <span class="settings-tab-text">暗号设置</span>
           </button>
           <button
@@ -4042,7 +4051,8 @@
             :class="{ active: settingsTab === 'reset' }"
             @click="settingsTab = 'reset'"
           >
-            <span class="settings-tab-icon">🧹</span>
+            <img v-if="getCategoryImg('重置设置')" :src="getCategoryImg('重置设置')" class="w-10 h-10 object-contain" alt="重置设置" />
+            <span v-else class="settings-tab-icon">🧹</span>
             <span class="settings-tab-text">重置设置</span>
           </button>
           <button
@@ -4051,7 +4061,8 @@
             :class="{ active: settingsTab === 'market' }"
             @click="settingsTab = 'market'"
           >
-            <span class="settings-tab-icon">📈</span>
+            <img v-if="getCategoryImg('行情看板')" :src="getCategoryImg('行情看板')" class="w-10 h-10 object-contain" alt="行情看板" />
+            <span v-else class="settings-tab-icon">📈</span>
             <span class="settings-tab-text">行情看板</span>
           </button>
           <button
@@ -4060,7 +4071,8 @@
             :class="{ active: settingsTab === 'version' }"
             @click="settingsTab = 'version'"
           >
-            <span class="settings-tab-icon">📜</span>
+            <img v-if="getCategoryImg('版本历史')" :src="getCategoryImg('版本历史')" class="w-10 h-10 object-contain" alt="版本历史" />
+            <span v-else class="settings-tab-icon">📜</span>
             <span class="settings-tab-text">版本历史</span>
           </button>
         </div>
@@ -4068,7 +4080,11 @@
         <!-- 模块 1: 主题设置 -->
         <div v-if="settingsTab === 'theme'" class="settings-module-body">
           <div class="settings-module-header">
-            <div class="settings-module-title">🎨 猫咪个性化视觉主题</div>
+            <div class="settings-module-title" style="display: flex; align-items: center; gap: 6px;">
+              <img v-if="getCategoryImg('主题设置')" :src="getCategoryImg('主题设置')" class="w-10 h-10 object-contain" style="width: 18px; height: 18px;" alt="主题设置" />
+              <span v-else>🎨</span>
+              <span>猫咪个性化视觉主题</span>
+            </div>
             <div class="settings-module-desc">精选三套个性化视觉皮肤，全屏搭载专属插画壁纸与配色：</div>
           </div>
 
@@ -4130,7 +4146,11 @@
         <!-- 模块 2: 暗号设置 -->
         <div v-if="settingsTab === 'security'" class="settings-module-body">
           <div class="settings-module-header">
-            <div class="settings-module-title">🔐 本地隐私暗号与密保</div>
+            <div class="settings-module-title" style="display: flex; align-items: center; gap: 6px;">
+              <img v-if="getCategoryImg('暗号设置')" :src="getCategoryImg('暗号设置')" class="w-10 h-10 object-contain" style="width: 18px; height: 18px;" alt="暗号设置" />
+              <span v-else>🔐</span>
+              <span>本地隐私暗号与密保</span>
+            </div>
             <div class="settings-module-desc">采用纯本地 SHA-256 哈希加密防护，离开后台 5 分钟自动锁定防窥。</div>
           </div>
 
@@ -4176,7 +4196,11 @@
         <!-- 模块 3: 重置设置 -->
         <div v-if="settingsTab === 'reset'" class="settings-module-body">
           <div class="settings-module-header">
-            <div class="settings-module-title">🧹 数据重置与缓存维护</div>
+            <div class="settings-module-title" style="display: flex; align-items: center; gap: 6px;">
+              <img v-if="getCategoryImg('重置设置')" :src="getCategoryImg('重置设置')" class="w-10 h-10 object-contain" style="width: 18px; height: 18px;" alt="重置设置" />
+              <span v-else>🧹</span>
+              <span>数据重置与缓存维护</span>
+            </div>
             <div class="settings-module-desc">管理本地离线 PWA 缓存与 IndexedDB 资产账目数据：</div>
           </div>
 
@@ -4215,7 +4239,11 @@
         <!-- 模块 4: 版本历史 -->
         <div v-if="settingsTab === 'version'" class="settings-module-body">
           <div class="settings-module-header">
-            <div class="settings-module-title">📜 粮仓版本迭代历史</div>
+            <div class="settings-module-title" style="display: flex; align-items: center; gap: 6px;">
+              <img v-if="getCategoryImg('版本历史')" :src="getCategoryImg('版本历史')" class="w-10 h-10 object-contain" style="width: 18px; height: 18px;" alt="版本历史" />
+              <span v-else>📜</span>
+              <span>粮仓版本迭代历史</span>
+            </div>
             <div class="settings-module-desc">记录喵的粮仓自诞生起每一次功能演进与体验升级：</div>
           </div>
 
@@ -4223,7 +4251,8 @@
           <div class="version-current-banner" style="margin-bottom: 12px;">
             <div>
               <div class="version-current-badge" style="font-size: 11.5px; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 4px;">
-                <span>🐾</span>
+                <img v-if="getCategoryImg('猫爪')" :src="getCategoryImg('猫爪')" class="w-10 h-10 object-contain" style="width: 14px; height: 14px;" alt="猫爪" />
+                <span v-else>🐾</span>
                 <span>喵觉得超棒版</span>
               </div>
               <div style="font-size: 17px; font-weight: 800; color: var(--text-main); margin-top: 2px;">
@@ -4233,8 +4262,9 @@
                 更新时间: {{ currentVersionDate }}
               </div>
             </div>
-            <div style="font-size: 32px; line-height: 1; user-select: none; opacity: 0.9;">
-              🐱
+            <div style="font-size: 32px; line-height: 1; user-select: none; opacity: 0.9; display: flex; align-items: center; justify-content: center;">
+              <img v-if="getCategoryImg('猫爪')" :src="getCategoryImg('猫爪')" class="w-10 h-10 object-contain" style="width: 36px; height: 36px;" alt="猫爪" />
+              <span v-else>🐱</span>
             </div>
           </div>
 
@@ -4264,7 +4294,11 @@
         <!-- 模块 5: 自选行情看板配置 -->
         <div v-if="settingsTab === 'market'" class="settings-module-body">
           <div class="settings-module-header">
-            <div class="settings-module-title">📈 自选行情看板配置</div>
+            <div class="settings-module-title" style="display: flex; align-items: center; gap: 6px;">
+              <img v-if="getCategoryImg('行情看板')" :src="getCategoryImg('行情看板')" class="w-10 h-10 object-contain" style="width: 18px; height: 18px;" alt="行情看板" />
+              <span v-else>📈</span>
+              <span>自选行情看板配置</span>
+            </div>
             <div class="settings-module-desc">配置首页股票与黄金实时行情看板，纯前端无后端 JSONP 接口秒级响应：</div>
           </div>
 
@@ -6827,7 +6861,14 @@
           '投资理财': 'icons/category/股票基金.png',
           '理财收益': 'icons/category/股票基金.png',
           '内部转账': 'icons/category/wallet.png',
-          '余额调整': 'icons/category/wallet.png'
+          '余额调整': 'icons/category/wallet.png',
+          '粮仓应用设置': 'icons/category/粮仓应用设置.png',
+          '主题设置': 'icons/category/主题设置.png',
+          '暗号设置': 'icons/category/暗号设置.png',
+          '重置设置': 'icons/category/重置设置.png',
+          '行情看板': 'icons/category/行情看板.png',
+          '版本历史': 'icons/category/版本历史.png',
+          '猫爪': 'icons/category/猫爪.png'
         };
 
         const emojiToIconMap = {
@@ -6843,7 +6884,7 @@
           '🏠': 'icons/category/房产物业.png',
           '🚗': 'icons/category/车辆座驾.png',
           '🐱': 'icons/category/猫咪金库.png',
-          '🐾': 'icons/category/猫咪金库.png',
+          '🐾': 'icons/category/猫爪.png',
           '🐟': 'icons/category/小鱼干储蓄.png',
           '💵': 'icons/category/现钞现金.png',
           '💎': 'icons/category/珠宝贵重.png',
