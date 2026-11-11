@@ -622,7 +622,7 @@ async function runAllTests() {
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     assert.ok(html.includes('background-repeat: no-repeat !important'), 'pill-select 必须强制单图无平铺以杜绝花底纹');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v37'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v37');
+    assert.ok(swContent.includes('personal-asset-pwa-v38'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v38');
 
     // 8.1 检查日历日账单收支简标及小计受控于 hideAmount 隐藏隐私
     assert.ok(html.includes("hideAmount ? '•••' : Math.round(day.expense)"), '日历日账单格子支出简标应受控于 hideAmount');

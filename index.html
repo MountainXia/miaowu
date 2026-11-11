@@ -4187,17 +4187,19 @@
           <!-- 当前版本突出卡片 -->
           <div class="version-current-banner" style="margin-bottom: 12px;">
             <div>
-              <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">当前运行版本</div>
+              <div class="version-current-badge" style="font-size: 11.5px; padding: 2px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 4px;">
+                <span>🐾</span>
+                <span>喵觉得超棒版</span>
+              </div>
               <div style="font-size: 17px; font-weight: 800; color: var(--text-main); margin-top: 2px;">
                 喵的粮仓 {{ currentVersion }}
               </div>
               <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                更新时间: 2026-09-17 · 纯本地离线 PWA
+                更新时间: {{ currentVersionDate }}
               </div>
             </div>
-            <div class="version-current-badge">
-              <span>🟢</span>
-              <span>最新稳定版</span>
+            <div style="font-size: 32px; line-height: 1; user-select: none; opacity: 0.9;">
+              🐱
             </div>
           </div>
 
@@ -5142,7 +5144,7 @@
         const versionHistoryList = [
           {
             version: 'v4.8.4',
-            date: '2026-11-10',
+            date: '2026-11-11',
             title: '✨ 流水分类扩充与调额记账重构：新增投资理财等五大分类、调额分类选择与收支统计闭环',
             features: [
               '流水分类扩充：新增「投资理财、电子设备、数字资产、车辆座驾、家庭育儿」五大常用收支分类；',
@@ -5478,6 +5480,12 @@
             ]
           }
         ];
+
+        // 当前运行版本对应的发布时间 (自动与最新版本历程保持同步)
+        const currentVersionDate = computed(() => {
+          const v = versionHistoryList.find(item => item.version === currentVersion.value) || versionHistoryList[0];
+          return v ? v.date : '2026-11-11';
+        });
 
         // 密码输入框与密保 DOM 引用 (确保点击选项后可直接自动获得焦点并拉起输入法)
         const lockInputRef = ref(null);
@@ -8121,6 +8129,7 @@
           openSettingsModal,
           showVersionModal,
           currentVersion,
+          currentVersionDate,
           versionHistoryList,
           currentTheme,
           currentThemeTitle,
