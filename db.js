@@ -196,8 +196,9 @@
    * @param {string|null} recordDate 记录日期
    * @param {boolean} recordTransaction 是否生成流水记录。更正录入错误时默认为 false，不计入日常收支流水
    * @param {string|null} category 记入流水时的具体分类名称
+   * @param {string|null} forcedTxType 指定记入流水类型 ('income' | 'expense')，保持与记一笔完全一致
    */
-  async function adjustBalance(id, newBalance, reason = '余额更正', recordDate = null, recordTransaction = false, category = null) {
+  async function adjustBalance(id, newBalance, reason = '余额更正', recordDate = null, recordTransaction = false, category = null, forcedTxType = null) {
     const targetBalance = Number(newBalance);
     const account = await getAccount(id);
     if (!account) throw new Error('账户不存在');
@@ -220,11 +221,11 @@
 
     // 仅在明确指定生成流水且存在差值时，才写入一条流水记录
     if (recordTransaction && diff !== 0) {
-      const isIncome = diff > 0;
-      const finalCategory = category || (isIncome ? '其他收入' : '其他支出');
+      const txType = forcedTxType || (diff > 0 ? 'income' : 'expense');
+      const finalCategory = category || (txType === 'income' ? '其他收入' : '其他支出');
       const txData = {
         id: generateId('tx'),
-        type: isIncome ? 'income' : 'expense',
+        type: txType,
         amount: Math.abs(diff),
         accountId: id,
         toAccountId: null,
