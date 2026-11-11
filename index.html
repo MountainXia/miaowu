@@ -2962,9 +2962,9 @@
       <!-- 顶部状态栏 -->
       <header class="app-header">
       <div class="brand-group">
-        <!-- 专属软萌可爱蓝猫头像 (点击打开粮仓应用设置) -->
+        <!-- 专属猫咪头像 (点击打开粮仓应用设置) -->
         <img
-          src="icons/app-logo.jpg"
+          src="icons/app-logo.png"
           class="brand-cat-avatar"
           alt="喵的粮仓猫咪"
           @click="openSettingsModal('theme')"
@@ -3727,7 +3727,11 @@
                   class="pie-legend-item"
                 >
                   <span class="pie-legend-dot" :style="{ backgroundColor: item.color }"></span>
-                  <span class="pie-legend-name">{{ item.emoji }} {{ item.category }}</span>
+                  <span class="pie-legend-name" style="display: inline-flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" style="width: 14px; height: 14px; flex-shrink: 0;" alt="" />
+                    <span v-else>{{ item.emoji }}</span>
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.category }}</span>
+                  </span>
                   <span class="pie-legend-pct">{{ item.percent }}%</span>
                 </div>
               </div>
@@ -4450,10 +4454,18 @@
           <div v-if="txForm.type !== 'transfer'" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; box-sizing: border-box;">
             <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">结算账户</label>
-              <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box;">
-                <option value="">仅记录流水 (不计入资产)</option>
-                <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
-              </select>
+              <div style="position: relative; display: flex; align-items: center;">
+                <span style="position: absolute; left: 10px; pointer-events: none; display: flex; align-items: center; z-index: 1;">
+                  <img v-if="getSelectedAccount(txForm.accountId) && getAccountIconImg(getSelectedAccount(txForm.accountId))" :src="getAccountIconImg(getSelectedAccount(txForm.accountId))" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" alt="" />
+                  <span v-else-if="getSelectedAccount(txForm.accountId)" style="font-size: 16px;">{{ getSelectedAccount(txForm.accountId).icon }}</span>
+                  <img v-else-if="getCategoryImg('wallet')" :src="getCategoryImg('wallet')" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" alt="" />
+                  <span v-else style="font-size: 15px;">🏷️</span>
+                </span>
+                <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box; padding-left: 36px;">
+                  <option value="">仅记录流水 (不计入资产)</option>
+                  <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
+                </select>
+              </div>
             </div>
 
             <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
@@ -4466,16 +4478,30 @@
           <div v-else style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%; box-sizing: border-box;">
             <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">转出账户</label>
-              <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box;">
-                <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
-              </select>
+              <div style="position: relative; display: flex; align-items: center;">
+                <span style="position: absolute; left: 10px; pointer-events: none; display: flex; align-items: center; z-index: 1;">
+                  <img v-if="getSelectedAccount(txForm.accountId) && getAccountIconImg(getSelectedAccount(txForm.accountId))" :src="getAccountIconImg(getSelectedAccount(txForm.accountId))" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" alt="" />
+                  <span v-else-if="getSelectedAccount(txForm.accountId)" style="font-size: 16px;">{{ getSelectedAccount(txForm.accountId).icon }}</span>
+                  <span v-else style="font-size: 15px;">💳</span>
+                </span>
+                <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box; padding-left: 36px;">
+                  <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
+                </select>
+              </div>
             </div>
 
             <div class="form-group" style="min-width: 0; width: 100%; box-sizing: border-box;">
               <label class="form-label">转入账户</label>
-              <select v-model="txForm.toAccountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box;">
-                <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.icon || '' }} {{ a.name }}</option>
-              </select>
+              <div style="position: relative; display: flex; align-items: center;">
+                <span style="position: absolute; left: 10px; pointer-events: none; display: flex; align-items: center; z-index: 1;">
+                  <img v-if="getSelectedAccount(txForm.toAccountId) && getAccountIconImg(getSelectedAccount(txForm.toAccountId))" :src="getAccountIconImg(getSelectedAccount(txForm.toAccountId))" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" alt="" />
+                  <span v-else-if="getSelectedAccount(txForm.toAccountId)" style="font-size: 16px;">{{ getSelectedAccount(txForm.toAccountId).icon }}</span>
+                  <span v-else style="font-size: 15px;">💳</span>
+                </span>
+                <select v-model="txForm.toAccountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box; padding-left: 36px;">
+                  <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.name }}</option>
+                </select>
+              </div>
             </div>
 
             <div class="form-group" style="grid-column: span 2; min-width: 0; width: 100%; box-sizing: border-box;">
@@ -4619,10 +4645,11 @@
               <span style="color: var(--text-muted);">记账日期:</span>
               <span style="font-weight: 600; color: var(--text-main);">{{ selectedTx.date }}</span>
             </div>
-            <div style="display: flex; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
               <span style="color: var(--text-muted);">结算账户:</span>
-              <span style="font-weight: 600; color: var(--text-main);">
-                {{ selectedTx.accountId ? getAccountName(selectedTx.accountId) : '纯流水 (不计入资产)' }}
+              <span style="font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 4px;">
+                <img v-if="selectedTx.accountId && getSelectedAccount(selectedTx.accountId) && getAccountIconImg(getSelectedAccount(selectedTx.accountId))" :src="getAccountIconImg(getSelectedAccount(selectedTx.accountId))" class="w-10 h-10 object-contain" style="width: 16px; height: 16px;" alt="" />
+                <span>{{ selectedTx.accountId ? getAccountName(selectedTx.accountId) : '纯流水 (不计入资产)' }}</span>
                 <span v-if="selectedTx.toAccountId"> → {{ getAccountName(selectedTx.toAccountId) }}</span>
               </span>
             </div>
@@ -6228,6 +6255,7 @@
           { icon: '🏠', label: '房产物业' },
           { icon: '🚗', label: '车辆座驾' },
           { icon: '🐱', label: '猫咪金库' },
+          { icon: '🐾', label: '猫咪粮仓' },
           { icon: '🐾', label: '喵星粮仓' },
           { icon: '🐟', label: '小鱼干储蓄' },
           { icon: '💵', label: '现钞现金' },
@@ -6798,6 +6826,11 @@
           return acc ? (acc.icon ? acc.icon + ' ' + acc.name : acc.name) : '未知账户';
         }
 
+        function getSelectedAccount(id) {
+          if (!id) return null;
+          return accounts.value.find(a => a.id === id) || null;
+        }
+
         function getAccountEmoji(type) {
           switch(type) {
             case 'bank': return '💳';
@@ -6864,7 +6897,8 @@
           '银行存单': 'icons/category/银行存单.png',
           '信用卡': 'icons/category/信用卡.png',
           '猫咪金库': 'icons/category/猫咪金库.png',
-          '喵星粮仓': 'icons/category/猫咪金库.png',
+          '猫咪粮仓': 'icons/category/猫咪粮仓.png',
+          '喵星粮仓': 'icons/category/喵星粮仓.png',
           '小鱼干储蓄': 'icons/category/小鱼干储蓄.png',
           '现钞现金': 'icons/category/现钞现金.png',
           '珠宝贵重': 'icons/category/珠宝贵重.png',
@@ -8399,6 +8433,7 @@
           formatTime,
           getDiffClass,
           getAccountName,
+          getSelectedAccount,
           getAccountEmoji,
           getAccountTypeLabel,
           getCategoryEmoji,
