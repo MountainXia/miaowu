@@ -378,6 +378,16 @@ async function runAllTests() {
     const newBalSub = +(bankAfterAdd.balance - 300).toFixed(2);
     const bankAfterSub = await AssetDB.adjustBalance('test_bank', newBalSub, '增减调额:扣减300');
     assert.strictEqual(bankAfterSub.balance, 12200, '增量模式减少300后余额应为12200');
+
+    // 10. 验证调额记入流水与分类选择
+    const txCountBefore = (await AssetDB.getAllTransactions()).length;
+    await AssetDB.adjustBalance('test_bank', 12500, '调额并记流水', null, true, '投资理财');
+    const txsAfter = await AssetDB.getAllTransactions();
+    assert.strictEqual(txsAfter.length, txCountBefore + 1, '启用 recordTransaction 应生成一条流水');
+    const newTx = txsAfter[0];
+    assert.strictEqual(newTx.category, '投资理财', '生成的流水分类应为指定的 投资理财');
+    assert.strictEqual(newTx.type, 'income', '12200调至12500为收入');
+    assert.strictEqual(newTx.amount, 300, '调额差额应为300');
   });
 
   // 6. 隐私暗号锁功能与安全规范检验
@@ -571,8 +581,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.8.3)
-    const expectedVersions = ['v4.8.3', 'v4.8.2', 'v4.8.1', 'v4.8.0', 'v4.7.2', 'v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v4.8.4)
+    const expectedVersions = ['v4.8.4', 'v4.8.3', 'v4.8.2', 'v4.8.1', 'v4.8.0', 'v4.7.2', 'v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
@@ -581,7 +591,7 @@ async function runAllTests() {
     assert.ok(html.includes('settingsTab'), 'Vue 状态中应包含 settingsTab');
     assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
     assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
-    assert.ok(html.includes("currentVersion = ref('v4.8.3')"), '当前运行版本应为 v4.8.3');
+    assert.ok(html.includes("currentVersion = ref('v4.8.4')"), '当前运行版本应为 v4.8.4');
     assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
     assert.ok(html.includes('creditLimit'), 'index.html 应包含 creditLimit 信用额度支持');
     assert.ok(html.includes('getCreditCardRemainingLimit'), 'index.html 应包含信用卡额度剩余计算');
@@ -591,6 +601,12 @@ async function runAllTests() {
     assert.ok(html.includes('moveAccount'), 'index.html 应包含账户位置调整方法');
     assert.ok(html.includes('recordAsTransaction'), 'index.html 调额弹窗应包含是否记录流水选项');
     assert.ok(html.includes('暂不支持直接输入股票中文名称'), 'index.html 行情添加应包含中文名称提醒');
+    assert.ok(html.includes('投资理财'), 'index.html 应包含 投资理财 分类');
+    assert.ok(html.includes('电子设备'), 'index.html 应包含 电子设备 分类');
+    assert.ok(html.includes('数字资产'), 'index.html 应包含 数字资产 分类');
+    assert.ok(html.includes('车辆座驾'), 'index.html 应包含 车辆座驾 分类');
+    assert.ok(html.includes('家庭育儿'), 'index.html 应包含 家庭育儿 分类');
+    assert.ok(html.includes('adjustCategoryList'), 'index.html 应包含调额分类选择计算属性');
 
     // 7. 检查大版本 v4.8.0 核心功能特性: 行情看板、凭据压缩、日历日账单
     assert.ok(html.includes('showMarketBoard'), '应包含自选行情看板状态');
@@ -606,7 +622,7 @@ async function runAllTests() {
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     assert.ok(html.includes('background-repeat: no-repeat !important'), 'pill-select 必须强制单图无平铺以杜绝花底纹');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v35'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v35');
+    assert.ok(swContent.includes('personal-asset-pwa-v36'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v36');
 
     // 8.1 检查日历日账单收支简标及小计受控于 hideAmount 隐藏隐私
     assert.ok(html.includes("hideAmount ? '•••' : Math.round(day.expense)"), '日历日账单格子支出简标应受控于 hideAmount');

@@ -4857,33 +4857,77 @@
           </div>
         </div>
 
+        <!-- 调整记账处理模式选择 (纯更正数额 vs 记入收支流水) -->
+        <div class="form-group" style="margin-top: 14px;">
+          <label class="form-label">记账处理模式</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div
+              class="pill"
+              style="margin: 0; padding: 10px; border-radius: 10px; border: 1.5px solid var(--border-subtle); cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.2s ease;"
+              :style="!adjustForm.recordAsTransaction ? 'background: rgba(16, 185, 129, 0.12); border-color: #10b981; color: var(--text-main); font-weight: 700;' : 'background: var(--bg-subtle); color: var(--text-muted);'"
+              @click="adjustForm.recordAsTransaction = false"
+            >
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                <span>✨ 纯更正数额</span>
+                <span v-if="!adjustForm.recordAsTransaction" style="color: #10b981; font-weight: 900;">✓</span>
+              </div>
+              <div style="font-size: 11px; font-weight: normal; opacity: 0.85; line-height: 1.3;">
+                仅校准余额，<strong>不产生流水</strong>，不影响收支统计
+              </div>
+            </div>
+
+            <div
+              class="pill"
+              style="margin: 0; padding: 10px; border-radius: 10px; border: 1.5px solid var(--border-subtle); cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.2s ease;"
+              :style="adjustForm.recordAsTransaction ? 'background: rgba(59, 130, 246, 0.12); border-color: #3b82f6; color: var(--text-main); font-weight: 700;' : 'background: var(--bg-subtle); color: var(--text-muted);'"
+              @click="adjustForm.recordAsTransaction = true; syncAdjustCategory();"
+            >
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                <span>📝 记入收支流水</span>
+                <span v-if="adjustForm.recordAsTransaction" style="color: #3b82f6; font-weight: 900;">✓</span>
+              </div>
+              <div style="font-size: 11px; font-weight: normal; opacity: 0.85; line-height: 1.3;">
+                差额记为<strong>{{ isAdjustIncrease ? '收入' : '支出' }}</strong>，并<strong>计入统计报表</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 流水分类选择 (仅当选择记入收支流水时呈现) -->
+        <div v-if="adjustForm.recordAsTransaction" class="form-group" style="margin-top: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label class="form-label" style="margin-bottom: 0;">
+              {{ isAdjustIncrease ? '📈 收入分类选择' : '📉 支出分类选择' }}
+            </label>
+            <span style="font-size: 11px; color: var(--text-muted);">已选: <b style="color: var(--primary);">{{ adjustForm.category }}</b></span>
+          </div>
+          <div class="cat-grid" style="max-height: 160px; overflow-y: auto;">
+            <button
+              v-for="cat in adjustCategoryList"
+              :key="cat.name"
+              type="button"
+              class="cat-btn"
+              :class="{ active: adjustForm.category === cat.name }"
+              @click="adjustForm.category = cat.name"
+            >
+              <span class="cat-emoji">{{ cat.emoji }}</span>
+              <span class="cat-title">{{ cat.name }}</span>
+            </button>
+          </div>
+        </div>
+
         <div class="form-group" style="margin-top: 12px;">
-          <label class="form-label">调整原因 / 备注</label>
+          <label class="form-label">调整原因 / 备注 (可选)</label>
           <input
             type="text"
             v-model="adjustForm.reason"
             class="form-input"
-            :placeholder="adjustForm.mode === 'delta' ? (adjustForm.deltaDirection === 'add' ? '如：新增入账、资金转入等' : '如：线下支出、手续费等') : '如：对账更正、录入纠错、净值更新等'"
+            :placeholder="adjustForm.recordAsTransaction ? (isAdjustIncrease ? '如：额外入账、未记收入、投资收益等' : '如：未记支出、手续费、资金扣减等') : '如：对账更正、初始录入笔误修改等'"
           />
         </div>
 
-        <!-- 调整记账选项：更正数额模式 (默认不生成流水) -->
-        <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; margin-top: 12px;">
-          <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-            <div>
-              <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">
-                {{ adjustForm.recordAsTransaction ? '📝 生成平账变动流水' : '✨ 纯更正数额 (不计入收支流水)' }}
-              </div>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
-                {{ adjustForm.recordAsTransaction ? '差额将生成一条校准明细，但已自动排除出日常消费' : '更正初始录入笔误或误差，不生成任何流水，绝不计入日常花销' }}
-              </div>
-            </div>
-            <input type="checkbox" v-model="adjustForm.recordAsTransaction" style="width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer;" />
-          </label>
-        </div>
-
         <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 14px;" @click="submitAdjustBalance">
-          确认调整
+          {{ adjustForm.recordAsTransaction ? `确认调整并记一笔${isAdjustIncrease ? '收入' : '支出'}` : '确认更正金额 (不记流水)' }}
         </button>
       </div>
     </div>
@@ -5074,8 +5118,20 @@
             }
           }
         });
-        const currentVersion = ref('v4.8.3');
+        const currentVersion = ref('v4.8.4');
         const versionHistoryList = [
+          {
+            version: 'v4.8.4',
+            date: '2026-11-10',
+            title: '✨ 流水分类扩充与调额记账重构：新增投资理财等五大分类、调额分类选择与收支统计闭环',
+            features: [
+              '流水分类扩充：新增「投资理财、电子设备、数字资产、车辆座驾、家庭育儿」五大常用收支分类；',
+              '调额模式直观卡片化：重构调额弹窗中的记账选项，由容易混淆的复选框改为「纯更正数额」与「记入收支流水」两档独立卡片，彻底避免误解；',
+              '调额分类选择支持：当选择记入流水时，提供与标准记账完全一致的网格分类选择器，按差额自动呈现收入/支出分类并可自由点选；',
+              '收支统计全闭环：选择记入流水的调额记录将完整纳入月度总收支、分类饼图与日历日账单；纯更正数额则完全不生成流水，不影响统计；',
+              'PWA 离线缓存池升级：升级至 personal-asset-pwa-v36 离线缓存池。'
+            ]
+          },
           {
             version: 'v4.8.3',
             date: '2026-11-10',
@@ -5938,7 +5994,6 @@
 
           for (const t of txList) {
             if (!t.date || !dayMap[t.date]) continue;
-            if (t.isAdjustment || t.category === '余额调整') continue; // 余额更正不计入日历收支
             const amt = Number(t.amount) || 0;
             dayMap[t.date].txCount += 1;
             if (t.type === 'expense') {
@@ -5962,7 +6017,6 @@
 
           for (const t of transactions.value) {
             if (t.date && t.date.startsWith(prefix)) {
-              if (t.isAdjustment || t.category === '余额调整') continue; // 余额更正不计入当月日历汇总收支
               const amt = Number(t.amount) || 0;
               if (t.type === 'expense') totalExpense += amt;
               else if (t.type === 'income') totalIncome += amt;
@@ -5987,23 +6041,24 @@
 
         const selectedDateExpense = computed(() => {
           return selectedDateTransactions.value
-            .filter(t => t.type === 'expense' && !t.isAdjustment && t.category !== '余额调整')
+            .filter(t => t.type === 'expense')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         });
 
         const selectedDateIncome = computed(() => {
           return selectedDateTransactions.value
-            .filter(t => t.type === 'income' && !t.isAdjustment && t.category !== '余额调整')
+            .filter(t => t.type === 'income')
             .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
         });
 
         const adjustForm = reactive({
           newBalance: 0,
-          reason: '录入更正',
+          reason: '',
           mode: 'direct', // 'direct' (直接修改总额) | 'delta' (按增减变动金额)
           deltaDirection: 'add', // 'add' (增加) | 'sub' (减少)
           deltaAmount: '',
-          recordAsTransaction: false // 默认为 false，纯更正数额，不生成流水
+          recordAsTransaction: false, // 默认为 false，纯更正数额，不生成流水
+          category: '其他支出'
         });
 
         const previewCalculatedBalance = computed(() => {
@@ -6080,6 +6135,11 @@
           { name: '医疗保健', emoji: '💊' },
           { name: '美容美发', emoji: '💇' },
           { name: '学习教育', emoji: '📚' },
+          { name: '家庭育儿', emoji: '🍼' },
+          { name: '车辆座驾', emoji: '🚗' },
+          { name: '电子设备', emoji: '💻' },
+          { name: '投资理财', emoji: '📈' },
+          { name: '数字资产', emoji: '🪙' },
           { name: '礼金人情', emoji: '🧧' },
           { name: '旅游探索', emoji: '✈️' },
           { name: '其他支出', emoji: '📦' }
@@ -6088,6 +6148,8 @@
         const incomeCategories = [
           { name: '工资薪酬', emoji: '💰' },
           { name: '理财收益', emoji: '📈' },
+          { name: '投资理财', emoji: '💹' },
+          { name: '数字资产', emoji: '🪙' },
           { name: '兼职副业', emoji: '💻' },
           { name: '奖金分红', emoji: '🧧' },
           { name: '礼金人情', emoji: '🎁' },
@@ -6142,6 +6204,29 @@
         const currentCategoryList = computed(() => {
           return txForm.type === 'income' ? incomeCategories : expenseCategories;
         });
+
+        // 账户调额与流水联动分类判定
+        const adjustDiff = computed(() => {
+          if (!targetAdjustAccount.value) return 0;
+          const oldBal = Number(targetAdjustAccount.value.balance || 0);
+          const target = previewCalculatedBalance.value;
+          return +(target - oldBal).toFixed(2);
+        });
+
+        const isAdjustIncrease = computed(() => {
+          return adjustDiff.value >= 0;
+        });
+
+        const adjustCategoryList = computed(() => {
+          return isAdjustIncrease.value ? incomeCategories : expenseCategories;
+        });
+
+        function syncAdjustCategory() {
+          const list = adjustCategoryList.value;
+          if (!list.some(c => c.name === adjustForm.category)) {
+            adjustForm.category = isAdjustIncrease.value ? '其他收入' : '其他支出';
+          }
+        }
 
         // 账户快速查找关键字与顺序调整弹窗状态
         const accountSearchKeyword = ref('');
@@ -6296,7 +6381,6 @@
           let pureCount = 0;
 
           for (const t of list) {
-            if (t.isAdjustment || t.category === '余额调整') continue; // 余额更正不计入日常收支
             const amt = Number(t.amount) || 0;
             if (t.type === 'expense') totalExpense += amt;
             else if (t.type === 'income') totalIncome += amt;
@@ -6313,7 +6397,7 @@
         });
 
         const monthlyCategoryExpenses = computed(() => {
-          const expenses = monthlyTransactions.value.filter(t => t.type === 'expense' && !t.isAdjustment && t.category !== '余额调整');
+          const expenses = monthlyTransactions.value.filter(t => t.type === 'expense');
           const total = monthlyAnalytics.value.totalExpense;
           const map = {};
 
@@ -6368,7 +6452,7 @@
         });
 
         const monthlyCategoryIncomes = computed(() => {
-          const incomes = monthlyTransactions.value.filter(t => t.type === 'income' && !t.isAdjustment && t.category !== '余额调整');
+          const incomes = monthlyTransactions.value.filter(t => t.type === 'income');
           const total = monthlyAnalytics.value.totalIncome;
           const map = {};
 
@@ -6634,6 +6718,11 @@
             '医疗保健': '#ef4444',
             '美容美发': '#d946ef',
             '学习教育': '#6366f1',
+            '家庭育儿': '#fb7185',
+            '车辆座驾': '#0284c7',
+            '电子设备': '#3b82f6',
+            '投资理财': '#10b981',
+            '数字资产': '#f59e0b',
             '礼金人情': '#e11d48',
             '旅游探索': '#06b6d4',
             '其他支出': '#64748b'
@@ -6913,6 +7002,11 @@
 
         function guessCategoryFromNote(note = '', categoryHint = '') {
           const combined = (note + ' ' + categoryHint).toLowerCase();
+          if (/奶粉|尿布|母婴|童装|早教|幼儿园|儿童|婴儿|疫苗|玩具|育儿|宝宝/.test(combined)) return '家庭育儿';
+          if (/汽车|洗车|保养|车险|修车|违章|罚款|停车|加油|充电桩|特斯拉|比亚迪|车贷|座驾/.test(combined)) return '车辆座驾';
+          if (/手机|电脑|平板|ipad|iphone|mac|笔记本|显卡|相机|耳机|显示器|数码|充电器/.test(combined)) return '电子设备';
+          if (/数字资产|比特币|以太坊|btc|eth|usdt|加密货币|web3|数字货币|nft|代币|虚拟币/.test(combined)) return '数字资产';
+          if (/定投|信托|资管|入金|建仓|证券|投资理财/.test(combined)) return '投资理财';
           if (/理发|护肤|美容|美甲|造型|理容/.test(combined)) return '美容美发';
           if (/培训|书店|课程|学费|教材|网课/.test(combined)) return '学习教育';
           if (/酒店|机票|景区|门票|景点|旅行|旅游|客栈|民宿|度假/.test(combined)) return '旅游探索';
@@ -6920,7 +7014,7 @@
           if (/车票|火车|住宿|飞机/.test(combined)) return '住房物业';
           if (/饭|餐|吃|麦当劳|肯德基|汉堡|星巴克|咖啡|奶茶|瑞幸|饿了么|美团|外卖|火锅|烧烤|面|菜|酒|食堂|面包|烘焙|茶|肉|米线|小吃|美食|烘培|鸡煲|葱油饼|德克士/.test(combined)) return '餐饮美食';
           if (/超市|便利店|7-11|全家|全\s*家|familymart|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
-          if (/滴滴|打车|出行|高德|地铁|公交|停车|加油|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
+          if (/滴滴|打车|出行|高德|地铁|公交|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
           if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
           if (/电影|影院|ktv|游戏|网易|腾讯|剧场|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
           if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '理财收益';
@@ -6967,6 +7061,11 @@
 
           function getCategory(note = '', categoryHint = '') {
             const combined = (note + ' ' + categoryHint).toLowerCase();
+            if (/奶粉|尿布|母婴|童装|早教|幼儿园|儿童|婴儿|疫苗|玩具|育儿|宝宝/.test(combined)) return '家庭育儿';
+            if (/汽车|洗车|保养|车险|修车|违章|罚款|停车|加油|充电桩|特斯拉|比亚迪|车贷|座驾/.test(combined)) return '车辆座驾';
+            if (/手机|电脑|平板|ipad|iphone|mac|笔记本|显卡|相机|耳机|显示器|数码|充电器/.test(combined)) return '电子设备';
+            if (/数字资产|比特币|以太坊|btc|eth|usdt|加密货币|web3|数字货币|nft|代币|虚拟币/.test(combined)) return '数字资产';
+            if (/定投|信托|资管|入金|建仓|证券|投资理财/.test(combined)) return '投资理财';
             if (/理发|护肤|美容|美甲|造型|理容/.test(combined)) return '美容美发';
             if (/培训|书店|课程|学费|教材|网课/.test(combined)) return '学习教育';
             if (/酒店|机票|景区|门票|景点|旅行|旅游|客栈|民宿|度假/.test(combined)) return '旅游探索';
@@ -6974,7 +7073,7 @@
             if (/车票|火车|住宿|飞机/.test(combined)) return '住房物业';
             if (/饭|餐|吃|麦当劳|肯德基|汉堡|星巴克|咖啡|奶茶|瑞幸|饿了么|美团|外卖|火锅|烧烤|面|菜|酒|食堂|面包|烘焙|茶|肉|米线|小吃|美食|烘培|鸡煲|葱油饼|德克士/.test(combined)) return '餐饮美食';
             if (/超市|便利店|7-11|全家|全\s*家|familymart|罗森|盒马|沃尔玛|永辉|百货|商超|纸|洗|屈臣氏|商行|市场|专卖|生活馆|旗舰店|商城|杂货|粮油|唯品会|拼多多|淘宝|天猫/.test(combined)) return '日用百货';
-            if (/滴滴|打车|出行|高德|地铁|公交|停车|加油|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
+            if (/滴滴|打车|出行|高德|地铁|公交|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
             if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
             if (/电影|影院|ktv|游戏|网易|腾讯|剧场|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
             if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '理财收益';
@@ -7404,8 +7503,9 @@
           adjustForm.deltaDirection = 'add';
           adjustForm.deltaAmount = '';
           adjustForm.newBalance = acc.balance;
-          adjustForm.reason = '录入更正';
-          adjustForm.recordAsTransaction = false; // 默认纯数额更正，不生成收支流水
+          adjustForm.reason = '';
+          adjustForm.recordAsTransaction = false; // 默认纯更正数额，不生成收支流水
+          adjustForm.category = '其他支出';
           showAdjustModal.value = true;
         }
 
@@ -7415,19 +7515,24 @@
             const finalBalance = adjustForm.mode === 'direct'
               ? (Number(adjustForm.newBalance) || 0)
               : previewCalculatedBalance.value;
+            const isInc = isAdjustIncrease.value;
             const defaultReason = adjustForm.mode === 'delta'
               ? (adjustForm.deltaDirection === 'add' ? '新增资金' : '扣减资金')
-              : '录入更正';
+              : (isInc ? '调增入账' : '调减支出');
 
             await AssetDB.adjustBalance(
               targetAdjustAccount.value.id,
               finalBalance,
               adjustForm.reason || defaultReason,
               null,
-              adjustForm.recordAsTransaction === true
+              adjustForm.recordAsTransaction === true,
+              adjustForm.category
             );
             showAdjustModal.value = false;
-            showToast(adjustForm.recordAsTransaction ? '余额已调整，已记录校准流水' : '金额已成功更正，未计入日常收支流水 ✨');
+            showToast(adjustForm.recordAsTransaction
+              ? `余额已调整，已成功记入「${adjustForm.category || (isInc ? '其他收入' : '其他支出')}」流水与统计 ✨`
+              : '金额已成功更正，未产生任何收支流水 ✨'
+            );
             await refreshAllData();
           } catch (e) {
             alert('调额失败: ' + e.message);
@@ -8037,6 +8142,10 @@
           txForm,
           adjustForm,
           previewCalculatedBalance,
+          adjustDiff,
+          isAdjustIncrease,
+          adjustCategoryList,
+          syncAdjustCategory,
           getCreditCardRemainingLimit,
           getCreditCardUsagePct,
           accountForm,
