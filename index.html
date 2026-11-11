@@ -1537,6 +1537,35 @@
       box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2);
     }
 
+    /* Tailwind utility classes for category/account icon images */
+    .w-10 {
+      width: 40px;
+    }
+    .h-10 {
+      height: 40px;
+    }
+    .object-contain {
+      object-fit: contain;
+    }
+
+    /* Visual fine-tuning for crisp alignment across lists and buttons */
+    .cat-btn .w-10 {
+      width: 32px;
+      height: 32px;
+    }
+    .acc-icon-btn .w-10 {
+      width: 32px;
+      height: 32px;
+    }
+    .acc-icon .w-10 {
+      width: 32px;
+      height: 32px;
+    }
+    .tx-icon-badge .w-10 {
+      width: 28px;
+      height: 28px;
+    }
+
     .cat-emoji {
       font-size: 20px;
       line-height: 1.1;
@@ -3175,7 +3204,8 @@
             >
               <div class="tx-left">
                 <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
-                  {{ getCategoryEmoji(item.category) }}
+                  <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" :alt="item.category" />
+                  <span v-else>{{ getCategoryEmoji(item.category) }}</span>
                 </div>
                 <div class="tx-details">
                   <div class="tx-category">
@@ -3373,7 +3403,8 @@
             <div class="acc-card-top">
               <div class="acc-brand">
                 <div class="acc-icon">
-                  {{ acc.icon || getAccountEmoji(acc.type) }}
+                  <img v-if="getAccountIconImg(acc)" :src="getAccountIconImg(acc)" class="w-10 h-10 object-contain" :alt="acc.name" />
+                  <span v-else>{{ acc.icon || getAccountEmoji(acc.type) }}</span>
                 </div>
                 <div class="acc-name-box">
                   <div class="acc-name">{{ acc.name }}</div>
@@ -3528,7 +3559,8 @@
           >
             <div class="tx-left">
               <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
-                {{ getCategoryEmoji(item.category) }}
+                <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" :alt="item.category" />
+                <span v-else>{{ getCategoryEmoji(item.category) }}</span>
               </div>
               <div class="tx-details">
                 <div class="tx-category">
@@ -3705,7 +3737,8 @@
               >
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                   <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 16px;">{{ item.emoji }}</span>
+                    <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" :alt="item.category" />
+                    <span v-else style="font-size: 16px;">{{ item.emoji }}</span>
                     <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
                     <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
                   </div>
@@ -3748,7 +3781,8 @@
             >
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <span style="font-size: 16px;">{{ item.emoji }}</span>
+                  <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" :alt="item.category" />
+                  <span v-else style="font-size: 16px;">{{ item.emoji }}</span>
                   <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
                   <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
                 </div>
@@ -3891,7 +3925,8 @@
               >
                 <div class="tx-left">
                   <div class="tx-icon-badge" :style="{ background: getCategoryColor(item.category, item.type) + '22', color: getCategoryColor(item.category, item.type) }">
-                    {{ getCategoryEmoji(item.category) }}
+                    <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" :alt="item.category" />
+                    <span v-else>{{ getCategoryEmoji(item.category) }}</span>
                   </div>
                   <div class="tx-details">
                     <div class="tx-category">
@@ -4435,7 +4470,8 @@
                 :class="{ active: txForm.category === cat.name }"
                 @click="txForm.category = cat.name"
               >
-                <span class="cat-emoji">{{ cat.emoji }}</span>
+                <img v-if="getCategoryImg(cat.name)" :src="getCategoryImg(cat.name)" class="w-10 h-10 object-contain" :alt="cat.name" />
+                <span v-else class="cat-emoji">{{ cat.emoji }}</span>
                 <span class="cat-title">{{ cat.name }}</span>
               </button>
             </div>
@@ -4536,8 +4572,10 @@
             <div style="font-size: 28px; font-weight: 800; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;" :class="'amt-' + selectedTx.type">
               {{ selectedTx.type === 'income' ? '+' : (selectedTx.type === 'expense' ? '-' : '⇄') }} ¥{{ hideAmount ? '•••' : formatNumber(selectedTx.amount) }}
             </div>
-            <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-top: 4px;">
-              {{ selectedTx.category }}
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              <img v-if="getCategoryImg(selectedTx.category)" :src="getCategoryImg(selectedTx.category)" class="w-10 h-10 object-contain" style="width: 22px; height: 22px;" :alt="selectedTx.category" />
+              <span v-else>{{ getCategoryEmoji(selectedTx.category) }}</span>
+              <span>{{ selectedTx.category }}</span>
             </div>
           </div>
 
@@ -4932,7 +4970,8 @@
               :class="{ active: adjustForm.category === cat.name }"
               @click="adjustForm.category = cat.name"
             >
-              <span class="cat-emoji">{{ cat.emoji }}</span>
+              <img v-if="getCategoryImg(cat.name)" :src="getCategoryImg(cat.name)" class="w-10 h-10 object-contain" :alt="cat.name" />
+              <span v-else class="cat-emoji">{{ cat.emoji }}</span>
               <span class="cat-title">{{ cat.name }}</span>
             </button>
           </div>
@@ -5034,7 +5073,8 @@
               :class="{ active: accountForm.icon === item.icon }"
               @click="accountForm.icon = item.icon"
             >
-              <span class="icon-emoji">{{ item.icon }}</span>
+              <img v-if="getCategoryImg(item.label) || getCategoryImg(item.icon)" :src="getCategoryImg(item.label) || getCategoryImg(item.icon)" class="w-10 h-10 object-contain" :alt="item.label" />
+              <span v-else class="icon-emoji">{{ item.icon }}</span>
               <span class="icon-name">{{ item.label }}</span>
             </button>
           </div>
@@ -5075,7 +5115,8 @@
           >
             <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
               <span style="font-size: 11px; font-weight: 800; color: var(--text-muted); width: 18px; text-align: center;">{{ index + 1 }}</span>
-              <span style="font-size: 20px;">{{ acc.icon || getAccountEmoji(acc.type) }}</span>
+              <img v-if="getAccountIconImg(acc)" :src="getAccountIconImg(acc)" class="w-10 h-10 object-contain" style="width: 24px; height: 24px;" :alt="acc.name" />
+              <span v-else style="font-size: 20px;">{{ acc.icon || getAccountEmoji(acc.type) }}</span>
               <div style="min-width: 0; flex: 1;">
                 <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                   {{ acc.name }}
@@ -6128,8 +6169,9 @@
           notes: ''
         });
 
-        // 22 种账户精选标识图标
+        // 23 种账户精选标识图标
         const accountIconList = [
+          { icon: '💰', label: '工资薪酬' },
           { icon: '💳', label: '银行卡' },
           { icon: '👛', label: '零钱夹' },
           { icon: '📱', label: '电子支付' },
@@ -6737,6 +6779,114 @@
           if (cat === '内部转账') return '⇄';
           if (cat === '余额调整') return '⚖️';
           return '🏷️';
+        }
+
+        // 本地彩色 PNG 图标资源映射表 (覆盖所有分类与账户标识)
+        const categoryIconMap = {
+          '餐饮美食': 'icons/category/餐饮美食.png',
+          '交通出行': 'icons/category/交通出行.png',
+          '购物消费': 'icons/category/购物消费.png',
+          '休闲娱乐': 'icons/category/休闲娱乐.png',
+          '日用百货': 'icons/category/日用百货.png',
+          '住房物业': 'icons/category/住房物业.png',
+          '房产物业': 'icons/category/房产物业.png',
+          '医疗保健': 'icons/category/医疗保健.png',
+          '医疗备用': 'icons/category/医疗备用.png',
+          '美容美发': 'icons/category/美容美发.png',
+          '学习教育': 'icons/category/学习教育.png',
+          '教育基金': 'icons/category/教育基金.png',
+          '家庭育儿': 'icons/category/家庭育儿.png',
+          '车辆座驾': 'icons/category/车辆座驾.png',
+          '电子设备': 'icons/category/电子设备.png',
+          '数字资产': 'icons/category/数字资产.png',
+          '礼金人情': 'icons/category/礼金人情.png',
+          '人情红包': 'icons/category/人情红包.png',
+          '红包': 'icons/category/红包.png',
+          '旅游探索': 'icons/category/旅游探索.png',
+          '旅行心愿': 'icons/category/旅行心愿.png',
+          '其他支出': 'icons/category/其他支出.png',
+          '工资薪酬': 'icons/category/工资薪酬.png',
+          '退款返还': 'icons/category/wallet.png',
+          '兼职副业': 'icons/category/金币.png',
+          '奖金分红': 'icons/category/红包.png',
+          '其他收入': 'icons/category/金币.png',
+          '银行卡': 'icons/category/银行卡.png',
+          '零钱夹': 'icons/category/零钱夹.png',
+          '电子支付': 'icons/category/wallet.png',
+          '股票基金': 'icons/category/股票基金.png',
+          '黄金金币': 'icons/category/黄金金币.png',
+          '银行存单': 'icons/category/银行存单.png',
+          '信用卡': 'icons/category/信用卡.png',
+          '猫咪金库': 'icons/category/猫咪金库.png',
+          '喵星粮仓': 'icons/category/猫咪金库.png',
+          '小鱼干储蓄': 'icons/category/小鱼干储蓄.png',
+          '现钞现金': 'icons/category/现钞现金.png',
+          '珠宝贵重': 'icons/category/珠宝贵重.png',
+          '保险养老': 'icons/category/保险养老.png',
+          '其他资产': 'icons/category/wallet.png',
+          '投资理财': 'icons/category/股票基金.png',
+          '理财收益': 'icons/category/股票基金.png',
+          '内部转账': 'icons/category/wallet.png',
+          '余额调整': 'icons/category/wallet.png'
+        };
+
+        const emojiToIconMap = {
+          '💰': 'icons/category/工资薪酬.png',
+          '💳': 'icons/category/银行卡.png',
+          '👛': 'icons/category/零钱夹.png',
+          '📱': 'icons/category/wallet.png',
+          '📈': 'icons/category/股票基金.png',
+          '💹': 'icons/category/股票基金.png',
+          '🪙': 'icons/category/黄金金币.png',
+          '🏦': 'icons/category/银行存单.png',
+          '🛍️': 'icons/category/信用卡.png',
+          '🏠': 'icons/category/房产物业.png',
+          '🚗': 'icons/category/车辆座驾.png',
+          '🐱': 'icons/category/猫咪金库.png',
+          '🐾': 'icons/category/猫咪金库.png',
+          '🐟': 'icons/category/小鱼干储蓄.png',
+          '💵': 'icons/category/现钞现金.png',
+          '💎': 'icons/category/珠宝贵重.png',
+          '🔒': 'icons/category/保险养老.png',
+          '💻': 'icons/category/数字资产.png',
+          '🎓': 'icons/category/教育基金.png',
+          '✈️': 'icons/category/旅行心愿.png',
+          '🎁': 'icons/category/人情红包.png',
+          '🍼': 'icons/category/家庭育儿.png',
+          '🏥': 'icons/category/医疗备用.png',
+          '📦': 'icons/category/wallet.png',
+          '🧧': 'icons/category/红包.png',
+          '🍜': 'icons/category/餐饮美食.png',
+          '🚇': 'icons/category/交通出行.png',
+          '🎮': 'icons/category/休闲娱乐.png',
+          '🧻': 'icons/category/日用百货.png',
+          '💊': 'icons/category/医疗保健.png',
+          '💇': 'icons/category/美容美发.png',
+          '📚': 'icons/category/学习教育.png'
+        };
+
+        function getCategoryImg(nameOrEmoji) {
+          if (!nameOrEmoji) return '';
+          return categoryIconMap[nameOrEmoji] || emojiToIconMap[nameOrEmoji] || '';
+        }
+
+        function getAccountIconImg(accOrIcon) {
+          if (!accOrIcon) return '';
+          if (typeof accOrIcon === 'string') {
+            return categoryIconMap[accOrIcon] || emojiToIconMap[accOrIcon] || '';
+          }
+          if (accOrIcon.icon) {
+            const img = categoryIconMap[accOrIcon.icon] || emojiToIconMap[accOrIcon.icon];
+            if (img) return img;
+          }
+          if (accOrIcon.name && categoryIconMap[accOrIcon.name]) {
+            return categoryIconMap[accOrIcon.name];
+          }
+          if (accOrIcon.type) {
+            const typeEmoji = getAccountEmoji(accOrIcon.type);
+            return emojiToIconMap[typeEmoji] || '';
+          }
+          return '';
         }
 
         function getCategoryColor(cat, type) {
@@ -8199,6 +8349,8 @@
           getAccountEmoji,
           getAccountTypeLabel,
           getCategoryEmoji,
+          getCategoryImg,
+          getAccountIconImg,
           getCategoryColor,
           refreshAllData,
           openNewTxModal,
