@@ -6300,7 +6300,7 @@
 
         const incomeCategories = [
           { name: '工资薪酬', emoji: '💰' },
-          { name: '理财收益', emoji: '📈' },
+          { name: '营业盈余', emoji: '📈' },
           { name: '投资理财', emoji: '💹' },
           { name: '数字资产', emoji: '🪙' },
           { name: '兼职副业', emoji: '💻' },
@@ -6383,7 +6383,7 @@
         function syncAdjustCategory() {
           const list = adjustCategoryList.value;
           if (!list.some(c => c.name === adjustForm.category)) {
-            adjustForm.category = adjustForm.txType === 'income' ? '理财收益' : '餐饮美食';
+            adjustForm.category = adjustForm.txType === 'income' ? '营业盈余' : '餐饮美食';
           }
         }
 
@@ -6894,9 +6894,9 @@
           '其他支出': 'icons/category/其他支出.png',
           '工资薪酬': 'icons/category/工资薪酬.png',
           '退款返还': 'icons/category/wallet.png',
-          '兼职副业': 'icons/category/金币.png',
+          '兼职副业': 'icons/category/兼职副业.png',
           '奖金分红': 'icons/category/红包.png',
-          '其他收入': 'icons/category/金币.png',
+          '其他收入': 'icons/category/其他收入.png',
           '银行卡': 'icons/category/银行卡.png',
           '零钱夹': 'icons/category/零钱夹.png',
           '电子支付': 'icons/category/wallet.png',
@@ -6913,9 +6913,10 @@
           '保险养老': 'icons/category/保险养老.png',
           '其他资产': 'icons/category/wallet.png',
           '投资理财': 'icons/category/股票基金.png',
+          '营业盈余': 'icons/category/股票基金.png',
           '理财收益': 'icons/category/股票基金.png',
-          '内部转账': 'icons/category/wallet.png',
-          '余额调整': 'icons/category/wallet.png',
+          '内部转账': 'icons/category/内部转账.png',
+          '余额调整': 'icons/category/余额调整.png',
           '粮仓应用设置': 'icons/category/粮仓应用设置.png',
           '主题设置': 'icons/category/主题设置.png',
           '暗号设置': 'icons/category/暗号设置.png',
@@ -6957,7 +6958,9 @@
           '🧻': 'icons/category/日用百货.png',
           '💊': 'icons/category/医疗保健.png',
           '💇': 'icons/category/美容美发.png',
-          '📚': 'icons/category/学习教育.png'
+          '📚': 'icons/category/学习教育.png',
+          '⇄': 'icons/category/内部转账.png',
+          '⚖️': 'icons/category/余额调整.png'
         };
 
         function getCategoryImg(nameOrEmoji) {
@@ -7297,7 +7300,7 @@
           if (/滴滴|打车|出行|高德|地铁|公交|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
           if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
           if (/电影|影院|ktv|游戏|网易|腾讯|剧场|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
-          if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '理财收益';
+          if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '营业盈余';
           if (/转账|转入|零钱通|还款/.test(combined)) return '其他收入';
           if (/短袜|衣服|裤|鞋|裙|服饰|装扮|内衣|袜子/.test(combined)) return '购物消费';
           if (/猫|狗|宠物|兽医|罐头|猫砂|粮|绝育|妙鲜包|宠/.test(combined)) return '其他支出';
@@ -7356,7 +7359,7 @@
             if (/滴滴|打车|出行|高德|地铁|公交|高速|充值|etc|单车|租车/.test(combined)) return '交通出行';
             if (/医院|药|门诊|诊所|体检|医保|诊疗|卫生院|药房|药店|齿科/.test(combined)) return '医疗保健';
             if (/电影|影院|ktv|游戏|网易|腾讯|剧场|游乐|娱乐|网吧|电竞/.test(combined)) return '休闲娱乐';
-            if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '理财收益';
+            if (/理财|余额宝|收益|利息|分红|基金|股票|投资/.test(combined)) return '营业盈余';
             if (/转账|转入|零钱通|还款/.test(combined)) return '其他收入';
             if (/短袜|衣服|裤|鞋|裙|服饰|装扮|内衣|袜子/.test(combined)) return '购物消费';
             if (/猫|狗|宠物|兽医|罐头|猫砂|粮|绝育|妙鲜包|宠/.test(combined)) return '其他支出';
@@ -7499,7 +7502,7 @@
                     note: merchant,
                     amount: amt,
                     type,
-                    category: type === 'income' ? (merchant.includes('余额宝') ? '理财收益' : '其他收入') : getCategory(merchant, categoryHint)
+                    category: type === 'income' ? (merchant.includes('余额宝') ? '营业盈余' : '其他收入') : getCategory(merchant, categoryHint)
                   });
 
                   lastRecordedMerchant = merchant;
@@ -7538,7 +7541,7 @@
                         note: merchant,
                         amount: amt,
                         type,
-                        category: type === 'income' ? (merchant.includes('余额宝') ? '理财收益' : '其他收入') : getCategory(merchant)
+                        category: type === 'income' ? (merchant.includes('余额宝') ? '营业盈余' : '其他收入') : getCategory(merchant)
                       });
 
                       lastRecordedMerchant = merchant;
