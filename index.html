@@ -25,6 +25,7 @@
 
   <!-- IndexedDB 原生 Promise 封装层 -->
   <script src="./db.js"></script>
+  <script src="./components/CatButler.js"></script>
 
   <style>
     /* ================================================= */
@@ -4011,6 +4012,15 @@
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
     </button>
+
+    <!-- 🐾 喵咪管家：全局智能对话记账（逻辑全部封装于 components/CatButler.js） -->
+    <cat-butler
+      :accounts="accounts"
+      :get-category-img="getCategoryImg"
+      :get-category-emoji="getCategoryEmoji"
+      :get-account-icon-img="getAccountIconImg"
+      @saved="refreshAllData"
+    ></cat-butler>
   </div> <!-- 结束 !isLocked 主界面视图 -->
 
     <!-- ============================================== -->
@@ -8518,7 +8528,7 @@
           selectedDateIncome
         };
       }
-    }).mount('#app');
+    }).component('cat-butler', window.CatButler || { template: '<span></span>' }).mount('#app');
   </script>
 </body>
 </html>
