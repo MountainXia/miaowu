@@ -5252,8 +5252,17 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.1');
+        const currentVersion = ref('v5.0.2');
         const versionHistoryList = [
+          {
+            version: 'v5.0.2',
+            date: '2026-11-13',
+            title: '🛠️ 移动端触控体验优化',
+            features: [
+              '修复安卓浏览器下「喵咪管家」悬浮球轻触被误判为拖拽、无法点击呼出抽屉的问题；',
+              '引入 8px 触控移动阈值与 touchend 直连响应，兼顾顺滑拖拽与灵敏点击。'
+            ]
+          },
           {
             version: 'v5.0.1',
             date: '2026-11-13',

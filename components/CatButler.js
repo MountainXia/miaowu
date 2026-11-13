@@ -718,7 +718,7 @@
   // ==================== 四、样式注入（全部 cb- 前缀，零污染） ====================
   const CSS = `
   .cb-fab{position:fixed;right:16px;bottom:calc(150px + var(--safe-bottom, 16px));width:56px;height:56px;border-radius:50%;
-    z-index:46;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--bg-card,#fff);
+    z-index:46;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;background:var(--bg-card,#fff);
     box-shadow:0 6px 20px rgba(0,0,0,.28);border:2.5px solid var(--primary,#3b82f6);padding:0;transition:left .25s ease,top .25s ease,transform .15s ease}
   .cb-fab.cb-dragging{transition:none;cursor:grabbing;transform:scale(1.08)}
   .cb-fab img{width:100%;height:100%;border-radius:50%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
@@ -978,39 +978,110 @@
         }
       }
 
-      // ---------- 悬浮球拖拽与贴边 ----------
-      let drag = null;
+      // ---------- 悬浮球拖拽与贴边（8px 移动阈值 + touchend 直接接管点击） ----------
+      let startX = 0, startY = 0, startTime = 0, origLeft = 0, origTop = 0, fabW = 56, fabH = 56;
+      let hasMoved = false, touching = false, mouseDown = false, ignoreNextClick = false, ignoreTimer = null;
       const fabStyle = computed(() => (pos.left === null ? {} : { left: pos.left + 'px', top: pos.top + 'px', right: 'auto', bottom: 'auto' }));
       const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      function lockNextClick() {
+        ignoreNextClick = true;
+        if (ignoreTimer) clearTimeout(ignoreTimer);
+        ignoreTimer = setTimeout(() => { ignoreNextClick = false; }, 300);
+      }
       function snap(left, top, w, h) {
         const vw = global.innerWidth, vh = global.innerHeight;
         pos.left = (left + w / 2 < vw / 2) ? 12 : vw - w - 12;
         pos.top = clamp(top, 70, Math.max(70, vh - h - 80));
         try { localStorage.setItem(LS_POS, JSON.stringify({ side: pos.left === 12 ? 'l' : 'r', topRatio: pos.top / vh })); } catch (e) { /* ignore */ }
       }
-      function onPointerDown(e) {
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
+      function onTouchStart(e) {
+        const t = e.touches && e.touches[0];
+        if (!t || !fabEl.value) return;
         const r = fabEl.value.getBoundingClientRect();
-        drag = { sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, w: r.width, h: r.height, moved: false };
-        try { fabEl.value.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+        startX = t.clientX;
+        startY = t.clientY;
+        startTime = Date.now();
+        origLeft = r.left;
+        origTop = r.top;
+        fabW = r.width || 56;
+        fabH = r.height || 56;
+        hasMoved = false;
+        touching = true;
+        isDragging.value = false;
       }
-      function onPointerMove(e) {
-        if (!drag) return;
-        const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
-        if (!drag.moved && Math.hypot(dx, dy) < 6) return;
-        drag.moved = true;
+      function onTouchMove(e) {
+        if (!touching) return;
+        const t = e.touches && e.touches[0];
+        if (!t) return;
+        const clientX = t.clientX, clientY = t.clientY;
+        const dist = Math.hypot(clientX - startX, clientY - startY);
+        if (!hasMoved && dist <= 8) return;
+        hasMoved = true;
+        isDragging.value = true;
+        if (e.cancelable) e.preventDefault();
+        pos.left = clamp(origLeft + (clientX - startX), 0, global.innerWidth - fabW);
+        pos.top = clamp(origTop + (clientY - startY), 0, global.innerHeight - fabH);
+      }
+      function onTouchEnd() {
+        if (!touching) return;
+        touching = false;
+        isDragging.value = false;
+        const elapsed = Date.now() - startTime;
+        if (!hasMoved && elapsed >= 0) {
+          lockNextClick();
+          openSheet();
+          return;
+        }
+        lockNextClick();
+        snap(pos.left, pos.top, fabW, fabH);
+      }
+      function onTouchCancel() {
+        if (!touching) return;
+        touching = false;
+        isDragging.value = false;
+        if (hasMoved && pos.left !== null) snap(pos.left, pos.top, fabW, fabH);
+      }
+      function onMouseDown(e) {
+        if (touching || ignoreNextClick || e.button !== 0 || !fabEl.value) return;
+        const r = fabEl.value.getBoundingClientRect();
+        startX = e.clientX;
+        startY = e.clientY;
+        startTime = Date.now();
+        origLeft = r.left;
+        origTop = r.top;
+        fabW = r.width || 56;
+        fabH = r.height || 56;
+        hasMoved = false;
+        mouseDown = true;
+        isDragging.value = false;
+        global.addEventListener('mousemove', onMouseMove);
+        global.addEventListener('mouseup', onMouseUp);
+      }
+      function onMouseMove(e) {
+        if (!mouseDown) return;
+        const clientX = e.clientX, clientY = e.clientY;
+        const dist = Math.hypot(clientX - startX, clientY - startY);
+        if (!hasMoved && dist <= 8) return;
+        hasMoved = true;
         isDragging.value = true;
         e.preventDefault();
-        pos.left = clamp(drag.ox + dx, 0, global.innerWidth - drag.w);
-        pos.top = clamp(drag.oy + dy, 0, global.innerHeight - drag.h);
+        pos.left = clamp(origLeft + (clientX - startX), 0, global.innerWidth - fabW);
+        pos.top = clamp(origTop + (clientY - startY), 0, global.innerHeight - fabH);
       }
-      function onPointerUp() {
-        if (!drag) return;
-        const d = drag;
-        drag = null;
+      function onMouseUp() {
+        if (!mouseDown) return;
+        mouseDown = false;
         isDragging.value = false;
-        if (!d.moved) { openSheet(); return; }
-        snap(pos.left, pos.top, d.w, d.h);
+        global.removeEventListener('mousemove', onMouseMove);
+        global.removeEventListener('mouseup', onMouseUp);
+        if (hasMoved) {
+          lockNextClick();
+          snap(pos.left, pos.top, fabW, fabH);
+        }
+      }
+      function onFabClick() {
+        if (ignoreNextClick || hasMoved) return;
+        openSheet();
       }
       function restorePos() {
         try {
@@ -1027,7 +1098,11 @@
         snap(r.left, r.top, r.width, r.height);
       }
       onMounted(() => { restorePos(); global.addEventListener('resize', onResize); });
-      onBeforeUnmount(() => global.removeEventListener('resize', onResize));
+      onBeforeUnmount(() => {
+        global.removeEventListener('resize', onResize);
+        global.removeEventListener('mousemove', onMouseMove);
+        global.removeEventListener('mouseup', onMouseUp);
+      });
 
       function openSheet() { open.value = true; scrollBottom(); }
       function closeSheet() { open.value = false; showPicker.value = false; }
@@ -1037,13 +1112,14 @@
         favAccounts, activeAccountId, otherActive, isFav, toggleFav, pickAccount, sameId,
         accountName, accIcon, catImg, catEmoji, fmtMoney,
         send, onKeydown, toggleEdit, setType, removeBill, cancelCard, confirmCard,
-        onPointerDown, onPointerMove, onPointerUp, openSheet, closeSheet
+        onTouchStart, onTouchMove, onTouchEnd, onTouchCancel, onMouseDown, onFabClick, openSheet, closeSheet
       };
     },
     template: `
 <div class="cb-root">
-  <button v-show="!open" ref="fabEl" class="cb-fab" :class="{ 'cb-dragging': isDragging }" :style="fabStyle" title="喵咪管家 · 对话记账"
-    @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp">
+  <button v-show="!open" ref="fabEl" type="button" class="cb-fab" :class="{ 'cb-dragging': isDragging }" :style="fabStyle" title="喵咪管家 · 对话记账"
+    @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd" @touchcancel="onTouchCancel"
+    @mousedown="onMouseDown" @click="onFabClick">
     <img :src="AVATAR" alt="喵咪管家" draggable="false">
     <span class="cb-fab-badge">喵记账</span>
   </button>
