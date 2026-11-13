@@ -157,6 +157,12 @@ async function runAllTests() {
         setTimeout(() => req.triggerSuccess(true), 0);
         return req;
       }
+      clear() {
+        const req = new MockRequest();
+        this.map.clear();
+        setTimeout(() => req.triggerSuccess(true), 0);
+        return req;
+      }
       createIndex() {}
     }
 
