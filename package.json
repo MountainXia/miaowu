@@ -1,0 +1,15 @@
+{
+  "name": "personal-asset-pwa",
+  "version": "5.0.3",
+  "description": "喵的粮仓 - 纯本地离线个人资产与对话记账 PWA 应用",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test_suite.js",
+    "icons": "node generate_icons.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

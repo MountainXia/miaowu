@@ -766,6 +766,141 @@
     return true;
   }
 
+  // 全量备份涉及的 LocalStorage 键名集合（含行情自选、喵咪管家常用账户与位置、账户排序、主题及暗号配置）
+  const BACKUP_LS_KEYS = [
+    'cat_market_symbols',
+    'cat_show_market',
+    'cat_butler_fav_accounts',
+    'cat_butler_fab_pos',
+    'cat_account_order',
+    'catTheme',
+    'hideAmount',
+    'app_password_hash',
+    'app_security_question',
+    'app_security_answer_hash',
+    'app_password_skipped'
+  ];
+
+  function safeParseJSON(raw, fallback) {
+    if (raw === null || raw === undefined || raw === '') return fallback;
+    try { return JSON.parse(raw); } catch (e) { return fallback; }
+  }
+
+  /**
+   * 导出全量数据备份对象（IndexedDB 三大表 + LocalStorage 全量配置）
+   */
+  async function exportAllData() {
+    await updateTodaySnapshot();
+    const [accounts, transactions, trendSnapshots] = await Promise.all([
+      getAllAccounts(),
+      getAllTransactions(),
+      getAllSnapshots()
+    ]);
+    trendSnapshots.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+    const lsDump = {};
+    if (typeof localStorage !== 'undefined') {
+      for (const k of BACKUP_LS_KEYS) {
+        const val = localStorage.getItem(k);
+        if (val !== null) lsDump[k] = val;
+      }
+    }
+
+    return {
+      app: 'personal-asset-pwa',
+      schemaVersion: 1,
+      exportedAt: new Date().toISOString(),
+      accounts,
+      transactions,
+      trendSnapshots,
+      snapshots: trendSnapshots,
+      marketSymbols: safeParseJSON(lsDump.cat_market_symbols, []),
+      showMarketBoard: lsDump.cat_show_market ? lsDump.cat_show_market === 'true' : undefined,
+      catButlerFavAccounts: safeParseJSON(lsDump.cat_butler_fav_accounts, null),
+      catButlerFabPos: safeParseJSON(lsDump.cat_butler_fab_pos, null),
+      accountOrder: safeParseJSON(lsDump.cat_account_order, []),
+      localStorage: lsDump
+    };
+  }
+
+  /**
+   * 从全量备份对象恢复数据（覆盖写入 IndexedDB + 还原 LocalStorage 配置）
+   */
+  async function importAllData(backupData) {
+    const data = typeof backupData === 'string' ? JSON.parse(backupData) : backupData;
+    if (!data || typeof data !== 'object') {
+      throw new Error('无效的备份文件格式');
+    }
+    const accounts = Array.isArray(data.accounts) ? data.accounts : null;
+    const transactions = Array.isArray(data.transactions) ? data.transactions : null;
+    const snapshots = Array.isArray(data.trendSnapshots)
+      ? data.trendSnapshots
+      : (Array.isArray(data.snapshots) ? data.snapshots : []);
+
+    if (!accounts || !transactions) {
+      throw new Error('备份文件缺少 accounts 或 transactions 核心字段');
+    }
+
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(['accounts', 'transactions', 'snapshots'], 'readwrite');
+      const accStore = tx.objectStore('accounts');
+      const txStore = tx.objectStore('transactions');
+      const snapStore = tx.objectStore('snapshots');
+
+      accStore.clear();
+      txStore.clear();
+      snapStore.clear();
+
+      for (const acc of accounts) {
+        if (acc && acc.id) accStore.put(acc);
+      }
+      for (const item of transactions) {
+        if (item && item.id) txStore.put(item);
+      }
+      for (const snap of snapshots) {
+        if (snap && snap.date) snapStore.put(snap);
+      }
+
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+
+    if (!snapshots.length) {
+      await updateTodaySnapshot();
+    }
+
+    if (typeof localStorage !== 'undefined') {
+      const ls = (data.localStorage && typeof data.localStorage === 'object') ? data.localStorage : {};
+      for (const k of BACKUP_LS_KEYS) {
+        if (Object.prototype.hasOwnProperty.call(ls, k) && ls[k] !== null && ls[k] !== undefined) {
+          localStorage.setItem(k, String(ls[k]));
+        }
+      }
+      if (Array.isArray(data.marketSymbols) && !ls.cat_market_symbols) {
+        localStorage.setItem('cat_market_symbols', JSON.stringify(data.marketSymbols));
+      }
+      if (typeof data.showMarketBoard === 'boolean' && !ls.cat_show_market) {
+        localStorage.setItem('cat_show_market', data.showMarketBoard ? 'true' : 'false');
+      }
+      if (Array.isArray(data.catButlerFavAccounts) && !ls.cat_butler_fav_accounts) {
+        localStorage.setItem('cat_butler_fav_accounts', JSON.stringify(data.catButlerFavAccounts));
+      }
+      if (data.catButlerFabPos && typeof data.catButlerFabPos === 'object' && !ls.cat_butler_fab_pos) {
+        localStorage.setItem('cat_butler_fab_pos', JSON.stringify(data.catButlerFabPos));
+      }
+      if (Array.isArray(data.accountOrder) && !ls.cat_account_order) {
+        localStorage.setItem('cat_account_order', JSON.stringify(data.accountOrder));
+      }
+    }
+
+    return {
+      accountsCount: accounts.length,
+      transactionsCount: transactions.length,
+      snapshotsCount: snapshots.length
+    };
+  }
+
   return {
     openDB,
     generateId,
@@ -789,8 +924,10 @@
     getAllSnapshots,
     getTrendSnapshots,
     getOverviewStats,
-    // Seed & Clear
+    // Seed, Clear & Full Backup
     seedInitialDataIfEmpty,
-    clearAllData
+    clearAllData,
+    exportAllData,
+    importAllData
   };
 });

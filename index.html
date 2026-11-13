@@ -4213,9 +4213,26 @@
             <div class="settings-module-title" style="display: flex; align-items: center; gap: 6px;">
               <img v-if="getCategoryImg('重置设置')" :src="getCategoryImg('重置设置')" class="w-10 h-10 object-contain" style="width: 18px; height: 18px;" alt="重置设置" />
               <span v-else>🧹</span>
-              <span>数据重置与缓存维护</span>
+              <span>数据备份、重置与缓存维护</span>
             </div>
-            <div class="settings-module-desc">管理本地离线 PWA 缓存与 IndexedDB 资产账目数据：</div>
+            <div class="settings-module-desc">管理全量 JSON 备份迁移、本地离线 PWA 缓存与 IndexedDB 资产账目数据：</div>
+          </div>
+
+          <!-- 维护选项 0: 全量数据导出备份与导入恢复 -->
+          <div class="settings-card-box" style="margin-bottom: 12px;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">📦 全量数据备份与跨端恢复</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.45;">
+              一键导出/导入全量 JSON 备份文件，完整包含：账户（accounts）、流水及凭证图片（transactions）、资产趋势快照（trendSnapshots）、自选行情代码及「喵咪管家」常用账户配置。
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn-sm" @click="exportBackupData" style="font-size: 12px; padding: 7px 14px; border-radius: 8px;">
+                ⬇️ 导出全量 JSON 备份
+              </button>
+              <button class="btn-sm" @click="triggerImportBackup" style="font-size: 12px; padding: 7px 14px; border-radius: 8px;">
+                ⬆️ 导入 JSON 恢复数据
+              </button>
+              <input type="file" ref="backupFileInputRef" accept=".json,application/json" style="display: none;" @change="handleImportBackupFile" />
+            </div>
           </div>
 
           <!-- 维护选项 1: 离线缓存重载 -->
@@ -5252,8 +5269,17 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.2');
+        const currentVersion = ref('v5.0.3');
         const versionHistoryList = [
+          {
+            version: 'v5.0.3',
+            date: '2026-11-13',
+            title: '📦 全量数据备份恢复与跨平台迁移支持',
+            features: [
+              '新增全量 JSON 数据导出备份与导入恢复（涵盖账户、流水及凭证图片、趋势快照、自选行情与喵咪管家常用账户配置）；',
+              '完成 Linux 跨平台换行符与路径大小写兼容规范化。'
+            ]
+          },
           {
             version: 'v5.0.2',
             date: '2026-11-13',
@@ -7093,6 +7119,67 @@
           }
         }
 
+        // 全量数据导出备份与导入恢复 (IndexedDB + LocalStorage)
+        const backupFileInputRef = ref(null);
+
+        async function exportBackupData() {
+          try {
+            const payload = await AssetDB.exportAllData();
+            const jsonStr = JSON.stringify(payload, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateTag = AssetDB.formatDate();
+            a.href = url;
+            a.download = `miaowu-backup-${dateTag}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            showToast(`📦 已导出备份：${payload.accounts.length} 个账户、${payload.transactions.length} 笔流水 ✨`);
+          } catch (err) {
+            alert('导出失败: ' + (err && err.message ? err.message : err));
+          }
+        }
+
+        function triggerImportBackup() {
+          if (backupFileInputRef.value) {
+            backupFileInputRef.value.value = '';
+            backupFileInputRef.value.click();
+          }
+        }
+
+        async function handleImportBackupFile(e) {
+          const file = e && e.target && e.target.files ? e.target.files[0] : null;
+          if (!file) return;
+          try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            const accLen = Array.isArray(data.accounts) ? data.accounts.length : 0;
+            const txLen = Array.isArray(data.transactions) ? data.transactions.length : 0;
+            if (!confirm(`确认从备份文件【${file.name}】恢复数据吗？\n将还原 ${accLen} 个账户、${txLen} 笔流水及趋势快照与个性化配置（当前本地数据将被覆盖）。`)) {
+              return;
+            }
+            const res = await AssetDB.importAllData(data);
+            // 同步刷新内存中的 LocalStorage 响应式状态
+            const savedTheme = localStorage.getItem('catTheme');
+            if (savedTheme) selectTheme(savedTheme);
+            hideAmount.value = localStorage.getItem('hideAmount') === 'true';
+            showMarketBoard.value = localStorage.getItem('cat_show_market') === 'true';
+            try {
+              const syms = JSON.parse(localStorage.getItem('cat_market_symbols') || 'null');
+              if (Array.isArray(syms) && syms.length) marketSymbols.value = syms;
+            } catch (err) { /* ignore */ }
+            hasPasswordRecord.value = !!localStorage.getItem('app_password_hash');
+            savedSecurityQuestion.value = localStorage.getItem('app_security_question') || '';
+            await refreshAllData();
+            if (showMarketBoard.value) refreshMarketQuotes();
+            showToast(`🎉 恢复完成：${res.accountsCount} 个账户、${res.transactionsCount} 笔流水、${res.snapshotsCount} 条趋势快照 ✨`);
+          } catch (err) {
+            alert('导入恢复失败: ' + (err && err.message ? err.message : err));
+          }
+        }
+
         // 记账 Modal
         function openNewTxModal() {
           txForm.type = 'expense';
@@ -8505,6 +8592,10 @@
           submitAccountForm,
           confirmDeleteAccount,
           confirmClearAllData,
+          backupFileInputRef,
+          exportBackupData,
+          triggerImportBackup,
+          handleImportBackupFile,
           forceReloadApp,
           analyticsTimeMode,
           selectedAnalyticsMonth,

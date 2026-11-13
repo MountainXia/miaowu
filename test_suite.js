@@ -388,6 +388,33 @@ async function runAllTests() {
     assert.strictEqual(newTx.category, '投资理财', '生成的流水分类应为指定的 投资理财');
     assert.strictEqual(newTx.type, 'income', '12200调至12500为收入');
     assert.strictEqual(newTx.amount, 300, '调额差额应为300');
+
+    // 11. 验证全量数据导出备份 (exportAllData) 与导入恢复 (importAllData)
+    const mockLS = {};
+    global.localStorage = {
+      getItem: (k) => (Object.prototype.hasOwnProperty.call(mockLS, k) ? mockLS[k] : null),
+      setItem: (k, v) => { mockLS[k] = String(v); },
+      removeItem: (k) => { delete mockLS[k]; }
+    };
+    global.localStorage.setItem('cat_market_symbols', JSON.stringify(['sh000001', 'AAPL']));
+    global.localStorage.setItem('cat_butler_fav_accounts', JSON.stringify(['test_bank', 'test_wallet']));
+    const exported = await AssetDB.exportAllData();
+    assert.ok(Array.isArray(exported.accounts) && exported.accounts.length >= 2, '导出备份应包含 accounts');
+    assert.ok(Array.isArray(exported.transactions) && exported.transactions.length >= 1, '导出备份应包含 transactions');
+    assert.ok(Array.isArray(exported.trendSnapshots) && exported.trendSnapshots.length >= 1, '导出备份应包含 trendSnapshots');
+    assert.deepStrictEqual(exported.marketSymbols, ['sh000001', 'AAPL'], '导出备份应包含自选行情代码');
+    assert.deepStrictEqual(exported.catButlerFavAccounts, ['test_bank', 'test_wallet'], '导出备份应包含喵咪管家常用账户配置');
+
+    await AssetDB.clearAllData();
+    delete mockLS.cat_market_symbols;
+    delete mockLS.cat_butler_fav_accounts;
+    assert.strictEqual((await AssetDB.getAllAccounts()).length, 0, '清空后账户数应为 0');
+
+    const importRes = await AssetDB.importAllData(JSON.stringify(exported));
+    assert.strictEqual(importRes.accountsCount, exported.accounts.length, '导入恢复账户数量应一致');
+    assert.strictEqual(importRes.transactionsCount, exported.transactions.length, '导入恢复流水数量应一致');
+    assert.strictEqual(global.localStorage.getItem('cat_market_symbols'), JSON.stringify(['sh000001', 'AAPL']), '导入恢复应还原自选行情');
+    assert.strictEqual(global.localStorage.getItem('cat_butler_fav_accounts'), JSON.stringify(['test_bank', 'test_wallet']), '导入恢复应还原喵咪管家常用账户');
   });
 
   // 6. 隐私暗号锁功能与安全规范检验
@@ -581,8 +608,8 @@ async function runAllTests() {
     assert.ok(html.includes('version-date'), '应包含迭代日期');
     assert.ok(html.includes('version-features-list'), '应包含功能列表');
 
-    // 5. 检查版本历程数据完整性 (从 v1.0 到 v5.0.2)
-    const expectedVersions = ['v5.0.2', 'v5.0.1', 'v5.0.0', 'v4.8.6', 'v4.8.5', 'v4.8.4', 'v4.8.3', 'v4.8.2', 'v4.8.1', 'v4.8.0', 'v4.7.2', 'v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
+    // 5. 检查版本历程数据完整性 (从 v1.0 到 v5.0.3)
+    const expectedVersions = ['v5.0.3', 'v5.0.2', 'v5.0.1', 'v5.0.0', 'v4.8.6', 'v4.8.5', 'v4.8.4', 'v4.8.3', 'v4.8.2', 'v4.8.1', 'v4.8.0', 'v4.7.2', 'v4.7.1', 'v4.7', 'v4.6', 'v4.5', 'v4.4', 'v4.3', 'v4.2', 'v4.1', 'v4.0', 'v3.9', 'v3.8', 'v3.7', 'v3.2', 'v3.1', 'v3.0', 'v2.9', 'v2.6', 'v2.5', 'v2.3', 'v2.0', 'v1.0'];
     for (const ver of expectedVersions) {
       assert.ok(html.includes(`version: '${ver}'`), `版本历史列表中应包含 ${ver}`);
     }
@@ -591,7 +618,7 @@ async function runAllTests() {
     assert.ok(html.includes('settingsTab'), 'Vue 状态中应包含 settingsTab');
     assert.ok(html.includes('openSettingsModal'), 'Vue 状态中应包含 openSettingsModal');
     assert.ok(html.includes('currentVersion'), 'Vue 状态中应包含 currentVersion');
-    assert.ok(html.includes("currentVersion = ref('v5.0.2')"), '当前运行版本应为 v5.0.2');
+    assert.ok(html.includes("currentVersion = ref('v5.0.3')"), '当前运行版本应为 v5.0.3');
     assert.ok(html.includes('versionHistoryList'), 'Vue 状态中应包含 versionHistoryList');
     assert.ok(html.includes('creditLimit'), 'index.html 应包含 creditLimit 信用额度支持');
     assert.ok(html.includes('getCreditCardRemainingLimit'), 'index.html 应包含信用卡额度剩余计算');
@@ -622,7 +649,7 @@ async function runAllTests() {
     assert.ok(html.includes('提示：内部转账仅调整资金分布，不会计入月度/年度收支流水与统计图表'), '转账表单应包含流水说明静态提示');
     assert.ok(html.includes('background-repeat: no-repeat !important'), 'pill-select 必须强制单图无平铺以杜绝花底纹');
     const swContent = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    assert.ok(swContent.includes('personal-asset-pwa-v40'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v40');
+    assert.ok(swContent.includes('personal-asset-pwa-v41'), 'sw.js 缓存版本应升级为 personal-asset-pwa-v41');
 
     // 8.1 检查日历日账单收支简标及小计受控于 hideAmount 隐藏隐私
     assert.ok(html.includes("hideAmount ? '•••' : Math.round(day.expense)"), '日历日账单格子支出简标应受控于 hideAmount');

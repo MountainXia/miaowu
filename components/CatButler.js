@@ -848,6 +848,7 @@
       });
       const activeAccountId = ref(undefined); // undefined=未初始化；null=纯流水
       watch(() => props.accounts, (accs) => {
+        favIds.value = loadFav();
         if (activeAccountId.value === undefined && accs && accs.length) activeAccountId.value = favAccounts.value[0]?.id ?? accs[0]?.id ?? null;
         if (activeAccountId.value !== null && activeAccountId.value !== undefined && !(accs || []).some((a) => sameId(a.id, activeAccountId.value))) {
           activeAccountId.value = favAccounts.value[0]?.id ?? accs[0]?.id ?? null;
