@@ -7,9 +7,17 @@
     "start": "node server.js",
     "dev": "node server.js",
     "test": "node test_suite.js",
-    "icons": "node generate_icons.js"
+    "icons": "node generate_icons.js",
+    "build:app": "node scripts/prepare-www.js && npx cap sync"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/status-bar": "^8.0.4"
   }
 }

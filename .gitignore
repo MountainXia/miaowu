@@ -6,3 +6,7 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+www/
+android/.gradle/
+android/app/build/
+ios/App/build/
