@@ -773,10 +773,14 @@
   .cb-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cb-chip img{width:16px;height:16px;object-fit:contain}
   .cb-chip.cb-active{border-color:var(--primary,#3b82f6);background:var(--primary,#3b82f6);color:#fff}
-  .cb-input{display:flex;gap:8px;padding:6px 12px 10px;align-items:flex-end}
-  .cb-input textarea{flex:1;resize:none;max-height:90px;min-height:40px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--border-subtle,#ddd);
-    background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:14px;line-height:1.4;font-family:inherit;box-sizing:border-box}
-  .cb-send{border:none;border-radius:14px;height:40px;padding:0 16px;font-weight:800;font-size:14px;color:#fff;cursor:pointer;
+  .cb-input{display:flex;gap:6px;padding:6px 10px 10px;align-items:flex-end}
+  .cb-input textarea{flex:1;min-width:0;resize:none;max-height:90px;min-height:40px;padding:10px 10px;border-radius:14px;border:1.5px solid var(--border-subtle,#ddd);
+    background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:13.5px;line-height:1.4;font-family:inherit;box-sizing:border-box}
+  .cb-mic{width:38px;height:40px;flex-shrink:0;border:1.5px solid var(--border-subtle,#ddd);border-radius:14px;background:var(--bg-subtle,#f7f7f7);
+    color:var(--text-main,#111);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:all .2s ease}
+  .cb-mic.cb-listening{background:#ef4444;border-color:#ef4444;color:#fff;animation:cbMicPulse 1.2s infinite ease-in-out}
+  @keyframes cbMicPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.55);transform:scale(1)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0);transform:scale(1.06)}}
+  .cb-send{flex-shrink:0;white-space:nowrap;border:none;border-radius:14px;height:40px;padding:0 14px;font-weight:800;font-size:13.5px;color:#fff;cursor:pointer;
     background:linear-gradient(135deg,var(--primary,#3b82f6),var(--primary-hover,var(--primary,#3b82f6)))}
   .cb-send:disabled{opacity:.5;cursor:not-allowed}
   .cb-picker-mask{position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;z-index:5}
@@ -823,8 +827,10 @@
       const input = ref('');
       const listEl = ref(null);
       const fabEl = ref(null);
+      const inputEl = ref(null);
       const showPicker = ref(false);
       const isDragging = ref(false);
+      const isListening = ref(false);
       const pos = reactive({ left: null, top: null });
       const EXP = EXPENSE_CATEGORIES;
       const INC = INCOME_CATEGORIES;
@@ -913,6 +919,139 @@
         if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
       }
 
+      // ---------- 语音识别与口语金额规范化 ----------
+      const CN_DIGITS = { '零': 0, '〇': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
+      const CN_UNITS = { '十': 10, '百': 100, '千': 1000, '万': 10000 };
+      function cnToInt(str) {
+        if (!str) return NaN;
+        if (/^\d+$/.test(str)) return Number(str);
+        // 支持口语简写如“两百五”=250、“一千二”=1200、“一万五”=15000
+        const shortMatch = str.match(/^([一二两三四五六七八九])(百|千|万)([一二三四五六七八九])$/);
+        if (shortMatch) {
+          const lead = CN_DIGITS[shortMatch[1]];
+          const unit = CN_UNITS[shortMatch[2]];
+          const tail = CN_DIGITS[shortMatch[3]];
+          return lead * unit + tail * (unit / 10);
+        }
+        let total = 0, section = 0, num = 0, hasNum = false;
+        for (let i = 0; i < str.length; i++) {
+          const ch = str[i];
+          if (ch in CN_DIGITS) {
+            num = CN_DIGITS[ch];
+            hasNum = true;
+          } else if (ch in CN_UNITS) {
+            const u = CN_UNITS[ch];
+            if (u === 10000) {
+              section = (section + (hasNum ? num : 1)) * u;
+              total += section;
+              section = 0;
+            } else {
+              section += (hasNum ? num : 1) * u;
+            }
+            num = 0;
+            hasNum = false;
+          } else {
+            return NaN;
+          }
+        }
+        return total + section + num;
+      }
+
+      function normalizeVoiceText(raw) {
+        if (!raw) return '';
+        let s = String(raw).replace(/[。？?！!]+$/g, '').trim();
+        // 1. “八块五(毛)”、“二十五块八” -> “8.5元”、“25.8元”
+        s = s.replace(/([零〇一二两三四五六七八九十百千万\d]+)(?:块|元)([一二三四五六七八九])(?:毛|角)?/g, (_, a, b) => {
+          const intVal = cnToInt(a);
+          const decVal = CN_DIGITS[b];
+          return (!isNaN(intVal) && decVal !== undefined) ? `${intVal}.${decVal}元` : _;
+        });
+        // 2. “八块半” -> “8.5元”
+        s = s.replace(/([零〇一二两三四五六七八九十百千万\d]+)(?:块|元)半/g, (_, a) => {
+          const intVal = cnToInt(a);
+          return !isNaN(intVal) ? `${intVal}.5元` : _;
+        });
+        // 3. “八点五(块/元)” -> “8.5元”
+        s = s.replace(/([零〇一二两三四五六七八九十百千万\d]+)点([零〇一二三四五六七八九\d]+)(块|元)?/g, (_, a, b, u) => {
+          const intVal = cnToInt(a);
+          const decStr = String(b).split('').map((c) => (c in CN_DIGITS ? CN_DIGITS[c] : c)).join('');
+          return !isNaN(intVal) ? `${intVal}.${decStr}${u ? '元' : ''}` : _;
+        });
+        // 4. “二十五块(钱)”、“两百元” -> “25元”、“200元”
+        s = s.replace(/([零〇一二两三四五六七八九十百千万]+)(?:块钱|块|元)/g, (_, a) => {
+          const intVal = cnToInt(a);
+          return !isNaN(intVal) ? `${intVal}元` : _;
+        });
+        // 5. 独立或末尾的口语整百/整十/多位中文数字（如“两百”、“三千”、“二十五”），避开星期/日期/三餐
+        s = s.replace(/(?<![星期周第初])([零〇一二两三四五六七八九十百千万]{2,}|[两三四五六七八九])(?![餐天日月年号点次个只条张])/g, (m) => {
+          const intVal = cnToInt(m);
+          return (!isNaN(intVal) && intVal > 0) ? String(intVal) : m;
+        });
+        return s;
+      }
+
+      let recognition = null;
+      function stopVoiceRecognition() {
+        isListening.value = false;
+        if (recognition) {
+          try { recognition.abort(); } catch (_) {}
+          recognition = null;
+        }
+      }
+      function fallbackToKeyboard() {
+        stopVoiceRecognition();
+        nextTick(() => {
+          if (inputEl.value && typeof inputEl.value.focus === 'function') inputEl.value.focus();
+        });
+        catSay('当前浏览器语音服务受限，已为您弹起键盘，直接点输入法上的「🎤话筒」说话就能秒转文字喵~');
+      }
+      function toggleVoice() {
+        if (isListening.value && recognition) {
+          try { recognition.stop(); } catch (_) { isListening.value = false; }
+          return;
+        }
+        const SR = global.SpeechRecognition || global.webkitSpeechRecognition;
+        if (!SR) {
+          fallbackToKeyboard();
+          return;
+        }
+        let hadFallbackError = false;
+        try {
+          const rec = new SR();
+          recognition = rec;
+          rec.lang = 'zh-CN';
+          rec.continuous = false;
+          rec.interimResults = true;
+          rec.onresult = (event) => {
+            let transcript = '';
+            for (let i = 0; i < event.results.length; i++) {
+              transcript += event.results[i][0].transcript;
+            }
+            input.value = normalizeVoiceText(transcript);
+          };
+          rec.onerror = (event) => {
+            const err = event && event.error;
+            if (err === 'network' || err === 'not-allowed' || err === 'service-not-allowed') {
+              hadFallbackError = true;
+              fallbackToKeyboard();
+            } else {
+              isListening.value = false;
+            }
+          };
+          rec.onend = () => {
+            isListening.value = false;
+            recognition = null;
+            if (!hadFallbackError && input.value.trim()) {
+              send();
+            }
+          };
+          isListening.value = true;
+          rec.start();
+        } catch (_) {
+          fallbackToKeyboard();
+        }
+      }
+
       // ---------- 卡片编辑 ----------
       function toggleEdit(msg, idx) {
         if (msg.status !== 'pending') return;
@@ -979,85 +1118,15 @@
         }
       }
 
-      // ---------- 悬浮球拖拽与贴边（Pointer 事件统一 + 12px 移动阈值 + pointerup 直接接管点击） ----------
-      let startX = 0, startY = 0, origLeft = 0, origTop = 0, fabW = 56, fabH = 56, activePointerId = null;
-      let hasMoved = false, isPointerDown = false, ignoreNextClick = false, ignoreTimer = null;
+      // ---------- 悬浮球拖拽与贴边（10px 阈值 + 400ms 关闭保护锁 + Pointer 强捕获） ----------
+      let startX = 0, startY = 0, origLeft = 0, origTop = 0, fabW = 56, fabH = 56;
       const fabStyle = computed(() => (pos.left === null ? {} : { left: pos.left + 'px', top: pos.top + 'px', right: 'auto', bottom: 'auto' }));
       const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
-      function lockNextClick() {
-        ignoreNextClick = true;
-        if (ignoreTimer) clearTimeout(ignoreTimer);
-        ignoreTimer = setTimeout(() => { ignoreNextClick = false; }, 300);
-      }
       function snap(left, top, w, h) {
         const vw = global.innerWidth, vh = global.innerHeight;
         pos.left = (left + w / 2 < vw / 2) ? 12 : vw - w - 12;
         pos.top = clamp(top, 70, Math.max(70, vh - h - 80));
         try { localStorage.setItem(LS_POS, JSON.stringify({ side: pos.left === 12 ? 'l' : 'r', topRatio: pos.top / vh })); } catch (e) { /* ignore */ }
-      }
-      function onContextMenu(e) {
-        e.preventDefault();
-      }
-      function onPointerDown(e) {
-        if (!fabEl.value) return;
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        const r = fabEl.value.getBoundingClientRect();
-        startX = e.clientX;
-        startY = e.clientY;
-        origLeft = r.left;
-        origTop = r.top;
-        fabW = r.width || 56;
-        fabH = r.height || 56;
-        hasMoved = false;
-        isPointerDown = true;
-        isDragging.value = false;
-        activePointerId = e.pointerId;
-        try { fabEl.value.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-      }
-      function onPointerMove(e) {
-        if (!isPointerDown) return;
-        if (activePointerId !== null && e.pointerId !== activePointerId) return;
-        const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
-        if (!hasMoved && dist <= 12) return;
-        hasMoved = true;
-        isDragging.value = true;
-        if (e.cancelable) e.preventDefault();
-        pos.left = clamp(origLeft + (e.clientX - startX), 0, global.innerWidth - fabW);
-        pos.top = clamp(origTop + (e.clientY - startY), 0, global.innerHeight - fabH);
-      }
-      function onPointerUp(e) {
-        if (!isPointerDown) return;
-        if (activePointerId !== null && e.pointerId !== activePointerId) return;
-        isPointerDown = false;
-        isDragging.value = false;
-        if (fabEl.value && e.pointerId != null) {
-          try { fabEl.value.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-        }
-        activePointerId = null;
-        if (!hasMoved) {
-          lockNextClick();
-          openSheet();
-          return;
-        }
-        lockNextClick();
-        if (pos.left !== null) snap(pos.left, pos.top, fabW, fabH);
-      }
-      function onPointerCancel(e) {
-        if (!isPointerDown) return;
-        isPointerDown = false;
-        isDragging.value = false;
-        if (fabEl.value && e && e.pointerId != null) {
-          try { fabEl.value.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-        }
-        activePointerId = null;
-        if (hasMoved && pos.left !== null) snap(pos.left, pos.top, fabW, fabH);
-      }
-      function onFabClick(e) {
-        if (ignoreNextClick || hasMoved) {
-          if (e && e.cancelable) e.preventDefault();
-          return;
-        }
-        openSheet();
       }
       function restorePos() {
         try {
@@ -1073,29 +1142,140 @@
         const r = fabEl.value.getBoundingClientRect();
         snap(r.left, r.top, r.width, r.height);
       }
-      onMounted(() => { restorePos(); global.addEventListener('resize', onResize); });
+
+      let _lastOpenTime = 0;
+      function openSheet() {
+        _lastOpenTime = Date.now();
+        open.value = true;
+        scrollBottom();
+      }
+      function closeSheet() {
+        if (_lastOpenTime && (Date.now() - _lastOpenTime < 400)) {
+          return; // 抽屉刚打开 400ms 内，严禁任何合成 click 或遮罩层事件将其关闭！
+        }
+        open.value = false;
+        showPicker.value = false;
+      }
+
+      function bindFabEvents(fab) {
+        if (!fab) return;
+        // 1. 样式与子元素穿透设置
+        fab.style.touchAction = 'none';
+        fab.style.userSelect = 'none';
+        fab.style.webkitUserSelect = 'none';
+        fab.style.webkitTouchCallout = 'none';
+        fab.querySelectorAll('*').forEach(el => {
+          el.style.pointerEvents = 'none';
+          el.style.userSelect = 'none';
+          if (el.tagName === 'IMG') el.draggable = false;
+        });
+
+        // 2. 状态变量（绝不在 pointerdown 记录防抖时间！）
+        let isPointerDown = false;
+        let dragging = false;
+        let lastWasDrag = false;
+        let activePointerId = null;
+
+        fab.addEventListener('contextmenu', e => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+
+        fab.addEventListener('pointerdown', e => {
+          if (e.pointerType === 'mouse' && e.button !== 0) return;
+          e.stopPropagation(); // 阻止冒泡
+          isPointerDown = true;
+          dragging = false;
+          isDragging.value = false;
+          activePointerId = e.pointerId;
+          startX = e.clientX;
+          startY = e.clientY;
+          const r = fab.getBoundingClientRect();
+          origLeft = r.left;
+          origTop = r.top;
+          fabW = r.width || 56;
+          fabH = r.height || 56;
+        });
+
+        fab.addEventListener('pointermove', e => {
+          if (!isPointerDown || e.pointerId !== activePointerId) return;
+          const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+          if (!dragging && dist > 10) {
+            dragging = true;
+            isDragging.value = true;
+            try { fab.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+          if (dragging) {
+            e.preventDefault();
+            e.stopPropagation();
+            pos.left = clamp(origLeft + (e.clientX - startX), 0, global.innerWidth - fabW);
+            pos.top = clamp(origTop + (e.clientY - startY), 0, global.innerHeight - fabH);
+          }
+        });
+
+        fab.addEventListener('pointerup', e => {
+          if (!isPointerDown || e.pointerId !== activePointerId) return;
+          e.stopPropagation();
+          isPointerDown = false;
+          const wasDragging = dragging;
+          lastWasDrag = wasDragging;
+          dragging = false;
+          isDragging.value = false;
+          activePointerId = null;
+          try {
+            if (fab.hasPointerCapture(e.pointerId)) fab.releasePointerCapture(e.pointerId);
+          } catch (_) {}
+
+          if (wasDragging) {
+            // 仅执行贴边吸附保存位置，不打开抽屉
+            if (pos.left !== null) snap(pos.left, pos.top, fabW, fabH);
+          } else {
+            // 无任何时间门槛！只要没拖拽，无论按下 10ms 还是 500ms，松手立刻强制打开抽屉！
+            _lastOpenTime = Date.now();
+            openSheet();
+          }
+        });
+
+        fab.addEventListener('pointercancel', () => {
+          isPointerDown = false;
+          dragging = false;
+          isDragging.value = false;
+          activePointerId = null;
+        });
+
+        // 捕获并拦截合成的 click 事件，防止冒泡到遮罩层或 document 把刚打开的抽屉关掉
+        fab.addEventListener('click', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!lastWasDrag) {
+            _lastOpenTime = Date.now();
+            openSheet();
+          }
+          lastWasDrag = false;
+        }, true);
+      }
+
+      onMounted(() => {
+        restorePos();
+        bindFabEvents(fabEl.value);
+        global.addEventListener('resize', onResize);
+      });
       onBeforeUnmount(() => {
+        stopVoiceRecognition();
         global.removeEventListener('resize', onResize);
-        if (ignoreTimer) clearTimeout(ignoreTimer);
       });
 
-      function openSheet() { open.value = true; scrollBottom(); }
-      function closeSheet() { open.value = false; showPicker.value = false; }
-
       return {
-        AVATAR, EXP, INC, open, input, listEl, fabEl, showPicker, isDragging, fabStyle, messages,
+        AVATAR, EXP, INC, open, input, listEl, fabEl, inputEl, showPicker, isDragging, isListening, fabStyle, messages,
         favAccounts, activeAccountId, otherActive, isFav, toggleFav, pickAccount, sameId,
         accountName, accIcon, catImg, catEmoji, fmtMoney,
-        send, onKeydown, toggleEdit, setType, removeBill, cancelCard, confirmCard,
-        onContextMenu, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onFabClick, openSheet, closeSheet
+        send, onKeydown, toggleVoice, normalizeVoiceText, toggleEdit, setType, removeBill, cancelCard, confirmCard,
+        openSheet, closeSheet
       };
     },
     template: `
 <div class="cb-root">
-  <button v-show="!open" ref="fabEl" type="button" class="cb-fab" :class="{ 'cb-dragging': isDragging }" :style="fabStyle" title="喵咪管家 · 对话记账"
-    @contextmenu="onContextMenu"
-    @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerCancel"
-    @click="onFabClick">
+  <button v-show="!open" ref="fabEl" type="button" class="cb-fab" :class="{ 'cb-dragging': isDragging }" :style="fabStyle" title="喵咪管家 · 对话记账">
     <img :src="AVATAR" alt="喵咪管家" draggable="false">
     <span class="cb-fab-badge">喵记账</span>
   </button>
@@ -1185,7 +1365,8 @@
       </div>
 
       <div class="cb-input">
-        <textarea v-model="input" rows="1" placeholder="例如：昨天早饭10，晚饭30 / 收到工资8000" @keydown="onKeydown"></textarea>
+        <button type="button" class="cb-mic" :class="{ 'cb-listening': isListening }" title="语音记账" @click="toggleVoice">🎙️</button>
+        <textarea ref="inputEl" v-model="input" rows="1" :placeholder="isListening ? '正在听喵...请说出账单（如：早饭包子8.5微信）' : '例如：昨天早饭10，晚饭30 / 收到工资8000'" @keydown="onKeydown"></textarea>
         <button class="cb-send" :disabled="!input.trim()" @click="send">发送</button>
       </div>
 
