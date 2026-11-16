@@ -1,0 +1,44 @@
+name: Build iOS Unsigned IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 & install dependencies
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+
+      - name: Sync web assets to iOS
+        run: npm run build:app
+
+      - name: Build unsigned Archive & package IPA
+        working-directory: ios/App
+        run: |
+          if [ -f "Podfile" ]; then
+            pod install
+          fi
+          if [ -d "App.xcworkspace" ]; then
+            xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          else
+            xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          fi
+          mkdir -p "$PWD/build/Payload"
+          cp -r "$PWD/build/App.xcarchive/Products/Applications/App.app" "$PWD/build/Payload/"
+          cd "$PWD/build"
+          zip -r ../miaowu-ios.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miaowu-ios-ipa
+          path: ios/App/miaowu-ios.ipa
+          retention-days: 14
