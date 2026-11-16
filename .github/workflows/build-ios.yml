@@ -11,10 +11,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20 & install dependencies
+      - name: Setup Node.js 22 & install dependencies
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - run: npm install
 
       - name: Sync web assets to iOS
@@ -27,9 +27,9 @@ jobs:
             pod install
           fi
           if [ -d "App.xcworkspace" ]; then
-            xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            xcodebuild -workspace App.xcworkspace -scheme App -configuration Release -sdk iphoneos -destination "generic/platform=iOS" -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           else
-            xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+            xcodebuild -project App.xcodeproj -scheme App -configuration Release -sdk iphoneos -destination "generic/platform=iOS" -archivePath "$PWD/build/App.xcarchive" archive CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
           fi
           mkdir -p "$PWD/build/Payload"
           cp -r "$PWD/build/App.xcarchive/Products/Applications/App.app" "$PWD/build/Payload/"
