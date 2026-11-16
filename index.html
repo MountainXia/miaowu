@@ -158,9 +158,9 @@
 
     /* 锁定字体缩放比例 (禁止系统级放大破坏排版) */
     html, body {
-      -webkit-text-size-adjust: 100% !important;
-      text-size-adjust: 100% !important;
-      -moz-text-size-adjust: 100% !important;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      -moz-text-size-adjust: 100%;
     }
 
     * {
@@ -601,6 +601,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
       padding: 12px 14px;
       border-radius: 14px;
       background: var(--bg-subtle);
@@ -617,6 +618,8 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
+      flex: 1;
     }
 
     .tx-icon-badge {
@@ -634,6 +637,8 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
+      min-width: 0;
+      flex: 1;
     }
 
     .tx-category {
@@ -642,6 +647,7 @@
       color: var(--text-main);
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 6px;
     }
 
@@ -652,14 +658,20 @@
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       color: var(--text-secondary);
+      flex-shrink: 0;
+      white-space: nowrap;
     }
 
     .tx-meta {
       font-size: 11px;
       color: var(--text-muted);
+      word-break: break-word;
+      overflow-wrap: anywhere;
     }
 
     .tx-right {
+      flex-shrink: 0;
+      white-space: nowrap;
       text-align: right;
       display: flex;
       flex-direction: column;
@@ -671,6 +683,8 @@
       font-size: 15px;
       font-weight: 700;
       letter-spacing: -0.2px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .amt-expense { color: #f43f5e; }
@@ -910,7 +924,14 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
       margin-bottom: 12px;
+    }
+
+    .acc-header-actions .card-title {
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .btn-primary {
@@ -925,6 +946,8 @@
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      white-space: nowrap;
+      flex-shrink: 0;
       transition: background 0.15s ease, transform 0.1s ease;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
     }
@@ -2055,6 +2078,8 @@
       font-weight: 600 !important;
       padding: 7px 12px !important;
       border-radius: 10px !important;
+      white-space: nowrap;
+      flex-shrink: 0;
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -2772,6 +2797,67 @@
     }
     .cal-dot.expense { background: #ef4444; }
     .cal-dot.income { background: #10b981; }
+
+    /* 安卓 360px 窄屏专项排版适配 */
+    @media (max-width: 390px) {
+      .acc-header-actions {
+        gap: 6px;
+      }
+      .acc-header-actions .card-title {
+        font-size: 14px;
+        gap: 4px;
+      }
+      .acc-header-actions .card-title svg {
+        width: 17px;
+        height: 17px;
+        flex-shrink: 0;
+      }
+      .acc-header-actions > div:last-child {
+        gap: 6px !important;
+        flex-shrink: 0;
+      }
+      .btn-ocr-header {
+        font-size: 12px !important;
+        padding: 6px 8px !important;
+      }
+      .acc-header-actions .btn-primary {
+        font-size: 12px;
+        padding: 6px 10px;
+        gap: 4px;
+      }
+      .tx-filter-row {
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        gap: 6px;
+      }
+      .tx-filter-row::-webkit-scrollbar {
+        display: none;
+      }
+      .tx-filter-row .filter-pills {
+        flex: 0 0 auto !important;
+        overflow-x: visible;
+        gap: 6px;
+      }
+      .tx-filter-row .pill,
+      .tx-filter-row .pill.pill-select {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+      .tx-filter-row .pill.pill-select {
+        padding-right: 24px;
+        max-width: 130px;
+      }
+      .analytics-footer-note {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 4px;
+        font-size: 11px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -3690,7 +3776,7 @@
             </div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; color: var(--text-muted);">
+          <div class="analytics-footer-note" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 11px; color: var(--text-muted);">
             <span>包含{{ analyticsTimeMode === 'year' ? '全年' : '当月' }}所有支出与收入 (含纯流水)</span>
             <span>共 {{ monthlyAnalytics.totalCount }} 笔流水<span v-if="monthlyAnalytics.pureCount > 0"> (含 {{ monthlyAnalytics.pureCount }} 笔纯流水)</span></span>
           </div>
@@ -5269,8 +5355,17 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.3');
+        const currentVersion = ref('v5.0.4');
         const versionHistoryList = [
+          {
+            version: 'v5.0.4',
+            date: '2026-11-16',
+            title: '📱 安卓悬浮球 Pointer 触控重构与 360px 窄屏排版精修',
+            features: [
+              '重构「喵咪管家」悬浮球交互为标准 Pointer 事件并禁用安卓长按系统菜单，引入 12px 防抖阈值、Pointer Capture 与 300ms 防重入锁，彻底解决安卓短按无响应问题；',
+              '新增 360px 窄屏专项适配：流水明细顶部操作栏单行防折行、流水筛选栏横向平滑滚动防遮挡、流水右侧金额防劈裂及月度统计底部说明自适应换行。'
+            ]
+          },
           {
             version: 'v5.0.3',
             date: '2026-11-13',
