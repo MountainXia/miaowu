@@ -1,0 +1,8 @@
+{
+	"appId": "com.mountainxia.miaowu",
+	"appName": "喵的粮仓",
+	"webDir": "www",
+	"packageClassList": [
+		"StatusBarPlugin"
+	]
+}
