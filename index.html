@@ -5443,8 +5443,19 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.4');
+        const currentVersion = ref('v5.0.5');
         const versionHistoryList = [
+          {
+            version: 'v5.0.5',
+            date: '2026-11-17',
+            title: '🔍 流水多字段实时搜索、快捷指令自动记账与 iCloud 备份容错',
+            features: [
+              '流水多字段实时搜索：在首页收支动态与流水明细顶部新增实时搜索框，支持 150ms 防抖模糊匹配账户名、分类、金额及备注（支持空格多词同时命中），并展示实时笔数与收支汇总统计栏；',
+              '快捷指令与 OCR 文本自动记账：新增 parseOcrBillText 引擎，智能过滤时间与长单号噪声，自动提取核心金额、支付渠道与分类，支持 URL 唤醒（autobill=1）预填弹窗一键确认；',
+              'iCloud 云端自动备份容错接口：新增 icloudSync.js 桥接模块，支持环境状态安全检测，未启用时静默降级为本地 IndexedDB 快照并记录备份时间；',
+              'PWA 离线缓存池升级至 personal-asset-pwa-v46。'
+            ]
+          },
           {
             version: 'v5.0.4',
             date: '2026-11-16',
