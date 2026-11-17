@@ -25,6 +25,7 @@
 
   <!-- IndexedDB 原生 Promise 封装层 -->
   <script src="./db.js"></script>
+  <script src="./icloudSync.js"></script>
   <script src="./components/CatButler.js?v=voice1"></script>
 
   <style>
@@ -3281,9 +3282,38 @@
             <button class="btn-sm" @click="currentTab = 'transactions'">全部流水 &gt;</button>
           </div>
 
+          <!-- 首页快速搜索账单 -->
+          <div style="position: relative; margin-bottom: 10px;">
+            <svg style="position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <input
+              type="text"
+              v-model="txSearchInput"
+              class="form-input"
+              placeholder="搜索账户、分类、金额或备注..."
+              style="padding-left: 34px; padding-right: 30px; font-size: 12.5px; height: 36px; border-radius: 10px;"
+            />
+            <button
+              v-if="txSearchInput"
+              type="button"
+              @click="clearTxSearch"
+              style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 4px;"
+              title="清空搜索"
+            >×</button>
+          </div>
+
+          <div v-if="txSearchKeyword" style="font-size: 11.5px; color: var(--text-muted); margin-top: -4px; margin-bottom: 10px; padding: 4px 8px; border-radius: 8px; background: var(--bg-subtle);">
+            共找到 <b style="color: var(--text-main);">{{ recentSearchStats.count }}</b> 笔记录 | 支出 <span class="amt-expense">¥{{ hideAmount ? '•••' : formatNumber(recentSearchStats.totalExpense) }}</span> · 收入 <span class="amt-income">¥{{ hideAmount ? '•••' : formatNumber(recentSearchStats.totalIncome) }}</span>
+          </div>
+
           <div v-if="transactions.length === 0" class="empty-state">
             <div class="empty-icon">📝</div>
             <div>暂无流水明细，点击右下角记一笔吧！</div>
+          </div>
+
+          <div v-else-if="recentTransactions.length === 0" class="empty-state" style="padding: 18px 12px;">
+            <div style="font-size: 13px; color: var(--text-muted);">未找到匹配 “{{ txSearchKeyword }}” 的账单</div>
           </div>
 
           <div v-else style="display: flex; flex-direction: column; gap: 8px;">
@@ -3613,6 +3643,31 @@
               记一笔
             </button>
           </div>
+        </div>
+
+        <!-- 流水关键字实时搜索栏 -->
+        <div style="position: relative; margin-top: -2px;">
+          <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            type="text"
+            v-model="txSearchInput"
+            class="form-input"
+            placeholder="搜索账户、分类、金额或备注..."
+            style="padding-left: 36px; padding-right: 32px; font-size: 13px; height: 38px; border-radius: 10px;"
+          />
+          <button
+            v-if="txSearchInput"
+            type="button"
+            @click="clearTxSearch"
+            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px;"
+            title="清空搜索"
+          >×</button>
+        </div>
+
+        <div v-if="txSearchKeyword" style="font-size: 12px; color: var(--text-muted); margin-top: -6px; padding: 5px 10px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border-subtle);">
+          共找到 <b style="color: var(--text-main);">{{ filteredTxStats.count }}</b> 笔记录 | 支出 <span class="amt-expense">¥{{ hideAmount ? '•••' : formatNumber(filteredTxStats.totalExpense) }}</span> · 收入 <span class="amt-income">¥{{ hideAmount ? '•••' : formatNumber(filteredTxStats.totalIncome) }}</span>
         </div>
 
         <!-- 筛选控件 (采用统一构图逻辑，收支类型与全部账户胶囊高度、样式及基线严格和谐对齐) -->
@@ -4105,7 +4160,7 @@
       :get-category-img="getCategoryImg"
       :get-category-emoji="getCategoryEmoji"
       :get-account-icon-img="getAccountIconImg"
-      @saved="refreshAllData"
+      @saved="onCatButlerSaved"
     ></cat-butler>
   </div> <!-- 结束 !isLocked 主界面视图 -->
 
@@ -4321,6 +4376,34 @@
             </div>
           </div>
 
+          <!-- 维护选项 0.5: iCloud 云端自动备份（含网页端优雅降级） -->
+          <div class="settings-card-box" style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">☁️ iCloud 云端自动备份</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                  每次新增、修改或删除账单后自动防抖静默备份；未启用 iCloud 时安全保存在本地。
+                </div>
+              </div>
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--text-main);">
+                <input type="checkbox" v-model="icloudAutoBackup" @change="toggleIcloudAutoBackup" style="width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer;" />
+                <span>{{ icloudAutoBackup ? '已开启' : '未开启' }}</span>
+              </label>
+            </div>
+            <div style="margin-top: 8px; padding: 7px 10px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); font-size: 11px; color: var(--text-muted); line-height: 1.5;">
+              <div>状态：{{ icloudStatusText }}</div>
+              <div>最近本地/云端备份：{{ icloudLastBackupText }}</div>
+            </div>
+            <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn-sm" :disabled="icloudChecking" @click="checkIcloudEnvironment" style="font-size: 12px; padding: 6px 12px; border-radius: 8px;">
+                {{ icloudChecking ? '检测中...' : '🔍 检测 iCloud 状态' }}
+              </button>
+              <button class="btn-sm" @click="triggerCloudBackup(false)" style="font-size: 12px; padding: 6px 12px; border-radius: 8px;">
+                ☁️ 立即备份一次
+              </button>
+            </div>
+          </div>
+
           <!-- 维护选项 1: 离线缓存重载 -->
           <div class="settings-card-box" style="margin-bottom: 12px;">
             <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
@@ -4517,6 +4600,11 @@
         </div>
 
         <div class="tx-modal-body">
+          <!-- 🐱 自动识别账单提示条 -->
+          <div v-if="txAutoBanner" style="margin-bottom: 10px; padding: 8px 12px; border-radius: 10px; background: rgba(245, 158, 11, 0.14); border: 1px solid rgba(245, 158, 11, 0.35); color: var(--text-main); font-size: 12.5px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+            {{ txAutoBanner }}
+          </div>
+
           <!-- 📷 OCR 智能识别票据/长图快捷入口 -->
           <div style="margin-bottom: 12px;">
             <button type="button" class="btn-ocr-trigger" @click="triggerOcrUpload">
@@ -5332,7 +5420,7 @@
       window.assetDB.recordTransaction = window.AssetDB.addTransaction;
     }
 
-    const { createApp, ref, reactive, computed, onMounted, nextTick } = Vue;
+    const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
 
     createApp({
       setup() {
@@ -6643,7 +6731,55 @@
           return list;
         });
 
-        // 流水筛选 (支持按账户或仅看纯流水)
+        // 流水多字段关键字搜索（150ms 防抖）与筛选
+        const txSearchInput = ref('');
+        const txSearchKeyword = ref('');
+        let txSearchTimer = null;
+        watch(txSearchInput, (val) => {
+          if (txSearchTimer) clearTimeout(txSearchTimer);
+          const trimmed = (val || '').trim();
+          if (!trimmed) {
+            txSearchKeyword.value = '';
+            return;
+          }
+          txSearchTimer = setTimeout(() => {
+            txSearchKeyword.value = trimmed.toLowerCase();
+          }, 150);
+        });
+        function clearTxSearch() {
+          if (txSearchTimer) clearTimeout(txSearchTimer);
+          txSearchInput.value = '';
+          txSearchKeyword.value = '';
+        }
+
+        function matchesTxKeywords(t, kwStr) {
+          if (!kwStr) return true;
+          const tokens = kwStr.split(/\s+/).filter(Boolean);
+          if (!tokens.length) return true;
+          const accName = t.accountId ? getAccountName(t.accountId) : '纯流水';
+          const toAccName = t.toAccountId ? getAccountName(t.toAccountId) : '';
+          const amtRaw = String(t.amount ?? '');
+          const amtFmt = formatNumber(t.amount);
+          const haystack = `${accName} ${toAccName} ${t.category || ''} ${amtRaw} ${amtFmt} ${t.notes || ''} ${t.date || ''}`.toLowerCase();
+          return tokens.every(tok => haystack.includes(tok));
+        }
+
+        function calcTxStats(list) {
+          let totalExpense = 0;
+          let totalIncome = 0;
+          for (const t of list) {
+            const amt = Number(t.amount) || 0;
+            if (t.type === 'expense') totalExpense += amt;
+            else if (t.type === 'income') totalIncome += amt;
+          }
+          return {
+            count: list.length,
+            totalExpense: +totalExpense.toFixed(2),
+            totalIncome: +totalIncome.toFixed(2)
+          };
+        }
+
+        // 流水筛选 (支持按账户或仅看纯流水 + 多字段关键字)
         const filteredTransactions = computed(() => {
           let list = transactions.value;
           if (txFilterType.value) {
@@ -6656,12 +6792,24 @@
               list = list.filter(t => t.accountId === txFilterAccountId.value || t.toAccountId === txFilterAccountId.value);
             }
           }
+          const kw = txSearchKeyword.value;
+          if (kw) {
+            list = list.filter(t => matchesTxKeywords(t, kw));
+          }
           return list;
         });
 
+        const filteredTxStats = computed(() => calcTxStats(filteredTransactions.value));
+
         const recentTransactions = computed(() => {
+          const kw = txSearchKeyword.value;
+          if (kw) {
+            return transactions.value.filter(t => matchesTxKeywords(t, kw));
+          }
           return transactions.value.slice(0, 5);
         });
+
+        const recentSearchStats = computed(() => calcTxStats(recentTransactions.value));
 
         // ==========================================
         // 流水统计分析模块 (月度/年度时间筛选 + 包含纯流水 + 纯CSS圆锥渐变饼图)
@@ -7278,7 +7426,10 @@
         }
 
         // 记账 Modal
+        const txAutoBanner = ref('');
+
         function openNewTxModal() {
+          txAutoBanner.value = '';
           txForm.type = 'expense';
           txForm.amount = '';
           txForm.accountId = accounts.value.length > 0 ? accounts.value[0].id : '';
@@ -7293,6 +7444,123 @@
             receiptFileInputRef.value.value = '';
           }
           showTxModal.value = true;
+        }
+
+        // iCloud 云端自动备份状态与 3 秒防抖触发
+        const icloudAutoBackup = ref(window.MiaowuCloudSync ? window.MiaowuCloudSync.isAutoBackupEnabled() : false);
+        const icloudAvailable = ref(false);
+        const icloudChecking = ref(false);
+        const icloudStatusText = ref('网页版将优雅降级保存于本地，点击右侧可检测环境状态');
+        const icloudLastBackupTs = ref(window.MiaowuCloudSync ? window.MiaowuCloudSync.getLastBackupTime() : null);
+        const icloudLastBackupText = computed(() => (icloudLastBackupTs.value ? formatTime(icloudLastBackupTs.value) : '暂无备份记录'));
+        let cloudBackupTimer = null;
+
+        async function checkIcloudEnvironment() {
+          if (!window.MiaowuCloudSync) {
+            icloudAvailable.value = false;
+            icloudStatusText.value = '已安全保存在本地，开启 iCloud 后自动同步';
+            return;
+          }
+          icloudChecking.value = true;
+          try {
+            const res = await window.MiaowuCloudSync.checkAvailability();
+            icloudAvailable.value = !!(res && res.available);
+            icloudStatusText.value = (res && res.reason) || '已安全保存在本地，开启 iCloud 后自动同步';
+          } catch (_) {
+            icloudAvailable.value = false;
+            icloudStatusText.value = '已安全保存在本地，开启 iCloud 后自动同步';
+          } finally {
+            icloudChecking.value = false;
+          }
+        }
+
+        async function triggerCloudBackup(silent = false) {
+          if (!window.MiaowuCloudSync) return;
+          try {
+            const payload = await AssetDB.exportAllData();
+            const res = await window.MiaowuCloudSync.backupNow(payload);
+            if (res && res.timestamp) {
+              icloudLastBackupTs.value = res.timestamp;
+            }
+            if (res && res.reason) {
+              icloudStatusText.value = res.reason;
+            }
+            if (!silent) {
+              showToast(res && res.mode === 'icloud' ? '☁️ 已同步备份至 iCloud 云端 ✨' : '💾 已安全保存在本地，开启 iCloud 后自动同步 ✨');
+            }
+          } catch (err) {
+            if (!silent) {
+              showToast('备份异常: ' + (err && err.message ? err.message : err));
+            }
+          }
+        }
+
+        function toggleIcloudAutoBackup() {
+          if (window.MiaowuCloudSync) {
+            window.MiaowuCloudSync.setAutoBackupEnabled(icloudAutoBackup.value);
+          }
+          if (icloudAutoBackup.value) {
+            checkIcloudEnvironment();
+            triggerCloudBackup(true);
+            showToast('☁️ 已开启自动备份（未就绪时将静默保存在本地）');
+          } else {
+            showToast('已关闭自动备份');
+          }
+        }
+
+        function scheduleCloudAutoBackup() {
+          if (!icloudAutoBackup.value || !window.MiaowuCloudSync) return;
+          if (cloudBackupTimer) clearTimeout(cloudBackupTimer);
+          cloudBackupTimer = setTimeout(() => {
+            triggerCloudBackup(true);
+          }, 3000);
+        }
+
+        async function onCatButlerSaved() {
+          await refreshAllData();
+          scheduleCloudAutoBackup();
+        }
+
+        // URL Scheme / 网址参数自动唤醒记账（支持冷启动与热唤醒）
+        let lastHandledAutoBillUrl = '';
+        function handleAutoBillUrl(rawUrl) {
+          try {
+            if (!rawUrl || typeof rawUrl !== 'string') return false;
+            if (rawUrl === lastHandledAutoBillUrl) return false;
+            const qIdx = rawUrl.indexOf('?');
+            if (qIdx < 0) return false;
+            const params = new URLSearchParams(rawUrl.slice(qIdx + 1));
+            const isAutoBill = params.get('autobill') === '1' || params.has('text') || rawUrl.toLowerCase().includes('autobill');
+            if (!isAutoBill) return false;
+
+            const rawText = params.get('text') || '';
+            lastHandledAutoBillUrl = rawUrl;
+
+            let parsed = null;
+            if (window.CatButlerParser && typeof window.CatButlerParser.parseOcrBillText === 'function') {
+              parsed = window.CatButlerParser.parseOcrBillText(rawText, accounts.value);
+            }
+
+            openNewTxModal();
+            if (parsed) {
+              txForm.type = parsed.type === 'income' ? 'income' : 'expense';
+              txForm.amount = parsed.amount && parsed.amount > 0 ? parsed.amount : '';
+              txForm.category = parsed.category || (txForm.type === 'income' ? '其他收入' : '餐饮美食');
+              txForm.accountId = (parsed.accountId !== null && parsed.accountId !== undefined)
+                ? parsed.accountId
+                : (accounts.value.length > 0 ? accounts.value[0].id : '');
+              txForm.date = parsed.date || AssetDB.formatDate();
+              txForm.notes = parsed.notes || rawText.slice(0, 60);
+            } else {
+              txForm.notes = rawText.slice(0, 60);
+            }
+            txAutoBanner.value = '🐱 已自动识别账单，请核对后入账';
+            showTxModal.value = true;
+            return true;
+          } catch (err) {
+            console.warn('[AutoBill] 解析唤醒链接失败:', err);
+            return false;
+          }
         }
 
         // 右下角悬浮 "+" 按钮统一入口：智能分流
@@ -7343,8 +7611,10 @@
             });
 
             showTxModal.value = false;
+            txAutoBanner.value = '';
             showToast(txForm.accountId ? '记账成功！账户余额已联动更新 ✨' : '纯流水记录成功！(不计入资产) ✨');
             await refreshAllData();
+            scheduleCloudAutoBackup();
           } catch (err) {
             alert('保存失败: ' + err.message);
           }
@@ -7358,6 +7628,7 @@
             await AssetDB.deleteTransaction(item.id);
             showToast(item.accountId ? '流水已删除，账户余额已回滚' : '纯流水记录已删除');
             await refreshAllData();
+            scheduleCloudAutoBackup();
           }
         }
 
@@ -7997,6 +8268,7 @@
             batchTxList.value = [];
             showToast(`✨ 成功批量入账 ${savedCount} 笔流水！`);
             await refreshAllData();
+            scheduleCloudAutoBackup();
             currentTab.value = 'transactions';
           } catch (err) {
             alert('批量入账失败: ' + err.message);
@@ -8043,6 +8315,7 @@
               : '金额已成功更正，未产生任何收支流水 ✨'
             );
             await refreshAllData();
+            scheduleCloudAutoBackup();
           } catch (e) {
             alert('调额失败: ' + e.message);
           }
@@ -8535,6 +8808,40 @@
 
           await refreshAllData();
 
+          // 1) 网页端 URL 参数冷启动自动记账唤醒 (?autobill=1&text=...)
+          try {
+            const searchStr = window.location.search || '';
+            if (searchStr.includes('autobill=1') || searchStr.includes('text=')) {
+              const handled = handleAutoBillUrl(window.location.href);
+              if (handled) {
+                window.history.replaceState({}, '', window.location.pathname);
+              }
+            }
+          } catch (err) {
+            console.warn('[AutoBill] URL 参数检测异常:', err);
+          }
+
+          // 2) 安全兼容 Capacitor 原生 App 端 URL Scheme 唤醒（绝不使用 ES import）
+          try {
+            const capApp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+            if (capApp) {
+              if (typeof capApp.addListener === 'function') {
+                capApp.addListener('appUrlOpen', (data) => {
+                  if (data && data.url) {
+                    handleAutoBillUrl(data.url);
+                  }
+                });
+              }
+              if (typeof capApp.getLaunchUrl === 'function') {
+                capApp.getLaunchUrl().then((res) => {
+                  if (res && res.url) {
+                    handleAutoBillUrl(res.url);
+                  }
+                }).catch(() => {});
+              }
+            }
+          } catch (_) { /* 网页端安全忽略 */ }
+
           if (showMarketBoard.value) {
             refreshMarketQuotes();
             // 定时每 30 秒平滑静默刷新自选行情
@@ -8619,7 +8926,22 @@
           overview,
           filteredAccounts,
           filteredTransactions,
+          filteredTxStats,
           recentTransactions,
+          recentSearchStats,
+          txSearchInput,
+          txSearchKeyword,
+          clearTxSearch,
+          txAutoBanner,
+          icloudAutoBackup,
+          icloudAvailable,
+          icloudChecking,
+          icloudStatusText,
+          icloudLastBackupText,
+          checkIcloudEnvironment,
+          toggleIcloudAutoBackup,
+          triggerCloudBackup,
+          onCatButlerSaved,
           assetTypeSummaries,
           chartSegments,
           dominantCategoryName,

@@ -1,0 +1,43 @@
+{
+  "id": "/",
+  "name": "喵的粮仓",
+  "short_name": "喵的粮仓",
+  "description": "纯本地离线优先的个人资产与收支流水管理管家，懂事的资产粮仓，数据本地加密持久化。",
+  "start_url": ".",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#fbf5e7",
+  "theme_color": "#fbf5e7",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "public/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "public/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "public/screenshot-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "喵的粮仓 - 资产总览与收支趋势"
+    },
+    {
+      "src": "public/screenshot-2.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "喵的粮仓 - 宽屏端数据看板"
+    }
+  ]
+}

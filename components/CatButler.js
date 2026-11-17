@@ -705,10 +705,145 @@
     return bills;
   }
 
+  /**
+   * 付款截图 / 快捷指令 OCR 文本清洗与单笔账单提取
+   * @param {string} rawText 原始 OCR 文本
+   * @param {Array} accounts 账户列表
+   * @returns {Object} { type, amount, category, accountId, channel, date, notes }
+   */
+  function parseOcrBillText(rawText, accounts = []) {
+    const todayStr = fmtDate(new Date());
+    if (!rawText || typeof rawText !== 'string') {
+      return { type: 'expense', amount: null, category: '餐饮美食', accountId: null, channel: '', date: todayStr, notes: '' };
+    }
+
+    let text = toHalf(rawText).replace(/\r\n?/g, '\n');
+
+    // 0. 尝试提取 YYYY-MM-DD / YYYY/MM/DD 日期（先取后剔除噪声）
+    let detectedDate = todayStr;
+    const fullDateM = text.match(/(\d{4})[-/年](\d{1,2})[-/月](\d{1,2})日?/);
+    if (fullDateM) {
+      const y = Number(fullDateM[1]), m = Number(fullDateM[2]), d = Number(fullDateM[3]);
+      if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+        detectedDate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      }
+    }
+
+    // 1. 过滤截图噪声：HH:MM(:SS) 时间、YYYY-MM-DD / YYYY/MM/DD 日期、>=8 位纯数字单号
+    let cleaned = text
+      .replace(/\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?/g, ' ')
+      .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ')
+      .replace(/(?<![\d.])\d{8,}(?![\d.])/g, ' ');
+
+    // 2. 判定收支方向：包含 收款/退款/转入/已存入/红包 且不含 付款 时判为收入
+    const hasIncomeCue = /(收款|退款|转入|已存入|红包)/.test(cleaned);
+    const hasExpenseCue = /付款/.test(cleaned);
+    const direction = (hasIncomeCue && !hasExpenseCue) ? 'income' : 'expense';
+
+    // 3. 提取核心金额：优先带 ¥/￥ 符号，其次独立两位小数 (\d+\.\d{2})
+    let amount = null;
+    let amountToken = '';
+    const currencyMatches = [...cleaned.matchAll(/[+-]?\s*[¥￥]\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)/g)];
+    if (currencyMatches.length) {
+      for (const m of currencyMatches) {
+        const val = parseFloat(m[1].replace(/,/g, ''));
+        if (val > 0) {
+          amount = Math.round(val * 100) / 100;
+          amountToken = m[0];
+          break;
+        }
+      }
+    }
+    if (amount === null) {
+      const lineDecimalMatches = [...cleaned.matchAll(/(?:^|[\s\n])[+-]?(\d+\.\d{2})(?=$|[\s\n元块])/gm)];
+      const decList = lineDecimalMatches.length ? lineDecimalMatches : [...cleaned.matchAll(/(\d+\.\d{2})/g)];
+      for (const m of decList) {
+        const val = parseFloat(m[1]);
+        if (val > 0) {
+          amount = Math.round(val * 100) / 100;
+          amountToken = m[0];
+          break;
+        }
+      }
+    }
+    if (amount === null) {
+      const fallbackAmt = extractAmount(cleaned);
+      if (fallbackAmt && fallbackAmt.amount > 0) {
+        amount = fallbackAmt.amount;
+        amountToken = fallbackAmt.token;
+      }
+    }
+
+    // 4. 识别支付渠道与账户（微信/零钱 ➔ 微信；支付宝/花呗/余额宝 ➔ 支付宝）
+    let channel = '';
+    let accountId = null;
+    const accList = Array.isArray(accounts) ? accounts : [];
+    if (/(微信|零钱)/.test(cleaned)) {
+      channel = '微信';
+      const wxAcc = accList.find((a) => a && a.name && /(微信|零钱)/.test(a.name));
+      if (wxAcc) accountId = wxAcc.id;
+    } else if (/(支付宝|花呗|余额宝)/.test(cleaned)) {
+      channel = '支付宝';
+      const aliAcc = accList.find((a) => a && a.name && /(支付宝|花呗|余额宝)/.test(a.name));
+      if (aliAcc) accountId = aliAcc.id;
+    }
+    if (accountId === null) {
+      const matchedAcc = matchAccount(cleaned, accList);
+      if (matchedAcc !== undefined) accountId = matchedAcc;
+    }
+
+    // 5. 提取商户或商品说明作为备注
+    let noteStr = cleaned;
+    if (amountToken) {
+      noteStr = noteStr.replace(amountToken, ' ');
+    }
+    noteStr = noteStr
+      .replace(/(?:支付成功|付款成功|交易成功|收款成功|已支付|已收款|当前状态|支付时间|付款时间|交易时间|付款方式|支付方式|交易单号|商户单号|订单号|账单详情|商品说明|商品名称|收款方|商户全称|转账时间|账单分类|微信支付|支付宝支付|零钱通|零钱|余额宝|花呗|支付宝|微信)/g, ' ')
+      .replace(/[¥￥]/g, ' ')
+      .replace(/[\n\r\t]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/^[\s:：\-—~+·,，。]+|[\s:：\-—~+·,，。]+$/g, '')
+      .trim();
+
+    // 6. 复用现有分类字典匹配分类，并确保与判定方向一致
+    const dictResult = matchCategoryAndType(cleaned, noteStr);
+    let category = dictResult.category;
+    if (direction === 'income' && dictResult.type !== 'income') {
+      let matchedInc = null;
+      for (const [cat, kws] of Object.entries(incomeKeywordMap)) {
+        if (kws.some((kw) => cleaned.includes(kw) || noteStr.includes(kw))) {
+          matchedInc = cat;
+          break;
+        }
+      }
+      category = matchedInc || '其他收入';
+    } else if (direction === 'expense' && dictResult.type !== 'expense') {
+      let matchedExp = null;
+      for (const [cat, kws] of Object.entries(expenseKeywordMap)) {
+        if (kws.some((kw) => cleaned.includes(kw) || noteStr.includes(kw))) {
+          matchedExp = cat;
+          break;
+        }
+      }
+      category = matchedExp || '其他支出';
+    }
+
+    const notes = noteStr ? noteStr.slice(0, 60) : (channel ? `${channel}自动记账` : '');
+    return {
+      type: direction,
+      amount,
+      category,
+      accountId,
+      channel,
+      date: detectedDate,
+      notes
+    };
+  }
+
   const parserApi = {
     EXPENSE_CATEGORIES, INCOME_CATEGORIES, expenseKeywordMap, incomeKeywordMap,
     singleCharExpenseMap, singleCharIncomeMap, INTRINSIC_INCOME_CATEGORIES,
-    matchCategoryAndType, parseMultiMessage
+    matchCategoryAndType, parseMultiMessage, parseOcrBillText
   };
 
   // Node 环境（自动化测试）仅导出解析器
