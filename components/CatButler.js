@@ -717,7 +717,7 @@
       return { type: 'expense', amount: null, category: '餐饮美食', accountId: null, channel: '', date: todayStr, notes: '' };
     }
 
-    let text = toHalf(rawText).replace(/\r\n?/g, '\n');
+    let text = toHalf(rawText).replace(/^\s*MIAOWU_OCR:\s*/i, '').replace(/\r\n?/g, '\n');
 
     // 0. 尝试提取 YYYY-MM-DD / YYYY/MM/DD 日期（先取后剔除噪声）
     let detectedDate = todayStr;
@@ -1501,7 +1501,7 @@
 
       <div class="cb-input">
         <button type="button" class="cb-mic" :class="{ 'cb-listening': isListening }" title="语音记账" @click="toggleVoice">🎙️</button>
-        <textarea ref="inputEl" v-model="input" rows="1" :placeholder="isListening ? '正在听喵...请说出账单（如：早饭包子8.5微信）' : '例如：昨天早饭10，晚饭30 / 收到工资8000'" @keydown="onKeydown"></textarea>
+        <textarea ref="inputEl" v-model="input" rows="1" :placeholder="isListening ? '正在听喵...' : ''" @keydown="onKeydown"></textarea>
         <button class="cb-send" :disabled="!input.trim()" @click="send">发送</button>
       </div>
 

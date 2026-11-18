@@ -769,101 +769,40 @@
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* 原生 CSS 纯圆锥渐变 (conic-gradient) 极简环形饼图 */
+    /* SVG 环形扇区直接标注饼图 */
     .pie-chart-wrapper {
       display: flex;
       align-items: center;
-      justify-content: space-around;
-      gap: 16px;
-      padding: 12px 6px;
+      justify-content: center;
+      padding: 10px 6px;
       background: var(--bg-subtle);
       border: 1px solid var(--border-subtle);
       border-radius: 16px;
       margin: 6px 0 10px;
-    }
-
-    .pie-chart {
-      width: 128px;
-      height: 128px;
-      border-radius: 50%;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
-      flex-shrink: 0;
-      transition: background 0.4s ease;
-    }
-
-    .pie-chart-hole {
-      width: 76px;
-      height: 76px;
-      border-radius: 50%;
-      background: var(--bg-card);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      border: 1px solid var(--border-subtle);
-      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
-      padding: 4px;
-    }
-
-    .pie-center-label {
-      font-size: 10px;
-      color: var(--text-muted);
-      font-weight: 600;
-      line-height: 1.2;
-    }
-
-    .pie-center-val {
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--text-main);
-      max-width: 68px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      margin-top: 2px;
-    }
-
-    .pie-legend-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px 10px;
-      flex: 1;
-      min-width: 140px;
-    }
-
-    .pie-legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
       overflow: hidden;
     }
 
-    .pie-legend-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
+    .pie-svg-canvas {
+      width: 100%;
+      max-width: 420px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      overflow: visible;
+    }
+
+    .overview-sort-controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       flex-shrink: 0;
     }
 
-    .pie-legend-name {
-      color: var(--text-secondary);
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .pie-legend-pct {
-      color: var(--text-muted);
-      font-weight: 700;
-      font-size: 10.5px;
-      flex-shrink: 0;
+    .overview-sort-btn {
+      padding: 3px 7px !important;
+      font-size: 11px !important;
+      line-height: 1.2 !important;
+      border-radius: 7px !important;
     }
 
     /* ================================================= */
@@ -904,9 +843,12 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 6px;
       font-size: 11px;
+      white-space: nowrap;
       color: var(--text-muted);
-      padding: 8px 6px 0;
+      padding: 8px 4px 0;
+      overflow: hidden;
     }
 
     .trend-point-tooltip {
@@ -1016,8 +958,23 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      gap: 6px;
       width: 100%;
+    }
+
+    .tx-filter-row .filter-pills {
+      gap: 5px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tx-filter-row .pill {
+      height: auto;
+      line-height: 1.25;
+      padding: 5px 10px;
+      font-size: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .pill.pill-select,
@@ -1027,13 +984,17 @@
       background-color: var(--bg-card) !important;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
       background-repeat: no-repeat !important;
-      background-position: right 10px center !important;
+      background-position: right 6px center !important;
       background-size: 10px 10px !important;
-      padding-right: 28px;
-      max-width: 150px;
+      width: auto;
+      max-width: 88px;
+      flex: 0 0 auto;
+      height: auto;
+      line-height: 1.25;
+      padding: 4px 20px 4px 8px;
       text-overflow: ellipsis;
       overflow: hidden;
-      flex-shrink: 0;
+      white-space: nowrap;
       color: var(--text-main) !important;
       border: 1px solid var(--border-subtle) !important;
       font-size: 12px;
@@ -1816,12 +1777,14 @@
       color: #fff;
     }
 
-    /* Toast 通知 */
+    /* Toast 通知 (避开刘海屏/灵动岛安全区，2.5 秒自动淡出) */
     .toast-box {
       position: fixed;
-      top: 24px;
+      top: 64px;
+      top: max(64px, calc(env(safe-area-inset-top, 44px) + 18px)) !important;
       left: 50%;
       transform: translateX(-50%);
+      max-width: calc(100vw - 32px);
       background: var(--bg-card);
       border: 1px solid var(--primary);
       color: var(--text-main);
@@ -1830,60 +1793,20 @@
       font-size: 13px;
       font-weight: 600;
       box-shadow: var(--bg-card-shadow);
-      z-index: 200;
+      z-index: 10050;
       animation: popIn 0.2s ease-out;
+      transition: opacity 0.35s ease, transform 0.35s ease;
       display: flex;
       align-items: center;
       gap: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    /* 剪贴板自动填单悬浮胶囊 (iOS 权限兜底) */
-    .clipboard-autobill-wrap {
-      position: fixed;
-      top: calc(14px + env(safe-area-inset-top, 0px));
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 160;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      max-width: calc(100vw - 24px);
-      animation: popIn 0.25s ease-out;
-    }
-    .clipboard-autobill-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 16px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
-      color: #ffffff;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      white-space: nowrap;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-      cursor: pointer;
-    }
-    .clipboard-autobill-pill:active {
-      transform: scale(0.97);
-    }
-    .clipboard-autobill-close {
-      width: 28px;
-      height: 28px;
-      border-radius: 999px;
-      border: 1px solid var(--border-subtle);
-      background: var(--bg-card);
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
-      cursor: pointer;
-      flex-shrink: 0;
+    .toast-box.is-fading {
+      opacity: 0;
+      transform: translate(-50%, -6px);
     }
 
     /* 原生按压微缩放触觉视觉反馈 */
@@ -2929,30 +2852,28 @@
         gap: 4px;
       }
       .tx-filter-row {
-        overflow-x: auto;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
-        justify-content: flex-start;
-        gap: 6px;
-      }
-      .tx-filter-row::-webkit-scrollbar {
-        display: none;
+        justify-content: space-between;
+        gap: 4px;
       }
       .tx-filter-row .filter-pills {
-        flex: 0 0 auto !important;
+        flex: 1 1 auto !important;
+        min-width: 0;
         overflow-x: visible;
-        gap: 6px;
+        gap: 4px;
       }
-      .tx-filter-row .pill,
-      .tx-filter-row .pill.pill-select {
+      .tx-filter-row .pill {
         flex-shrink: 0;
         white-space: nowrap;
-        padding: 0 10px;
-        font-size: 12px;
+        padding: 5px 7px;
+        font-size: 11.5px;
       }
       .tx-filter-row .pill.pill-select {
-        padding-right: 24px;
-        max-width: 130px;
+        flex: 0 0 auto;
+        width: auto;
+        max-width: 84px;
+        padding: 4px 18px 4px 7px;
+        font-size: 11.5px;
+        background-position: right 5px center !important;
       }
       .analytics-footer-note {
         flex-direction: column;
@@ -3212,14 +3133,32 @@
       <!-- 顺序：1.总净资产卡片 2.环形图 3.近期流水 4.增长趋势 -->
       <!-- ============================================== -->
       <div v-if="currentTab === 'overview'" style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- 总览模块排序控制栏 -->
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: -10px; order: -1;">
+          <button
+            type="button"
+            class="btn-sm"
+            @click="toggleOverviewSortMode"
+            style="white-space: nowrap; flex-shrink: 0; padding: 5px 10px; font-size: 12px; font-weight: 700;"
+            :style="isEditingOverviewOrder ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)' } : {}"
+          >
+            {{ isEditingOverviewOrder ? '✓ 完成排序' : '↕️ 模块排序' }}
+          </button>
+        </div>
         
         <!-- 1. 核心总净资产卡片 -->
-        <section class="card hero-card">
+        <section class="card hero-card" :style="{ order: getOverviewModuleOrder('netWorth') }">
           <div class="hero-top">
             <div class="hero-label">
               <span>🐟 粮仓总净资产 (Net Worth)</span>
             </div>
-            <span style="font-size: 11px; color: var(--text-muted);">实时汇总</span>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <span v-if="!isEditingOverviewOrder" style="font-size: 11px; color: var(--text-muted);">实时汇总</span>
+              <div v-if="isEditingOverviewOrder" class="overview-sort-controls">
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('netWorth', -1)" @click.stop="moveOverviewModule('netWorth', -1)" title="上移">⬆️</button>
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('netWorth', 1)" @click.stop="moveOverviewModule('netWorth', 1)" title="下移">⬇️</button>
+              </div>
+            </div>
           </div>
 
           <div class="hero-amount">
@@ -3264,16 +3203,17 @@
         </section>
 
         <!-- 1.5 自选行情看板 (股票/黄金) 模块 (可配置开关) -->
-        <section v-if="showMarketBoard" class="market-board-card">
+        <section v-if="showMarketBoard" class="market-board-card" :style="{ order: getOverviewModuleOrder('market') }">
           <div class="market-board-header">
             <div class="market-board-title">
               <span>📈 自选行情看板</span>
-              <span v-if="marketLastUpdate" style="font-size: 11px; font-weight: 500; color: var(--text-muted);">
+              <span v-if="marketLastUpdate && !isEditingOverviewOrder" style="font-size: 11px; font-weight: 500; color: var(--text-muted);">
                 {{ marketLastUpdate }}
               </span>
             </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
               <button
+                v-if="!isEditingOverviewOrder"
                 type="button"
                 class="btn-sm"
                 @click="refreshMarketQuotes"
@@ -3284,6 +3224,7 @@
                 <span>{{ marketLoading ? '更新中' : '刷新' }}</span>
               </button>
               <button
+                v-if="!isEditingOverviewOrder"
                 type="button"
                 class="btn-sm"
                 @click="openSettingsModal('market')"
@@ -3292,6 +3233,10 @@
               >
                 <span>⚙️ 自选</span>
               </button>
+              <div v-if="isEditingOverviewOrder" class="overview-sort-controls">
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('market', -1)" @click.stop="moveOverviewModule('market', -1)" title="上移">⬆️</button>
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('market', 1)" @click.stop="moveOverviewModule('market', 1)" title="下移">⬇️</button>
+              </div>
             </div>
           </div>
 
@@ -3329,7 +3274,7 @@
         </section>
 
         <!-- 2. 各类型资产占比环形图模块 -->
-        <section class="card chart-card">
+        <section class="card chart-card" :style="{ order: getOverviewModuleOrder('assetDonut') }">
           <div class="card-header">
             <div class="card-title">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -3337,7 +3282,13 @@
               </svg>
               各类型资产占比
             </div>
-            <span style="font-size: 11px; color: var(--text-muted);">共 {{ accounts.length }} 个资产账户</span>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <span v-if="!isEditingOverviewOrder" style="font-size: 11px; color: var(--text-muted);">共 {{ accounts.length }} 个资产账户</span>
+              <div v-if="isEditingOverviewOrder" class="overview-sort-controls">
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('assetDonut', -1)" @click.stop="moveOverviewModule('assetDonut', -1)" title="上移">⬆️</button>
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('assetDonut', 1)" @click.stop="moveOverviewModule('assetDonut', 1)" title="下移">⬇️</button>
+              </div>
+            </div>
           </div>
 
           <div class="chart-layout">
@@ -3390,7 +3341,7 @@
         </section>
 
         <!-- 3. 近期流水概览卡片 -->
-        <section class="card quick-flow-card">
+        <section class="card quick-flow-card" :style="{ order: getOverviewModuleOrder('recentFlow') }">
           <div class="card-header">
             <div class="card-title">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -3398,7 +3349,13 @@
               </svg>
               近期收支动态
             </div>
-            <button class="btn-sm" @click="currentTab = 'transactions'">全部流水 &gt;</button>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <button v-if="!isEditingOverviewOrder" class="btn-sm" @click="currentTab = 'transactions'">全部流水 &gt;</button>
+              <div v-if="isEditingOverviewOrder" class="overview-sort-controls">
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('recentFlow', -1)" @click.stop="moveOverviewModule('recentFlow', -1)" title="上移">⬆️</button>
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('recentFlow', 1)" @click.stop="moveOverviewModule('recentFlow', 1)" title="下移">⬇️</button>
+              </div>
+            </div>
           </div>
 
           <!-- 首页快速搜索账单 -->
@@ -3474,7 +3431,7 @@
         </section>
 
         <!-- 4. 资产增长趋势折线/面积图模块 (置于最下方) -->
-        <section class="card trend-card">
+        <section class="card trend-card" :style="{ order: getOverviewModuleOrder('trend') }">
           <div class="card-header">
             <div class="card-title">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -3483,12 +3440,18 @@
               </svg>
               资产增长趋势
             </div>
-            <div class="trend-meta-badge">
-              <span>从启用到今: </span>
-              <strong :style="{ color: overallGrowth >= 0 ? '#34d399' : '#fb7185' }">
-                {{ overallGrowth >= 0 ? '+' : '' }}¥{{ hideAmount ? '•••' : formatNumber(overallGrowth) }}
-                ({{ overallGrowthPercent >= 0 ? '+' : '' }}{{ overallGrowthPercent }}%)
-              </strong>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <div v-if="!isEditingOverviewOrder" class="trend-meta-badge">
+                <span>从启用到今: </span>
+                <strong :style="{ color: overallGrowth >= 0 ? '#34d399' : '#fb7185' }">
+                  {{ overallGrowth >= 0 ? '+' : '' }}¥{{ hideAmount ? '•••' : formatNumber(overallGrowth) }}
+                  ({{ overallGrowthPercent >= 0 ? '+' : '' }}{{ overallGrowthPercent }}%)
+                </strong>
+              </div>
+              <div v-if="isEditingOverviewOrder" class="overview-sort-controls">
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('trend', -1)" @click.stop="moveOverviewModule('trend', -1)" title="上移">⬆️</button>
+                <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('trend', 1)" @click.stop="moveOverviewModule('trend', 1)" title="下移">⬇️</button>
+              </div>
             </div>
           </div>
 
@@ -3510,22 +3473,22 @@
               <svg viewBox="0 0 500 180" class="trend-svg" preserveAspectRatio="none">
                 <defs>
                   <linearGradient id="trendAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--trend-stroke)" stop-opacity="0.45"/>
+                    <stop offset="0%" stop-color="var(--trend-stroke)" stop-opacity="0.28"/>
                     <stop offset="100%" stop-color="var(--trend-stroke)" stop-opacity="0.0"/>
                   </linearGradient>
                 </defs>
 
-                <!-- 网格辅助横线 -->
-                <line x1="20" y1="35" x2="480" y2="35" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
-                <line x1="20" y1="85" x2="480" y2="85" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
-                <line x1="20" y1="135" x2="480" y2="135" stroke="rgba(255,255,255,0.08)"/>
+                <!-- 3 条浅色水平虚线网格 -->
+                <line x1="20" y1="35" x2="480" y2="35" stroke="var(--border-subtle)" stroke-opacity="0.7" stroke-dasharray="4 4"/>
+                <line x1="20" y1="88" x2="480" y2="88" stroke="var(--border-subtle)" stroke-opacity="0.7" stroke-dasharray="4 4"/>
+                <line x1="20" y1="140" x2="480" y2="140" stroke="var(--border-subtle)" stroke-opacity="0.7" stroke-dasharray="4 4"/>
 
-                <!-- 渐变面积 -->
+                <!-- 底部柔和渐变填充 -->
                 <path :d="trendAreaPath" fill="url(#trendAreaGrad)"/>
-                <!-- 平滑曲线 -->
-                <path :d="trendLinePath" fill="none" stroke="var(--trend-stroke)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- 2.5px 平滑贝塞尔曲线 -->
+                <path :d="trendLinePath" fill="none" stroke="var(--trend-stroke)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-                <!-- 数据节点与点击交互 -->
+                <!-- 数据节点（仅最新节点与当前选中节点绘制带白边的高亮圆点） -->
                 <g
                   v-for="(pt, idx) in trendPoints"
                   :key="idx"
@@ -3533,16 +3496,19 @@
                   @click="activeTrendPoint = pt"
                   style="cursor: pointer;"
                 >
-                  <circle :cx="pt.x" :cy="pt.y" r="5" fill="var(--bg-main)" stroke="var(--trend-stroke)" stroke-width="2.5" />
-                  <circle v-if="activeTrendPoint?.date === pt.date" :cx="pt.x" :cy="pt.y" r="8" fill="var(--trend-stroke)" fill-opacity="0.35" />
+                  <circle :cx="pt.x" :cy="pt.y" r="14" fill="transparent" />
+                  <template v-if="idx === trendPoints.length - 1 || activeTrendPoint?.date === pt.date">
+                    <circle :cx="pt.x" :cy="pt.y" r="8" fill="var(--trend-stroke)" fill-opacity="0.22" />
+                    <circle :cx="pt.x" :cy="pt.y" r="4.5" fill="var(--trend-stroke)" stroke="#ffffff" stroke-width="2" />
+                  </template>
                 </g>
               </svg>
 
-              <!-- X 轴说明 -->
+              <!-- X 轴单行两端对齐日期与提示 -->
               <div class="trend-x-axis">
-                <span>{{ trendSnapshots[0]?.date || '开始' }} (启始粮仓)</span>
-                <span>点击节点查看历史数值 · 持续记录中 🐾</span>
-                <span>{{ trendSnapshots[trendSnapshots.length - 1]?.date || '今天' }} (目前)</span>
+                <span style="flex-shrink: 0; white-space: nowrap;">{{ trendSnapshots[0]?.date || '开始' }}</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; opacity: 0.85;">点击节点查看历史</span>
+                <span style="flex-shrink: 0; white-space: nowrap;">{{ trendSnapshots[trendSnapshots.length - 1]?.date || '今天' }}</span>
               </div>
             </div>
           </div>
@@ -3562,13 +3528,13 @@
             </svg>
             资产账户明细
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button class="btn-sm" @click="showReorderModal = true" style="display: flex; align-items: center; gap: 4px; padding: 7px 11px; font-weight: 700;" title="自定义调整账户展示顺序">
+          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+            <button class="btn-sm" @click="showReorderModal = true" style="display: inline-flex; align-items: center; gap: 3px; padding: 6px 9px; font-weight: 700; font-size: 12px; white-space: nowrap; flex-shrink: 0;" title="自定义调整账户展示顺序">
               <span>↕️</span>
               <span>调整顺序</span>
             </button>
-            <button class="btn-primary" @click="openAddAccountModal">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <button class="btn-primary" @click="openAddAccountModal" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               快速添加账户
             </button>
           </div>
@@ -3744,58 +3710,49 @@
       <!-- ============================================== -->
       <!-- TAB 3: 流水记账                               -->
       <!-- ============================================== -->
-      <div v-if="currentTab === 'transactions'" style="display: flex; flex-direction: column; gap: 14px;">
+      <div v-if="currentTab === 'transactions'" style="display: flex; flex-direction: column; gap: 12px;">
         
-        <div class="acc-header-actions">
-          <div class="card-title">
-            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        <!-- 顶部单行功能栏: 📷 智能识别 + 记一笔 + 🔍 流水搜索 -->
+        <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+          <button class="btn-ocr-header" @click="triggerOcrUpload" style="padding: 6px 8px; font-size: 12px; white-space: nowrap; flex-shrink: 0;">
+            📷 智能识别
+          </button>
+          <button class="btn-primary" @click="openNewTxModal" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; gap: 3px;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            记一笔
+          </button>
+          <div style="position: relative; flex: 1; min-width: 0;">
+            <svg style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            流水明细
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <button class="btn-ocr-header" @click="triggerOcrUpload">
-              📷 智能识别票据/长图
-            </button>
-            <button class="btn-primary" @click="openNewTxModal">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              记一笔
-            </button>
+            <input
+              type="text"
+              v-model="txSearchInput"
+              class="form-input"
+              placeholder="流水搜索"
+              style="width: 100%; padding-left: 26px; padding-right: 24px; font-size: 12px; height: 32px; border-radius: 10px;"
+            />
+            <button
+              v-if="txSearchInput"
+              type="button"
+              @click="clearTxSearch"
+              style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 3px;"
+              title="清空搜索"
+            >×</button>
           </div>
         </div>
 
-        <!-- 流水关键字实时搜索栏 -->
-        <div style="position: relative; margin-top: -2px;">
-          <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            type="text"
-            v-model="txSearchInput"
-            class="form-input"
-            placeholder="搜索账户、分类、金额或备注..."
-            style="padding-left: 36px; padding-right: 32px; font-size: 13px; height: 38px; border-radius: 10px;"
-          />
-          <button
-            v-if="txSearchInput"
-            type="button"
-            @click="clearTxSearch"
-            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px;"
-            title="清空搜索"
-          >×</button>
-        </div>
-
-        <div v-if="txSearchKeyword" style="font-size: 12px; color: var(--text-muted); margin-top: -6px; padding: 5px 10px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border-subtle);">
+        <div v-if="txSearchKeyword" style="font-size: 12px; color: var(--text-muted); margin-top: -4px; padding: 5px 10px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border-subtle);">
           共找到 <b style="color: var(--text-main);">{{ filteredTxStats.count }}</b> 笔记录 | 支出 <span class="amt-expense">¥{{ hideAmount ? '•••' : formatNumber(filteredTxStats.totalExpense) }}</span> · 收入 <span class="amt-income">¥{{ hideAmount ? '•••' : formatNumber(filteredTxStats.totalIncome) }}</span>
         </div>
 
-        <!-- 筛选控件 (采用统一构图逻辑，收支类型与全部账户胶囊高度、样式及基线严格和谐对齐) -->
+        <!-- 筛选控件 (紧凑展示 全部收支/支出/收入/内部转账 + 全部账户) -->
         <div class="tx-filter-row">
-          <div class="filter-pills" style="flex: 1; min-width: 0;">
+          <div class="filter-pills">
             <button class="pill" :class="{ active: txFilterType === '' }" @click="txFilterType = ''">全部收支</button>
             <button class="pill" :class="{ active: txFilterType === 'expense' }" @click="txFilterType = 'expense'">支出</button>
             <button class="pill" :class="{ active: txFilterType === 'income' }" @click="txFilterType = 'income'">收入</button>
-            <button class="pill" :class="{ active: txFilterType === 'transfer' }" @click="txFilterType = 'transfer'">转账</button>
+            <button class="pill" :class="{ active: txFilterType === 'transfer' }" @click="txFilterType = 'transfer'">内部转账</button>
           </div>
           
           <select
@@ -3956,7 +3913,7 @@
           </div>
         </div>
 
-        <!-- 2. 消费支出分类排行榜与纯 CSS 圆锥渐变饼图 -->
+        <!-- 2. 消费支出分类排行榜与扇区直标环形饼图 -->
         <div class="card">
           <div class="card-header">
             <div class="card-title">
@@ -3971,31 +3928,49 @@
           </div>
 
           <div v-else style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- 原生 CSS 纯圆锥渐变 (conic-gradient) 极简环形饼图 -->
+            <!-- SVG 扇区直接标注纯文字（分类名称 + 百分比）环形饼图 -->
             <div class="pie-chart-wrapper">
-              <div class="pie-chart" :style="{ background: pieChartGradient }">
-                <div class="pie-chart-hole">
-                  <div class="pie-center-label">{{ analyticsTimeMode === 'year' ? '全年支出' : '月支出' }}</div>
-                  <div class="pie-center-val">¥{{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalExpense) }}</div>
-                </div>
-              </div>
-
-              <!-- 饼图右侧核心分类图例 (Top 6) -->
-              <div class="pie-legend-grid">
-                <div
-                  v-for="item in monthlyCategoryExpenses.slice(0, 6)"
-                  :key="item.category"
-                  class="pie-legend-item"
-                >
-                  <span class="pie-legend-dot" :style="{ backgroundColor: item.color }"></span>
-                  <span class="pie-legend-name" style="display: inline-flex; align-items: center; gap: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" style="width: 14px; height: 14px; flex-shrink: 0;" alt="" />
-                    <span v-else>{{ item.emoji }}</span>
-                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item.category }}</span>
-                  </span>
-                  <span class="pie-legend-pct">{{ item.percent }}%</span>
-                </div>
-              </div>
+              <svg :viewBox="`0 0 380 ${expensePieData.height}`" class="pie-svg-canvas">
+                <template v-for="(seg, idx) in expensePieData.slices" :key="seg.category + '-' + idx">
+                  <circle
+                    v-if="seg.isFull"
+                    :cx="expensePieData.cx"
+                    :cy="expensePieData.cy"
+                    :r="(expensePieData.R + expensePieData.r) / 2"
+                    fill="none"
+                    :stroke="seg.color"
+                    :stroke-width="expensePieData.R - expensePieData.r"
+                  />
+                  <path
+                    v-else
+                    :d="seg.path"
+                    :fill="seg.color"
+                    stroke="var(--bg-card)"
+                    stroke-width="1.5"
+                  />
+                </template>
+                <!-- 中心圆孔背景 -->
+                <circle :cx="expensePieData.cx" :cy="expensePieData.cy" :r="expensePieData.r - 1" fill="var(--bg-card)" stroke="var(--border-subtle)" stroke-width="1" />
+                <text :x="expensePieData.cx" :y="expensePieData.cy - 6" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--text-muted)">
+                  {{ analyticsTimeMode === 'year' ? '全年支出' : '月支出' }}
+                </text>
+                <text :x="expensePieData.cx" :y="expensePieData.cy + 11" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text-main)">
+                  ¥{{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalExpense) }}
+                </text>
+                <!-- 扇区外延引导线与纯文字标签 (无图标) -->
+                <g v-for="(lbl, lIdx) in expensePieData.labels" :key="'exp-lbl-' + lIdx">
+                  <circle :cx="lbl.ax" :cy="lbl.ay" r="2.2" :fill="lbl.color" />
+                  <polyline :points="lbl.points" fill="none" :stroke="lbl.color" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                  <text
+                    :x="lbl.textX"
+                    :y="lbl.textY + 3.5"
+                    :text-anchor="lbl.anchor"
+                    font-size="10.5"
+                    font-weight="700"
+                    fill="var(--text-main)"
+                  >{{ lbl.label }}</text>
+                </g>
+              </svg>
             </div>
 
             <!-- 分类进度条排行榜 -->
@@ -4034,43 +4009,93 @@
           </div>
         </div>
 
-        <!-- 3. 收入来源分类明细 (仅当有收入时呈现) -->
-        <div v-if="monthlyCategoryIncomes.length > 0" class="card">
+        <!-- 3. 收入分类排行与环形饼图 -->
+        <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <span>💰 收入来源分类分布</span>
+              <span>💰 收入分类排行</span>
             </div>
             <span style="font-size: 12px; color: var(--text-muted);">按收入金额降序</span>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <div
-              v-for="item in monthlyCategoryIncomes"
-              :key="item.category"
-              class="analytics-cat-item"
-            >
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" :alt="item.category" />
-                  <span v-else style="font-size: 16px;">{{ item.emoji }}</span>
-                  <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
-                  <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
-                </div>
-                <div style="text-align: right;">
-                  <span style="font-size: 14px; font-weight: 700; color: #10b981;">
-                    +¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
-                  </span>
-                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 6px;">
-                    {{ item.percent }}%
-                  </span>
-                </div>
-              </div>
+          <div v-if="monthlyCategoryIncomes.length === 0" class="empty-state">
+            <div class="empty-icon">🌱</div>
+            <div>该{{ analyticsTimeMode === 'year' ? '年份' : '月份' }}暂无收入流水记录</div>
+          </div>
 
-              <div class="analytics-progress-track">
-                <div
-                  class="analytics-progress-fill"
-                  :style="{ width: item.percent + '%', backgroundColor: item.color }"
-                ></div>
+          <div v-else style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- SVG 收入扇区直标环形饼图 -->
+            <div class="pie-chart-wrapper">
+              <svg :viewBox="`0 0 380 ${incomePieData.height}`" class="pie-svg-canvas">
+                <template v-for="(seg, idx) in incomePieData.slices" :key="seg.category + '-' + idx">
+                  <circle
+                    v-if="seg.isFull"
+                    :cx="incomePieData.cx"
+                    :cy="incomePieData.cy"
+                    :r="(incomePieData.R + incomePieData.r) / 2"
+                    fill="none"
+                    :stroke="seg.color"
+                    :stroke-width="incomePieData.R - incomePieData.r"
+                  />
+                  <path
+                    v-else
+                    :d="seg.path"
+                    :fill="seg.color"
+                    stroke="var(--bg-card)"
+                    stroke-width="1.5"
+                  />
+                </template>
+                <circle :cx="incomePieData.cx" :cy="incomePieData.cy" :r="incomePieData.r - 1" fill="var(--bg-card)" stroke="var(--border-subtle)" stroke-width="1" />
+                <text :x="incomePieData.cx" :y="incomePieData.cy - 6" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--text-muted)">
+                  {{ analyticsTimeMode === 'year' ? '全年收入' : '月收入' }}
+                </text>
+                <text :x="incomePieData.cx" :y="incomePieData.cy + 11" text-anchor="middle" font-size="12" font-weight="800" fill="#10b981">
+                  ¥{{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalIncome) }}
+                </text>
+                <g v-for="(lbl, lIdx) in incomePieData.labels" :key="'inc-lbl-' + lIdx">
+                  <circle :cx="lbl.ax" :cy="lbl.ay" r="2.2" :fill="lbl.color" />
+                  <polyline :points="lbl.points" fill="none" :stroke="lbl.color" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
+                  <text
+                    :x="lbl.textX"
+                    :y="lbl.textY + 3.5"
+                    :text-anchor="lbl.anchor"
+                    font-size="10.5"
+                    font-weight="700"
+                    fill="var(--text-main)"
+                  >{{ lbl.label }}</text>
+                </g>
+              </svg>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div
+                v-for="item in monthlyCategoryIncomes"
+                :key="item.category"
+                class="analytics-cat-item"
+              >
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <img v-if="getCategoryImg(item.category)" :src="getCategoryImg(item.category)" class="w-10 h-10 object-contain" style="width: 20px; height: 20px;" :alt="item.category" />
+                    <span v-else style="font-size: 16px;">{{ item.emoji }}</span>
+                    <span style="font-size: 14px; font-weight: 700; color: var(--text-main);">{{ item.category }}</span>
+                    <span style="font-size: 11px; color: var(--text-muted);">({{ item.count }} 笔)</span>
+                  </div>
+                  <div style="text-align: right;">
+                    <span style="font-size: 14px; font-weight: 700; color: #10b981;">
+                      +¥ {{ hideAmount ? '•••' : formatNumber(item.amount) }}
+                    </span>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 6px;">
+                      {{ item.percent }}%
+                    </span>
+                  </div>
+                </div>
+
+                <div class="analytics-progress-track">
+                  <div
+                    class="analytics-progress-fill"
+                    :style="{ width: item.percent + '%', backgroundColor: item.color }"
+                  ></div>
+                </div>
               </div>
             </div>
           </div>
@@ -5549,16 +5574,8 @@
       </div>
     </div>
 
-    <!-- 剪贴板自动填单悬浮胶囊按钮 (iOS 权限兜底) -->
-    <div v-if="showClipboardPrompt && !isLocked" class="clipboard-autobill-wrap">
-      <button type="button" class="clipboard-autobill-pill" @click="handleClipboardPromptClick">
-        📋 检测到刚截取的账单，点此一键自动填单
-      </button>
-      <button type="button" class="clipboard-autobill-close" @click="showClipboardPrompt = false" title="关闭">✕</button>
-    </div>
-
     <!-- 浮动 Toast 消息 -->
-    <div v-if="toastMessage" class="toast-box">
+    <div v-if="toastMessage" class="toast-box" :class="{ 'is-fading': toastFading }">
       <span>✨</span>
       <span>{{ toastMessage }}</span>
     </div>
@@ -5579,6 +5596,26 @@
         const currentTab = ref('overview');
         const hideAmount = ref(localStorage.getItem('hideAmount') === 'true');
         const toastMessage = ref('');
+        const toastFading = ref(false);
+        const DEFAULT_OVERVIEW_ORDER = ['netWorth', 'market', 'assetDonut', 'recentFlow', 'trend'];
+        function loadOverviewModuleOrder() {
+          try {
+            const raw = localStorage.getItem('miaowu_overview_module_order');
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                const valid = parsed.filter((k) => DEFAULT_OVERVIEW_ORDER.includes(k));
+                for (const defKey of DEFAULT_OVERVIEW_ORDER) {
+                  if (!valid.includes(defKey)) valid.push(defKey);
+                }
+                return valid;
+              }
+            }
+          } catch (_) {}
+          return [...DEFAULT_OVERVIEW_ORDER];
+        }
+        const overviewModuleOrder = ref(loadOverviewModuleOrder());
+        const isEditingOverviewOrder = ref(false);
         const showThemeModal = ref(false);
         const settingsTab = ref('theme'); // 'theme' | 'security' | 'reset' | 'version'
         const openSettingsModal = (tab = 'theme') => {
@@ -5595,8 +5632,19 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.6');
+        const currentVersion = ref('v5.0.7');
         const versionHistoryList = [
+          {
+            version: 'v5.0.7',
+            date: '2026-11-18',
+            title: '✨ 图表与界面全面精修、总览自定义排序与宽容型剪贴板填单',
+            features: [
+              '刘海屏/灵动岛 Toast 防遮挡与自动淡出：顶部通知下移避开灵动岛区域，并在 2.5 秒后平滑淡出移除；移除剪贴板误报红条，放宽 parseOcrBillText 识别条件，剪贴板含有效金额即可直接预填记账；',
+              '流水页顶栏与筛选栏重构：去除“流水明细”标题，将「流水搜索」框整合至“记一笔”右侧单行展示，压缩“全部账户”宽度让「内部转账」与全部收支筛选同屏完整露出；',
+              '统计页饼图直标与收入饼图上线：移除右侧图例，改用 SVG 扇区外延引导线直标纯文字「分类 + 占比」并防重叠错位，新增「收入分类排行」环形饼图；',
+              '总览自定义排序、趋势图美化与细节打磨：新增「模块排序」持久化记忆，资产趋势图改用 2.5px 平滑曲线与 3 条浅色虚线网格并精简节点圆点，同步清理喵记账输入框冗余提示、修复“调整顺序”按钮单行显示，缓存升级至 personal-asset-pwa-v48。'
+            ]
+          },
           {
             version: 'v5.0.6',
             date: '2026-11-18',
@@ -7075,7 +7123,7 @@
           return result;
         });
 
-        // 纯 CSS 圆锥渐变 (conic-gradient) 饼图动态样式
+        // 纯 CSS 圆锥渐变 (conic-gradient) 饼图兼容计算
         const pieChartGradient = computed(() => {
           const list = monthlyCategoryExpenses.value;
           const total = monthlyAnalytics.value.totalExpense;
@@ -7094,6 +7142,139 @@
           }
           return `conic-gradient(${segments.join(', ')})`;
         });
+
+        // SVG 扇区直接标注环形饼图生成器（自动对 <5% 相邻小扇区外延引导线错位防重叠）
+        function buildAnnotatedPieData(list, total) {
+          const cx = 190;
+          const R = 60;
+          const r = 34;
+          if (!list || list.length === 0 || total <= 0) {
+            return { cx, cy: 115, height: 230, R, r, slices: [], labels: [] };
+          }
+
+          // 预计算左右两侧标签数量，动态决定画布高度避免上下溢出
+          let curAngle = -Math.PI / 2;
+          let rightCount = 0;
+          let leftCount = 0;
+          const rawSlices = list.map((item) => {
+            const frac = item.amount / total;
+            const sweep = frac * Math.PI * 2;
+            const startAngle = curAngle;
+            const endAngle = curAngle + sweep;
+            const midAngle = (startAngle + endAngle) / 2;
+            curAngle = endAngle;
+            const isRight = list.length === 1 ? true : Math.cos(midAngle) >= 0;
+            if (isRight) rightCount++; else leftCount++;
+            return { item, startAngle, endAngle, midAngle, isRight };
+          });
+
+          const height = Math.max(220, Math.max(rightCount, leftCount) * 18 + 38);
+          const cy = +(height / 2).toFixed(1);
+
+          const slices = rawSlices.map((s) => {
+            const { item, startAngle, endAngle } = s;
+            if (list.length === 1 || (endAngle - startAngle) >= Math.PI * 1.999) {
+              return { category: item.category, color: item.color, isFull: true, path: '' };
+            }
+            const largeArc = (endAngle - startAngle) > Math.PI ? 1 : 0;
+            const x1 = cx + R * Math.cos(startAngle);
+            const y1 = cy + R * Math.sin(startAngle);
+            const x2 = cx + R * Math.cos(endAngle);
+            const y2 = cy + R * Math.sin(endAngle);
+            const ix2 = cx + r * Math.cos(endAngle);
+            const iy2 = cy + r * Math.sin(endAngle);
+            const ix1 = cx + r * Math.cos(startAngle);
+            const iy1 = cy + r * Math.sin(startAngle);
+            const d = [
+              `M ${x1.toFixed(2)} ${y1.toFixed(2)}`,
+              `A ${R} ${R} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`,
+              `L ${ix2.toFixed(2)} ${iy2.toFixed(2)}`,
+              `A ${r} ${r} 0 ${largeArc} 0 ${ix1.toFixed(2)} ${iy1.toFixed(2)}`,
+              'Z'
+            ].join(' ');
+            return { category: item.category, color: item.color, isFull: false, path: d };
+          });
+
+          const rightItems = [];
+          const leftItems = [];
+          for (const s of rawSlices) {
+            const angle = list.length === 1 ? 0 : s.midAngle;
+            const ax = cx + (R - 2) * Math.cos(angle);
+            const ay = cy + (R - 2) * Math.sin(angle);
+            const ny = cy + (R + 14) * Math.sin(angle);
+            const entry = {
+              item: s.item,
+              angle,
+              ax,
+              ay,
+              ny,
+              isRight: s.isRight,
+              isSmall: Number(s.item.percent) < 5
+            };
+            if (s.isRight) rightItems.push(entry);
+            else leftItems.push(entry);
+          }
+
+          function layoutSide(sideList, isRight) {
+            sideList.sort((a, b) => a.ny - b.ny);
+            const minGap = 15.5;
+            const topBound = 14;
+            const bottomBound = height - 12;
+
+            for (let i = 0; i < sideList.length; i++) {
+              let y = Math.max(topBound, sideList[i].ny);
+              if (i > 0) {
+                y = Math.max(y, sideList[i - 1].textY + minGap);
+              }
+              sideList[i].textY = y;
+            }
+            for (let i = sideList.length - 1; i >= 0; i--) {
+              if (i === sideList.length - 1) {
+                sideList[i].textY = Math.min(bottomBound, sideList[i].textY);
+              } else {
+                sideList[i].textY = Math.min(sideList[i].textY, sideList[i + 1].textY - minGap);
+              }
+              sideList[i].textY = Math.max(topBound, sideList[i].textY);
+            }
+
+            let smallRun = 0;
+            return sideList.map((entry, idx) => {
+              if (entry.isSmall) {
+                smallRun = (idx > 0 && sideList[idx - 1].isSmall) ? (smallRun + 1) : 0;
+              } else {
+                smallRun = 0;
+              }
+              const dir = isRight ? 1 : -1;
+              const radialExtra = entry.isSmall ? (10 + (smallRun % 3) * 8) : 11;
+              const elbowExtra = entry.isSmall ? (20 + (smallRun % 3) * 8) : 18;
+              const rawKx = cx + (R + radialExtra) * Math.cos(entry.angle);
+              const kx = isRight ? Math.max(rawKx, entry.ax + 4) : Math.min(rawKx, entry.ax - 4);
+              const ky = entry.textY;
+              const elbowX = cx + dir * (R + elbowExtra);
+              const textX = elbowX + dir * 4;
+              return {
+                ax: +entry.ax.toFixed(1),
+                ay: +entry.ay.toFixed(1),
+                textX: +textX.toFixed(1),
+                textY: +entry.textY.toFixed(1),
+                anchor: isRight ? 'start' : 'end',
+                color: entry.item.color,
+                label: `${entry.item.category} ${entry.item.percent}%`,
+                points: `${entry.ax.toFixed(1)},${entry.ay.toFixed(1)} ${kx.toFixed(1)},${ky.toFixed(1)} ${elbowX.toFixed(1)},${entry.textY.toFixed(1)}`
+              };
+            });
+          }
+
+          const labels = [
+            ...layoutSide(rightItems, true),
+            ...layoutSide(leftItems, false)
+          ];
+          return { cx, cy, height, R, r, slices, labels };
+        }
+
+        const expensePieData = computed(() =>
+          buildAnnotatedPieData(monthlyCategoryExpenses.value, monthlyAnalytics.value.totalExpense)
+        );
 
         const monthlyCategoryIncomes = computed(() => {
           const incomes = monthlyTransactions.value.filter(t => t.type === 'income');
@@ -7129,6 +7310,51 @@
           result.sort((a, b) => b.amount - a.amount);
           return result;
         });
+
+        const incomePieData = computed(() =>
+          buildAnnotatedPieData(monthlyCategoryIncomes.value, monthlyAnalytics.value.totalIncome)
+        );
+
+        const visibleOverviewModules = computed(() =>
+          overviewModuleOrder.value.filter((k) => k !== 'market' || showMarketBoard.value)
+        );
+
+        function toggleOverviewSortMode() {
+          isEditingOverviewOrder.value = !isEditingOverviewOrder.value;
+          triggerHaptic('light');
+        }
+
+        function getOverviewModuleOrder(key) {
+          const idx = overviewModuleOrder.value.indexOf(key);
+          return idx >= 0 ? idx : 99;
+        }
+
+        function canMoveOverviewModule(key, dir) {
+          const list = visibleOverviewModules.value;
+          const idx = list.indexOf(key);
+          if (idx < 0) return false;
+          return dir < 0 ? idx > 0 : idx < list.length - 1;
+        }
+
+        function moveOverviewModule(key, dir) {
+          const vis = visibleOverviewModules.value;
+          const visIdx = vis.indexOf(key);
+          const targetVisIdx = visIdx + dir;
+          if (visIdx < 0 || targetVisIdx < 0 || targetVisIdx >= vis.length) return;
+
+          const neighborKey = vis[targetVisIdx];
+          const next = [...overviewModuleOrder.value];
+          const aIdx = next.indexOf(key);
+          const bIdx = next.indexOf(neighborKey);
+          if (aIdx < 0 || bIdx < 0) return;
+
+          [next[aIdx], next[bIdx]] = [next[bIdx], next[aIdx]];
+          overviewModuleOrder.value = next;
+          try {
+            localStorage.setItem('miaowu_overview_module_order', JSON.stringify(next));
+          } catch (_) {}
+          triggerHaptic('light');
+        }
 
         // 资产类型汇总
         const assetTypeSummaries = computed(() => {
@@ -7295,11 +7521,24 @@
           return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         }
 
+        let toastFadeTimer = null;
+        let toastClearTimer = null;
         function showToast(msg) {
+          if (toastFadeTimer) clearTimeout(toastFadeTimer);
+          if (toastClearTimer) clearTimeout(toastClearTimer);
+          toastFading.value = false;
           toastMessage.value = msg;
-          setTimeout(() => {
-            if (toastMessage.value === msg) toastMessage.value = '';
-          }, 2400);
+          toastFadeTimer = setTimeout(() => {
+            if (toastMessage.value === msg) {
+              toastFading.value = true;
+            }
+          }, 2150);
+          toastClearTimer = setTimeout(() => {
+            if (toastMessage.value === msg) {
+              toastMessage.value = '';
+              toastFading.value = false;
+            }
+          }, 2500);
         }
 
         function toggleHideAmount() {
@@ -7716,9 +7955,9 @@
         }
 
         // 共用自动识别文本填单函数（供 URL 参数与剪贴板识别复用）
-        function applyAutoBillText(rawText, bannerText = '🐱 已自动识别账单，请核对后入账') {
-          let parsed = null;
-          if (window.CatButlerParser && typeof window.CatButlerParser.parseOcrBillText === 'function') {
+        function applyAutoBillText(rawText, bannerText = '🐱 已自动识别账单，请核对后入账', preParsed = null) {
+          let parsed = preParsed;
+          if (!parsed && window.CatButlerParser && typeof window.CatButlerParser.parseOcrBillText === 'function') {
             parsed = window.CatButlerParser.parseOcrBillText(rawText, accounts.value);
           }
 
@@ -7761,9 +8000,8 @@
           }
         }
 
-        // 剪贴板 MIAOWU_OCR: 自动填单检测（兼容 iOS WebKit NotAllowedError 权限兜底）
+        // 宽容型剪贴板自动填单检测（剥离可选 MIAOWU_OCR: 前缀，无前缀时只要提取出有效金额即自动填单）
         const CLIPBOARD_OCR_PREFIX = 'MIAOWU_OCR:';
-        const showClipboardPrompt = ref(false);
         let lastHandledClipboardHash = '';
         let lastHandledClipboardText = '';
 
@@ -7777,41 +8015,36 @@
         }
 
         async function checkClipboardAutoBill(isUserGesture = false) {
-          if (isUserGesture) {
-            showClipboardPrompt.value = false;
-          }
           try {
             if (typeof navigator === 'undefined' || !navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
-              if (isUserGesture) {
-                showToast('当前环境不支持读取剪贴板，请使用网址唤醒或手动记账');
-              }
               return false;
             }
 
             const clipText = await navigator.clipboard.readText();
-            if (typeof clipText !== 'string') {
-              showClipboardPrompt.value = false;
-              return false;
-            }
+            if (typeof clipText !== 'string') return false;
 
             const trimmedClip = clipText.trimStart();
-            if (!trimmedClip.startsWith(CLIPBOARD_OCR_PREFIX)) {
-              showClipboardPrompt.value = false;
+            if (!trimmedClip) return false;
+
+            const hasPrefix = trimmedClip.toUpperCase().startsWith(CLIPBOARD_OCR_PREFIX);
+            const cleanText = hasPrefix
+              ? trimmedClip.slice(CLIPBOARD_OCR_PREFIX.length).trim()
+              : trimmedClip.trim();
+            if (!cleanText) return false;
+
+            let parsed = null;
+            if (window.CatButlerParser && typeof window.CatButlerParser.parseOcrBillText === 'function') {
+              parsed = window.CatButlerParser.parseOcrBillText(cleanText, accounts.value);
+            }
+            if (!parsed || !(parsed.amount > 0)) {
               if (isUserGesture) {
-                showToast('剪贴板中未检测到快捷指令识别的账单');
+                showToast('剪贴板文本中未识别到有效账单金额');
               }
               return false;
             }
-
-            const cleanText = trimmedClip.slice(CLIPBOARD_OCR_PREFIX.length).trim();
-            showClipboardPrompt.value = false;
-            if (!cleanText) return false;
 
             const textHash = computeClipboardTextHash(cleanText);
             if (textHash === lastHandledClipboardHash && cleanText === lastHandledClipboardText) {
-              if (isUserGesture) {
-                showToast('该条剪贴板账单已处理过啦');
-              }
               return false;
             }
 
@@ -7826,7 +8059,7 @@
               }
             }
 
-            applyAutoBillText(cleanText, '🐱 已从快捷指令识别账单，请核对后入账');
+            applyAutoBillText(cleanText, '🐱 已从快捷指令识别账单，请核对后入账', parsed);
             return true;
           } catch (err) {
             const isPermissionDenied = err && (
@@ -7834,22 +8067,11 @@
               err.name === 'SecurityError' ||
               /NotAllowedError/i.test(String(err.message || err))
             );
-            if (!isUserGesture && isPermissionDenied) {
-              showClipboardPrompt.value = true;
-              return false;
+            if (!isPermissionDenied) {
+              console.warn('[AutoBill] 剪贴板读取异常:', err);
             }
-            if (isUserGesture && isPermissionDenied) {
-              showToast('读取剪贴板被系统拒绝，请在弹窗中点击“允许粘贴”');
-              return false;
-            }
-            console.warn('[AutoBill] 剪贴板读取异常:', err);
             return false;
           }
-        }
-
-        function handleClipboardPromptClick() {
-          showClipboardPrompt.value = false;
-          checkClipboardAutoBill(true);
         }
 
         // 右下角悬浮 "+" 按钮统一入口：智能分流
@@ -9343,6 +9565,12 @@
           toggleHideAmount,
           currentDateText,
           toastMessage,
+          toastFading,
+          isEditingOverviewOrder,
+          toggleOverviewSortMode,
+          getOverviewModuleOrder,
+          canMoveOverviewModule,
+          moveOverviewModule,
           showThemeModal,
           settingsTab,
           openSettingsModal,
@@ -9373,9 +9601,7 @@
           txSearchKeyword,
           clearTxSearch,
           txAutoBanner,
-          showClipboardPrompt,
           checkClipboardAutoBill,
-          handleClipboardPromptClick,
           icloudAutoBackup,
           icloudAvailable,
           icloudChecking,
@@ -9465,6 +9691,8 @@
           changeAnalyticsMonth,
           changeAnalyticsYear,
           pieChartGradient,
+          expensePieData,
+          incomePieData,
           monthlyTransactions,
           monthlyAnalytics,
           monthlyCategoryExpenses,
