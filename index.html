@@ -26,6 +26,7 @@
   <!-- IndexedDB 原生 Promise 封装层 -->
   <script src="./db.js"></script>
   <script src="./icloudSync.js"></script>
+  <script src="./biometricLock.js"></script>
   <script src="./components/CatButler.js?v=voice1"></script>
 
   <style>
@@ -157,11 +158,13 @@
       --safe-bottom: env(safe-area-inset-bottom, 16px);
     }
 
-    /* 锁定字体缩放比例 (禁止系统级放大破坏排版) */
+    /* 锁定字体缩放比例与外层回弹 (原生级防网页套壳感) */
     html, body {
       -webkit-text-size-adjust: 100% !important;
       text-size-adjust: 100% !important;
       -moz-text-size-adjust: 100% !important;
+      overscroll-behavior-y: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     * {
@@ -169,11 +172,15 @@
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
       user-select: none;
+      -webkit-touch-callout: none;
     }
 
-    input, textarea, select {
+    input, textarea, select, [contenteditable="true"] {
+      -webkit-user-select: auto;
       user-select: auto;
+      -webkit-touch-callout: default;
     }
 
     body {
@@ -1294,6 +1301,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
+      overscroll-behavior: contain;
       background: rgba(0, 0, 0, 0.72);
       backdrop-filter: blur(8px);
       z-index: 100;
@@ -1828,6 +1837,89 @@
       gap: 8px;
     }
 
+    /* 剪贴板自动填单悬浮胶囊 (iOS 权限兜底) */
+    .clipboard-autobill-wrap {
+      position: fixed;
+      top: calc(14px + env(safe-area-inset-top, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 160;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: calc(100vw - 24px);
+      animation: popIn 0.25s ease-out;
+    }
+    .clipboard-autobill-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+      cursor: pointer;
+    }
+    .clipboard-autobill-pill:active {
+      transform: scale(0.97);
+    }
+    .clipboard-autobill-close {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* 原生按压微缩放触觉视觉反馈 */
+    .nav-tab,
+    .cat-btn,
+    .tx-type-btn,
+    .icon-btn,
+    .btn-primary,
+    .btn-secondary,
+    .btn-sm,
+    .btn-close,
+    .btn-ocr-trigger,
+    .receipt-upload-btn,
+    .lock-transparent-btn,
+    .cal-day-cell,
+    button:not([style*="translate"]) {
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .nav-tab:active,
+    .cat-btn:active,
+    .tx-type-btn:active,
+    .icon-btn:active,
+    .btn-primary:active:not(:disabled),
+    .btn-secondary:active:not(:disabled),
+    .btn-sm:active:not(:disabled),
+    .btn-close:active,
+    .btn-ocr-trigger:active,
+    .receipt-upload-btn:active,
+    .lock-transparent-btn:active:not(:disabled),
+    .cal-day-cell:active,
+    button:not([style*="translate"]):active:not(:disabled) {
+      transform: scale(0.96);
+      transition: transform 0.08s ease;
+    }
+
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
@@ -1855,6 +1947,8 @@
       inset: 0;
       width: 100vw;
       height: 100vh;
+      height: 100dvh;
+      overscroll-behavior: none;
       z-index: 9999;
       background-color: #0b0f19;
       background-image: url('assets/lock-bg.jpg');
@@ -1967,6 +2061,14 @@
       background: rgba(255, 255, 255, 0.12) !important;
       font-weight: 700;
       letter-spacing: 3px;
+    }
+
+    .lock-transparent-btn.faceid-unlock-btn {
+      border-color: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.16) !important;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.38);
     }
 
     .lock-back-link {
@@ -2944,8 +3046,16 @@
       <!-- 场景 B: 已有暗号时的解锁与找回流程 (hasPasswordRecord) -->
       <!-- ============================================== -->
       <template v-else>
-        <!-- 阶段 1: 两个框（暗号 vs 暗号，我不需要暗号） -->
+        <!-- 阶段 1: 两个框（暗号 vs 暗号，我不需要暗号）+ Face ID 快捷按钮 -->
         <div v-show="lockViewMode === 'choice'" class="lock-content-box" :class="{ 'shake-anim': isShaking }">
+          <button
+            v-if="biometricSupported && biometricEnabled"
+            class="lock-transparent-btn faceid-unlock-btn"
+            @click="handleFaceIdUnlock(true)"
+            :disabled="biometricVerifying"
+          >
+            {{ biometricVerifying ? '🪪 正在验证 Face ID...' : '🪪 验证 Face ID 解锁' }}
+          </button>
           <button class="lock-transparent-btn" @click="handleChooseEnterCode">
             暗号
           </button>
@@ -2964,6 +3074,15 @@
           class="lock-content-box centered-box"
           @click="focusLockInput"
         >
+          <button
+            v-if="biometricSupported && biometricEnabled"
+            type="button"
+            class="lock-transparent-btn faceid-unlock-btn"
+            @click.stop="handleFaceIdUnlock(true)"
+            :disabled="biometricVerifying"
+          >
+            {{ biometricVerifying ? '🪪 正在验证 Face ID...' : '🪪 验证 Face ID 解锁' }}
+          </button>
           <div class="lock-input-wrap" :class="{ 'shake-anim': isShaking }" @click="focusLockInput">
             <input
               ref="lockInputRef"
@@ -4117,28 +4236,28 @@
 
     <!-- 底部导航栏 -->
     <nav class="bottom-nav">
-      <button class="nav-tab" :class="{ active: currentTab === 'overview' }" @click="currentTab = 'overview'">
+      <button class="nav-tab" :class="{ active: currentTab === 'overview' }" @click="switchTab('overview')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
           <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
         </svg>
         总览
       </button>
 
-      <button class="nav-tab" :class="{ active: currentTab === 'accounts' }" @click="currentTab = 'accounts'">
+      <button class="nav-tab" :class="{ active: currentTab === 'accounts' }" @click="switchTab('accounts')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
           <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
         </svg>
         账户
       </button>
 
-      <button class="nav-tab" :class="{ active: currentTab === 'transactions' }" @click="currentTab = 'transactions'">
+      <button class="nav-tab" :class="{ active: currentTab === 'transactions' }" @click="switchTab('transactions')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
           <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
         </svg>
         流水
       </button>
 
-      <button class="nav-tab" :class="{ active: currentTab === 'analytics' }" @click="currentTab = 'analytics'">
+      <button class="nav-tab" :class="{ active: currentTab === 'analytics' }" @click="switchTab('analytics')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
           <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
@@ -4344,6 +4463,30 @@
                   🗑️ 清除暗号
                 </button>
               </template>
+            </div>
+          </div>
+
+          <!-- 🔒 Face ID 快捷解锁开关 (复用现有「暗号」主密码) -->
+          <div v-if="biometricSupported" class="settings-card-box" style="margin-top: 12px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+                <span style="font-size: 20px;">🪪</span>
+                <div>
+                  <div style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">🔒 Face ID 快捷解锁</div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.4;">
+                    {{ biometricEnabled ? '已绑定本机 Face ID，锁屏唤醒时可直接刷脸解锁（仍保留暗号兜底）' : '复用现有「暗号」主密码，开启后可调用本机 Face ID 快捷解锁' }}
+                  </div>
+                </div>
+              </div>
+              <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--text-main);">
+                <input
+                  type="checkbox"
+                  :checked="biometricEnabled"
+                  @change="toggleBiometricLock($event)"
+                  style="width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer;"
+                />
+                <span>{{ biometricEnabled ? '已开启' : '未开启' }}</span>
+              </label>
             </div>
           </div>
         </div>
@@ -4644,6 +4787,7 @@
                 type="number"
                 step="0.01"
                 v-model.number="txForm.amount"
+                @input="triggerHaptic('light')"
                 class="form-input amount-input"
                 placeholder="0.00"
                 autofocus
@@ -4729,7 +4873,7 @@
                 type="button"
                 class="cat-btn"
                 :class="{ active: txForm.category === cat.name }"
-                @click="txForm.category = cat.name"
+                @click="selectTxCategory(cat.name)"
               >
                 <img v-if="getCategoryImg(cat.name)" :src="getCategoryImg(cat.name)" class="w-10 h-10 object-contain" :alt="cat.name" />
                 <span v-else class="cat-emoji">{{ cat.emoji }}</span>
@@ -5405,6 +5549,14 @@
       </div>
     </div>
 
+    <!-- 剪贴板自动填单悬浮胶囊按钮 (iOS 权限兜底) -->
+    <div v-if="showClipboardPrompt && !isLocked" class="clipboard-autobill-wrap">
+      <button type="button" class="clipboard-autobill-pill" @click="handleClipboardPromptClick">
+        📋 检测到刚截取的账单，点此一键自动填单
+      </button>
+      <button type="button" class="clipboard-autobill-close" @click="showClipboardPrompt = false" title="关闭">✕</button>
+    </div>
+
     <!-- 浮动 Toast 消息 -->
     <div v-if="toastMessage" class="toast-box">
       <span>✨</span>
@@ -5443,8 +5595,19 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.5');
+        const currentVersion = ref('v5.0.6');
         const versionHistoryList = [
+          {
+            version: 'v5.0.6',
+            date: '2026-11-18',
+            title: '🪪 Face ID 快捷解锁、剪贴板自动填单与原生触觉体验升级',
+            features: [
+              'Face ID 快捷解锁与主暗号统一认证：新增 biometricLock.js，复用现有「暗号」主密码支持 WebAuthn 与原生 Face ID 绑定及锁屏刷脸解锁，验证失败或取消保留原暗号兜底；',
+              '快捷指令剪贴板自动填单：新增 checkClipboardAutoBill 自动检测 MIAOWU_OCR: 账单并清空防重，支持切回前台 200ms 自动识别与 iOS 权限受限顶部悬浮一键填单胶囊；',
+              '原生触觉震动与防套壳优化：集成 MiaowuHaptics 为金额输入、分类切换、保存成功与解锁提供分级触觉反馈及按钮微缩放，禁止非输入区长按选中与整页橡皮筋回弹；',
+              'PWA 离线缓存池升级至 personal-asset-pwa-v47。'
+            ]
+          },
           {
             version: 'v5.0.5',
             date: '2026-11-17',
@@ -7527,9 +7690,53 @@
           }, 3000);
         }
 
+        function triggerHaptic(type = 'light') {
+          try {
+            const h = window.MiaowuHaptics;
+            if (h && typeof h[type] === 'function') {
+              h[type]();
+            }
+          } catch (_) {}
+        }
+
+        function switchTab(tab) {
+          currentTab.value = tab;
+          triggerHaptic('light');
+        }
+
+        function selectTxCategory(catName) {
+          txForm.category = catName;
+          triggerHaptic('light');
+        }
+
         async function onCatButlerSaved() {
+          triggerHaptic('success');
           await refreshAllData();
           scheduleCloudAutoBackup();
+        }
+
+        // 共用自动识别文本填单函数（供 URL 参数与剪贴板识别复用）
+        function applyAutoBillText(rawText, bannerText = '🐱 已自动识别账单，请核对后入账') {
+          let parsed = null;
+          if (window.CatButlerParser && typeof window.CatButlerParser.parseOcrBillText === 'function') {
+            parsed = window.CatButlerParser.parseOcrBillText(rawText, accounts.value);
+          }
+
+          openNewTxModal();
+          if (parsed) {
+            txForm.type = parsed.type === 'income' ? 'income' : 'expense';
+            txForm.amount = parsed.amount && parsed.amount > 0 ? parsed.amount : '';
+            txForm.category = parsed.category || (txForm.type === 'income' ? '其他收入' : '餐饮美食');
+            txForm.accountId = (parsed.accountId !== null && parsed.accountId !== undefined)
+              ? parsed.accountId
+              : (accounts.value.length > 0 ? accounts.value[0].id : '');
+            txForm.date = parsed.date || AssetDB.formatDate();
+            txForm.notes = parsed.notes || (rawText ? rawText.slice(0, 60) : '');
+          } else {
+            txForm.notes = rawText ? rawText.slice(0, 60) : '';
+          }
+          txAutoBanner.value = bannerText;
+          showTxModal.value = true;
         }
 
         // URL Scheme / 网址参数自动唤醒记账（支持冷启动与热唤醒）
@@ -7546,27 +7753,7 @@
 
             const rawText = params.get('text') || '';
             lastHandledAutoBillUrl = rawUrl;
-
-            let parsed = null;
-            if (window.CatButlerParser && typeof window.CatButlerParser.parseOcrBillText === 'function') {
-              parsed = window.CatButlerParser.parseOcrBillText(rawText, accounts.value);
-            }
-
-            openNewTxModal();
-            if (parsed) {
-              txForm.type = parsed.type === 'income' ? 'income' : 'expense';
-              txForm.amount = parsed.amount && parsed.amount > 0 ? parsed.amount : '';
-              txForm.category = parsed.category || (txForm.type === 'income' ? '其他收入' : '餐饮美食');
-              txForm.accountId = (parsed.accountId !== null && parsed.accountId !== undefined)
-                ? parsed.accountId
-                : (accounts.value.length > 0 ? accounts.value[0].id : '');
-              txForm.date = parsed.date || AssetDB.formatDate();
-              txForm.notes = parsed.notes || rawText.slice(0, 60);
-            } else {
-              txForm.notes = rawText.slice(0, 60);
-            }
-            txAutoBanner.value = '🐱 已自动识别账单，请核对后入账';
-            showTxModal.value = true;
+            applyAutoBillText(rawText, '🐱 已自动识别账单，请核对后入账');
             return true;
           } catch (err) {
             console.warn('[AutoBill] 解析唤醒链接失败:', err);
@@ -7574,8 +7761,100 @@
           }
         }
 
+        // 剪贴板 MIAOWU_OCR: 自动填单检测（兼容 iOS WebKit NotAllowedError 权限兜底）
+        const CLIPBOARD_OCR_PREFIX = 'MIAOWU_OCR:';
+        const showClipboardPrompt = ref(false);
+        let lastHandledClipboardHash = '';
+        let lastHandledClipboardText = '';
+
+        function computeClipboardTextHash(str) {
+          let hash = 2166136261;
+          for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+          }
+          return `${str.length}:${hash >>> 0}`;
+        }
+
+        async function checkClipboardAutoBill(isUserGesture = false) {
+          if (isUserGesture) {
+            showClipboardPrompt.value = false;
+          }
+          try {
+            if (typeof navigator === 'undefined' || !navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+              if (isUserGesture) {
+                showToast('当前环境不支持读取剪贴板，请使用网址唤醒或手动记账');
+              }
+              return false;
+            }
+
+            const clipText = await navigator.clipboard.readText();
+            if (typeof clipText !== 'string') {
+              showClipboardPrompt.value = false;
+              return false;
+            }
+
+            const trimmedClip = clipText.trimStart();
+            if (!trimmedClip.startsWith(CLIPBOARD_OCR_PREFIX)) {
+              showClipboardPrompt.value = false;
+              if (isUserGesture) {
+                showToast('剪贴板中未检测到快捷指令识别的账单');
+              }
+              return false;
+            }
+
+            const cleanText = trimmedClip.slice(CLIPBOARD_OCR_PREFIX.length).trim();
+            showClipboardPrompt.value = false;
+            if (!cleanText) return false;
+
+            const textHash = computeClipboardTextHash(cleanText);
+            if (textHash === lastHandledClipboardHash && cleanText === lastHandledClipboardText) {
+              if (isUserGesture) {
+                showToast('该条剪贴板账单已处理过啦');
+              }
+              return false;
+            }
+
+            lastHandledClipboardHash = textHash;
+            lastHandledClipboardText = cleanText;
+
+            if (typeof navigator.clipboard.writeText === 'function') {
+              try {
+                await navigator.clipboard.writeText('');
+              } catch (_) {
+                // 部分浏览器禁止静默覆盖剪贴板，安全忽略，已依赖内存哈希防重
+              }
+            }
+
+            applyAutoBillText(cleanText, '🐱 已从快捷指令识别账单，请核对后入账');
+            return true;
+          } catch (err) {
+            const isPermissionDenied = err && (
+              err.name === 'NotAllowedError' ||
+              err.name === 'SecurityError' ||
+              /NotAllowedError/i.test(String(err.message || err))
+            );
+            if (!isUserGesture && isPermissionDenied) {
+              showClipboardPrompt.value = true;
+              return false;
+            }
+            if (isUserGesture && isPermissionDenied) {
+              showToast('读取剪贴板被系统拒绝，请在弹窗中点击“允许粘贴”');
+              return false;
+            }
+            console.warn('[AutoBill] 剪贴板读取异常:', err);
+            return false;
+          }
+        }
+
+        function handleClipboardPromptClick() {
+          showClipboardPrompt.value = false;
+          checkClipboardAutoBill(true);
+        }
+
         // 右下角悬浮 "+" 按钮统一入口：智能分流
         function handleFabClick() {
+          triggerHaptic('light');
           if (currentTab.value === 'accounts' || accounts.value.length === 0) {
             openAddAccountModal();
           } else {
@@ -7587,6 +7866,7 @@
         const openNewAccountModal = openAddAccountModal;
 
         function setTxType(type) {
+          triggerHaptic('light');
           txForm.type = type;
           if (type === 'income') {
             txForm.category = '工资薪酬';
@@ -7600,11 +7880,13 @@
         async function submitTransaction() {
           const amt = Number(txForm.amount);
           if (!amt || amt <= 0) {
+            triggerHaptic('error');
             showToast('请输入有效金额');
             return;
           }
 
           if (txForm.type === 'transfer' && !txForm.accountId) {
+            triggerHaptic('error');
             showToast('转账必须选择转出账户');
             return;
           }
@@ -7621,12 +7903,14 @@
               receiptImage: txForm.receiptImage || null
             });
 
+            triggerHaptic('success');
             showTxModal.value = false;
             txAutoBanner.value = '';
             showToast(txForm.accountId ? '记账成功！账户余额已联动更新 ✨' : '纯流水记录成功！(不计入资产) ✨');
             await refreshAllData();
             scheduleCloudAutoBackup();
           } catch (err) {
+            triggerHaptic('error');
             alert('保存失败: ' + err.message);
           }
         }
@@ -8481,8 +8765,91 @@
           return await hashPassword((str || '').trim().toLowerCase());
         }
 
+        // ==============================================
+        // Face ID / 生物认证与现有「暗号」统一认证逻辑
+        // ==============================================
+        const biometricSupported = ref(window.MiaowuLock ? window.MiaowuLock.isSupported() : false);
+        const biometricEnabled = ref(window.MiaowuLock ? window.MiaowuLock.isEnabled() : false);
+        const biometricVerifying = ref(false);
+        const pendingBiometricSetup = ref(false);
+
+        async function toggleBiometricLock(evt) {
+          const wantEnable = !!(evt && evt.target ? evt.target.checked : !biometricEnabled.value);
+          if (!wantEnable) {
+            if (window.MiaowuLock) window.MiaowuLock.disable();
+            biometricEnabled.value = false;
+            pendingBiometricSetup.value = false;
+            triggerHaptic('light');
+            showToast('已关闭 Face ID 快捷解锁');
+            return;
+          }
+
+          if (!hasPasswordRecord.value || !localStorage.getItem('app_password_hash')) {
+            if (evt && evt.target) evt.target.checked = false;
+            biometricEnabled.value = false;
+            pendingBiometricSetup.value = true;
+            triggerHaptic('medium');
+            showToast('🔐 请先约定「暗号」主密码，完成后即可开启 Face ID');
+            handleOpenPasswordSetup();
+            return;
+          }
+
+          if (!window.MiaowuLock) {
+            if (evt && evt.target) evt.target.checked = false;
+            biometricEnabled.value = false;
+            return;
+          }
+
+          const res = await window.MiaowuLock.register();
+          if (res && res.ok) {
+            biometricEnabled.value = true;
+            if (evt && evt.target) evt.target.checked = true;
+            triggerHaptic('success');
+            showToast('🪪 Face ID 快捷解锁已开启，锁屏时可直接刷脸解锁 ✨');
+          } else {
+            biometricEnabled.value = false;
+            if (evt && evt.target) evt.target.checked = false;
+            triggerHaptic('error');
+            showToast((res && res.message) || 'Face ID 凭证注册未完成');
+          }
+        }
+
+        async function handleFaceIdUnlock(isManual = false) {
+          if (!isLocked.value || !hasPasswordRecord.value) return false;
+          if (!biometricSupported.value || !biometricEnabled.value || !window.MiaowuLock) return false;
+          if (biometricVerifying.value) return false;
+
+          biometricVerifying.value = true;
+          try {
+            const res = await window.MiaowuLock.verify();
+            if (res && res.ok) {
+              isLocked.value = false;
+              lockViewMode.value = 'choice';
+              passwordInput.value = '';
+              lockErrorMsg.value = '';
+              triggerHaptic('success');
+              showToast('🪪 Face ID 验证通过，欢迎回到粮仓！');
+              return true;
+            }
+            if (isManual) {
+              triggerHaptic('error');
+              lockErrorMsg.value = (res && res.message) || 'Face ID 验证未通过，请输入暗号解锁';
+            }
+            return false;
+          } catch (_) {
+            if (isManual) {
+              triggerHaptic('error');
+              lockErrorMsg.value = 'Face ID 验证异常，请直接输入暗号解锁';
+            }
+            return false;
+          } finally {
+            biometricVerifying.value = false;
+          }
+        }
+
         // 首次欢迎界面：点击【约定一个暗号】直接进入并即刻聚焦
         function handleStartSetup() {
+          triggerHaptic('light');
           lockViewMode.value = 'setup';
           lockErrorMsg.value = '';
           setupForm.password = '';
@@ -8528,6 +8895,7 @@
           const a = (setupForm.answer || '').trim();
 
           if (!pwd || !q || !a) {
+            triggerHaptic('error');
             lockErrorMsg.value = '请完整填写暗号、密保问题与答案喵~';
             isShaking.value = true;
             setTimeout(() => { isShaking.value = false; }, 500);
@@ -8550,7 +8918,14 @@
           setupForm.question = '';
           setupForm.answer = '';
           lockErrorMsg.value = '';
-          showToast('✨ 暗号与密保约定成功，粮仓安全加倍！');
+          triggerHaptic('success');
+          if (pendingBiometricSetup.value) {
+            pendingBiometricSetup.value = false;
+            openSettingsModal('security');
+            showToast('✨ 暗号已约定！请轻触「Face ID 快捷解锁」开关完成本机绑定');
+          } else {
+            showToast('✨ 暗号与密保约定成功，粮仓安全加倍！');
+          }
         }
 
         // 解锁界面：点击主选项【暗号】直接进入输入并确保即刻聚焦
@@ -8600,6 +8975,7 @@
 
         // 解锁界面：点击【暗号，我不需要暗号】
         function handleNoCodeNeeded() {
+          triggerHaptic('error');
           lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
           isShaking.value = true;
           setTimeout(() => { isShaking.value = false; }, 500);
@@ -8609,6 +8985,7 @@
         async function handleConfirmCode() {
           const pwd = (passwordInput.value || '').trim();
           if (!pwd) {
+            triggerHaptic('error');
             lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
             isShaking.value = true;
             setTimeout(() => { isShaking.value = false; }, 500);
@@ -8622,8 +8999,10 @@
             lockViewMode.value = 'choice';
             passwordInput.value = '';
             lockErrorMsg.value = '';
+            triggerHaptic('success');
             showToast('🔓 暗号正确，欢迎回到粮仓！');
           } else {
+            triggerHaptic('error');
             lockErrorMsg.value = '不会吧不会吧，不会有人忘了暗号吧';
             isShaking.value = true;
             setTimeout(() => { isShaking.value = false; }, 500);
@@ -8665,6 +9044,7 @@
           const newPwd = (forgotForm.newPassword || '').trim();
 
           if (!ans || !newPwd) {
+            triggerHaptic('error');
             lockErrorMsg.value = '请填写密保答案与新暗号喵~';
             isShaking.value = true;
             setTimeout(() => { isShaking.value = false; }, 500);
@@ -8676,6 +9056,7 @@
 
           // 校验密保答案
           if (savedAnsHash && enteredAnsHash !== savedAnsHash) {
+            triggerHaptic('error');
             lockErrorMsg.value = '密保答案不正确，再想想喵~';
             isShaking.value = true;
             setTimeout(() => { isShaking.value = false; }, 500);
@@ -8690,11 +9071,13 @@
           forgotForm.answer = '';
           forgotForm.newPassword = '';
           lockErrorMsg.value = '';
+          triggerHaptic('success');
           showToast('🎉 暗号已重新设置并成功解锁！');
         }
 
         // 立即上锁
         function handleLockNow() {
+          triggerHaptic('light');
           isLocked.value = true;
           lockViewMode.value = 'choice';
           showThemeModal.value = false;
@@ -8703,17 +9086,23 @@
           showToast('🔒 粮仓已锁定');
         }
 
-        // 清除暗号与密保
+        // 清除暗号与密保（同步关闭 Face ID 快捷解锁）
         function handleRemovePassword() {
           if (confirm('确定要清除暗号与密保吗？任何人打开应用将能直接查看您的粮仓数据。')) {
             localStorage.removeItem('app_password_hash');
             localStorage.removeItem('app_security_question');
             localStorage.removeItem('app_security_answer_hash');
             localStorage.removeItem('app_password_skipped');
+            if (window.MiaowuLock) {
+              window.MiaowuLock.disable();
+            }
+            biometricEnabled.value = false;
+            pendingBiometricSetup.value = false;
             hasPasswordRecord.value = false;
             lockViewMode.value = 'choice';
             savedSecurityQuestion.value = '';
-            showToast('暗号与密保已清除');
+            triggerHaptic('light');
+            showToast('暗号、密保与 Face ID 已同步清除');
           }
         }
 
@@ -8760,8 +9149,31 @@
             isLocked.value = !isSkipped;
           }
 
-          // 监听退到后台与回到前台（离开超过 5 分钟自动上锁）
+          // 异步细化本机 Face ID / 生物认证支持状态，并在首次锁屏加载时自动尝试唤起
+          if (window.MiaowuLock) {
+            biometricEnabled.value = window.MiaowuLock.isEnabled();
+            if (typeof window.MiaowuLock.checkAvailability === 'function') {
+              window.MiaowuLock.checkAvailability().then((res) => {
+                if (res && typeof res.supported === 'boolean') {
+                  biometricSupported.value = res.supported;
+                }
+              }).catch(() => {});
+            }
+          }
+          if (isLocked.value && hasPasswordRecord.value && biometricSupported.value && biometricEnabled.value) {
+            handleFaceIdUnlock(false);
+          }
+
+          // 监听退到后台与回到前台（离开超过 5 分钟自动上锁；回到前台延迟 200ms 自动检测剪贴板账单）
+          let clipboardVisibilityTimer = null;
           const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+              if (clipboardVisibilityTimer) clearTimeout(clipboardVisibilityTimer);
+              clipboardVisibilityTimer = setTimeout(() => {
+                checkClipboardAutoBill(false);
+              }, 200);
+            }
+
             const currentHash = localStorage.getItem('app_password_hash');
             if (!currentHash) return; // 未设置暗号，不触发后台锁屏
 
@@ -8783,6 +9195,9 @@
                   showBatchModal.value = false;
                   showVersionModal.value = false;
                 }
+              }
+              if (isLocked.value && hasPasswordRecord.value && biometricSupported.value && biometricEnabled.value) {
+                handleFaceIdUnlock(false);
               }
             }
           };
@@ -8820,11 +9235,12 @@
           await refreshAllData();
 
           // 1) 网页端 URL 参数冷启动自动记账唤醒 (?autobill=1&text=...)
+          let urlAutoBillHandled = false;
           try {
             const searchStr = window.location.search || '';
             if (searchStr.includes('autobill=1') || searchStr.includes('text=')) {
-              const handled = handleAutoBillUrl(window.location.href);
-              if (handled) {
+              urlAutoBillHandled = handleAutoBillUrl(window.location.href);
+              if (urlAutoBillHandled) {
                 window.history.replaceState({}, '', window.location.pathname);
               }
             }
@@ -8852,6 +9268,11 @@
               }
             }
           } catch (_) { /* 网页端安全忽略 */ }
+
+          // 3) 页面首次加载完成时检测一次系统剪贴板 (MIAOWU_OCR:)
+          if (!urlAutoBillHandled) {
+            checkClipboardAutoBill(false);
+          }
 
           if (showMarketBoard.value) {
             refreshMarketQuotes();
@@ -8909,6 +9330,14 @@
           handleLockNow,
           handleRemovePassword,
           handleOpenPasswordSetup,
+          biometricSupported,
+          biometricEnabled,
+          biometricVerifying,
+          toggleBiometricLock,
+          handleFaceIdUnlock,
+          triggerHaptic,
+          switchTab,
+          selectTxCategory,
           currentTab,
           hideAmount,
           toggleHideAmount,
@@ -8944,6 +9373,9 @@
           txSearchKeyword,
           clearTxSearch,
           txAutoBanner,
+          showClipboardPrompt,
+          checkClipboardAutoBill,
+          handleClipboardPromptClick,
           icloudAutoBackup,
           icloudAvailable,
           icloudChecking,
