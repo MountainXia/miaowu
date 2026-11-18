@@ -1500,8 +1500,8 @@
       </div>
 
       <div class="cb-input">
-        <button type="button" class="cb-mic" :class="{ 'cb-listening': isListening }" title="语音记账" @click="toggleVoice">🎙️</button>
-        <textarea ref="inputEl" v-model="input" rows="1" :placeholder="isListening ? '正在听喵...' : ''" @keydown="onKeydown"></textarea>
+        <button type="button" class="cb-mic" :class="{ 'cb-listening': isListening }" :title="isListening ? '正在听喵...' : '语音记账'" @click="toggleVoice">🎙️</button>
+        <textarea ref="inputEl" v-model="input" rows="1" placeholder="" @keydown="onKeydown"></textarea>
         <button class="cb-send" :disabled="!input.trim()" @click="send">发送</button>
       </div>
 

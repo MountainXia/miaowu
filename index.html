@@ -769,23 +769,23 @@
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* SVG 环形扇区直接标注饼图 */
+    /* SVG 环形扇区直接标注饼图 (严格水平居中防裁切) */
     .pie-chart-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 6px;
+      display: block;
+      width: 100%;
+      padding: 8px 4px;
       background: var(--bg-subtle);
       border: 1px solid var(--border-subtle);
       border-radius: 16px;
       margin: 6px 0 10px;
-      overflow: hidden;
+      overflow: visible;
+      box-sizing: border-box;
     }
 
     .pie-svg-canvas {
       width: 100%;
-      max-width: 420px;
       height: auto;
+      max-height: 220px;
       display: block;
       margin: 0 auto;
       overflow: visible;
@@ -806,7 +806,7 @@
     }
 
     /* ================================================= */
-    /* 资产增长趋势折线图模块 (放置于最下方)              */
+    /* 资产趋势组合图模块 (折线 + 正负盈余柱状图)          */
     /* ================================================= */
     .trend-card {
       display: flex;
@@ -828,45 +828,111 @@
       position: relative;
       background: var(--chart-box-bg);
       border-radius: 14px;
-      padding: 12px 8px 8px;
+      padding: 12px 8px 10px;
       border: 1px solid var(--border-subtle);
+    }
+
+    .trend-legend-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 4px 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .trend-legend-items {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+
+    .trend-legend-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-weight: 600;
+      color: var(--text-secondary);
     }
 
     .trend-svg {
       width: 100%;
-      height: 180px;
+      height: auto;
+      min-height: 220px;
+      max-height: 260px;
       display: block;
       overflow: visible;
     }
 
-    .trend-x-axis {
-      display: flex;
-      justify-content: space-between;
+    .trend-point-tooltip {
+      background: var(--bg-card);
+      border: 1px solid rgba(225, 29, 72, 0.45);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 11.5px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      color: var(--text-main);
+      display: inline-flex;
       align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      white-space: nowrap;
-      color: var(--text-muted);
-      padding: 8px 4px 0;
-      overflow: hidden;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
-    .trend-point-tooltip {
-      position: absolute;
-      top: 10px;
-      left: 14px;
-      background: var(--bg-card);
-      border: 1px solid var(--primary);
-      border-radius: 8px;
-      padding: 6px 12px;
-      font-size: 12px;
-      pointer-events: none;
-      box-shadow: var(--bg-card-shadow);
-      color: var(--text-main);
+    /* 淘宝/京东式剪贴板粘贴确认弹框 */
+    .clipboard-confirm-backdrop {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      background: rgba(0, 0, 0, 0.56);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 260;
       display: flex;
       align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    .clipboard-confirm-card {
+      width: 100%;
+      max-width: 330px;
+      background: var(--modal-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 22px;
+      padding: 22px 20px 18px;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+      text-align: center;
+      animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .clipboard-confirm-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .clipboard-confirm-preview {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      background: var(--bg-subtle);
+      border: 1px dashed var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      word-break: break-all;
+    }
+
+    .clipboard-confirm-actions {
+      display: flex;
       gap: 10px;
-      z-index: 10;
     }
 
     /* 账户管理 Tab 样式 */
@@ -3350,7 +3416,7 @@
               近期收支动态
             </div>
             <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-              <button v-if="!isEditingOverviewOrder" class="btn-sm" @click="currentTab = 'transactions'">全部流水 &gt;</button>
+              <button v-if="!isEditingOverviewOrder" class="btn-sm" @click="goToAllTransactions">全部流水 &gt;</button>
               <div v-if="isEditingOverviewOrder" class="overview-sort-controls">
                 <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('recentFlow', -1)" @click.stop="moveOverviewModule('recentFlow', -1)" title="上移">⬆️</button>
                 <button type="button" class="btn-sm overview-sort-btn" :disabled="!canMoveOverviewModule('recentFlow', 1)" @click.stop="moveOverviewModule('recentFlow', 1)" title="下移">⬇️</button>
@@ -3430,7 +3496,7 @@
           </div>
         </section>
 
-        <!-- 4. 资产增长趋势折线/面积图模块 (置于最下方) -->
+        <!-- 4. 资产趋势组合统计图模块 (上方累计净资产折线 + 下方月度正负盈余柱状图) -->
         <section class="card trend-card" :style="{ order: getOverviewModuleOrder('trend') }">
           <div class="card-header">
             <div class="card-title">
@@ -3438,12 +3504,12 @@
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
                 <polyline points="17 6 23 6 23 12"/>
               </svg>
-              资产增长趋势
+              资产趋势
             </div>
             <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
               <div v-if="!isEditingOverviewOrder" class="trend-meta-badge">
                 <span>从启用到今: </span>
-                <strong :style="{ color: overallGrowth >= 0 ? '#34d399' : '#fb7185' }">
+                <strong :style="{ color: overallGrowth >= 0 ? '#E11D48' : '#F59E0B' }">
                   {{ overallGrowth >= 0 ? '+' : '' }}¥{{ hideAmount ? '•••' : formatNumber(overallGrowth) }}
                   ({{ overallGrowthPercent >= 0 ? '+' : '' }}{{ overallGrowthPercent }}%)
                 </strong>
@@ -3457,59 +3523,128 @@
 
           <div class="trend-chart-box">
             <!-- 暂无数据空状态 -->
-            <div v-if="trendPoints.length === 0" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
+            <div v-if="assetComboChart.items.length === 0" style="padding: 40px 20px; text-align: center; color: var(--text-muted);">
               <div style="font-size: 32px; margin-bottom: 8px;">📈</div>
               <div style="font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">暂无历史资产趋势</div>
-              <div style="font-size: 12px; color: var(--text-muted);">录入账户与日常收支后，系统将每日自动生成您的资产增长曲线 🐾</div>
+              <div style="font-size: 12px; color: var(--text-muted);">录入账户与日常收支后，系统将自动生成您的累计净资产与盈余趋势 🐾</div>
             </div>
 
             <div v-else>
-              <!-- 悬浮点提示 -->
-              <div class="trend-point-tooltip" v-if="activeTrendPoint">
-                <span>📅 {{ activeTrendPoint.date }}</span>
-                <strong style="color: var(--primary);">¥ {{ hideAmount ? '••••••' : formatNumber(activeTrendPoint.netAsset) }}</strong>
+              <!-- 顶部图例与选中节点详情 (统一玫红色主题 #E11D48) -->
+              <div class="trend-legend-row">
+                <div class="trend-point-tooltip" v-if="activeTrendPoint">
+                  <span>📅 {{ activeTrendPoint.date }}</span>
+                  <strong style="color: #E11D48;">净资产 ¥{{ hideAmount ? '••••' : formatNumber(activeTrendPoint.netAsset) }}</strong>
+                  <span v-if="activeTrendPoint.surplus !== undefined" :style="{ color: activeTrendPoint.surplus >= 0 ? '#E11D48' : '#F59E0B', fontWeight: 700 }">
+                    盈余 {{ activeTrendPoint.surplus >= 0 ? '+' : '-' }}¥{{ hideAmount ? '•••' : formatNumber(Math.abs(activeTrendPoint.surplus)) }}
+                  </span>
+                </div>
+                <div class="trend-legend-items">
+                  <span class="trend-legend-chip">
+                    <span style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #E11D48;"></span>
+                    <span>月度盈余</span>
+                  </span>
+                  <span class="trend-legend-chip">
+                    <span style="display: inline-flex; align-items: center;">
+                      <span style="display: inline-block; width: 6px; height: 1.8px; background: #E11D48;"></span>
+                      <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #FFFFFF; border: 1.8px solid #E11D48;"></span>
+                      <span style="display: inline-block; width: 6px; height: 1.8px; background: #E11D48;"></span>
+                    </span>
+                    <span>累计净资产</span>
+                  </span>
+                </div>
               </div>
 
-              <svg viewBox="0 0 500 180" class="trend-svg" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="trendAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--trend-stroke)" stop-opacity="0.28"/>
-                    <stop offset="100%" stop-color="var(--trend-stroke)" stop-opacity="0.0"/>
-                  </linearGradient>
-                </defs>
+              <!-- 双层组合统计图 SVG -->
+              <svg viewBox="0 0 500 250" class="trend-svg" preserveAspectRatio="xMidYMid meet">
+                <!-- 上半部分背景参考虚线 -->
+                <line x1="20" y1="36" x2="480" y2="36" stroke="var(--border-subtle)" stroke-opacity="0.45" stroke-dasharray="3 3"/>
+                <line x1="20" y1="76" x2="480" y2="76" stroke="var(--border-subtle)" stroke-opacity="0.45" stroke-dasharray="3 3"/>
 
-                <!-- 3 条浅色水平虚线网格 -->
-                <line x1="20" y1="35" x2="480" y2="35" stroke="var(--border-subtle)" stroke-opacity="0.7" stroke-dasharray="4 4"/>
-                <line x1="20" y1="88" x2="480" y2="88" stroke="var(--border-subtle)" stroke-opacity="0.7" stroke-dasharray="4 4"/>
-                <line x1="20" y1="140" x2="480" y2="140" stroke="var(--border-subtle)" stroke-opacity="0.7" stroke-dasharray="4 4"/>
+                <!-- 上半部分：累计净资产平滑玫红色折线 -->
+                <path :d="assetComboChart.linePath" fill="none" stroke="#E11D48" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 
-                <!-- 底部柔和渐变填充 -->
-                <path :d="trendAreaPath" fill="url(#trendAreaGrad)"/>
-                <!-- 2.5px 平滑贝塞尔曲线 -->
-                <path :d="trendLinePath" fill="none" stroke="var(--trend-stroke)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- 下半部分：浅灰色水平零轴基线 -->
+                <line x1="20" y1="178" x2="480" y2="178" stroke="#cbd5e1" stroke-opacity="0.8" stroke-width="1.2"/>
 
-                <!-- 数据节点（仅最新节点与当前选中节点绘制带白边的高亮圆点） -->
+                <!-- 逐周期绘制：点击热区、正负盈余柱子与数值、累计净资产空心圈与数值、X轴月份 -->
                 <g
-                  v-for="(pt, idx) in trendPoints"
-                  :key="idx"
-                  @mouseenter="activeTrendPoint = pt"
-                  @click="activeTrendPoint = pt"
+                  v-for="(pt, idx) in assetComboChart.items"
+                  :key="pt.key || idx"
+                  @click="selectComboPoint(pt)"
                   style="cursor: pointer;"
                 >
-                  <circle :cx="pt.x" :cy="pt.y" r="14" fill="transparent" />
-                  <template v-if="idx === trendPoints.length - 1 || activeTrendPoint?.date === pt.date">
-                    <circle :cx="pt.x" :cy="pt.y" r="8" fill="var(--trend-stroke)" fill-opacity="0.22" />
-                    <circle :cx="pt.x" :cy="pt.y" r="4.5" fill="var(--trend-stroke)" stroke="#ffffff" stroke-width="2" />
-                  </template>
+                  <!-- 选中高亮背景带 -->
+                  <rect
+                    v-if="activeTrendPoint?.date === pt.endDate"
+                    :x="pt.cx - Math.min(26, assetComboChart.slotW * 0.48)"
+                    y="8"
+                    :width="Math.min(52, assetComboChart.slotW * 0.96)"
+                    height="238"
+                    rx="8"
+                    fill="#E11D48"
+                    fill-opacity="0.06"
+                  />
+                  <!-- 透明点击热区 -->
+                  <rect :x="pt.cx - assetComboChart.slotW / 2" y="0" :width="assetComboChart.slotW" height="250" fill="transparent" />
+
+                  <!-- 下半部分：盈余柱状图 (>=0 玫红色向上, <0 警示色向下) -->
+                  <rect
+                    :x="pt.cx - assetComboChart.barW / 2"
+                    :y="pt.barY"
+                    :width="assetComboChart.barW"
+                    :height="pt.barH"
+                    :rx="3"
+                    :fill="pt.surplus >= 0 ? '#E11D48' : '#F59E0B'"
+                    :fill-opacity="activeTrendPoint?.date === pt.endDate ? 1 : 0.88"
+                  />
+                  <!-- 盈余正负数值标注 -->
+                  <text
+                    :x="pt.cx"
+                    :y="pt.surplus >= 0 ? (pt.barY - 4) : (pt.barY + pt.barH + 11)"
+                    text-anchor="middle"
+                    font-size="9.5"
+                    font-weight="700"
+                    :fill="pt.surplus >= 0 ? '#E11D48' : '#F59E0B'"
+                  >{{ hideAmount ? (pt.surplus >= 0 ? '+•••' : '-•••') : pt.surplusLabel }}</text>
+
+                  <!-- 上半部分：白底玫红边空心圆圈与正上方玫红色累计净资产数值 -->
+                  <circle
+                    v-if="activeTrendPoint?.date === pt.endDate"
+                    :cx="pt.cx"
+                    :cy="pt.lineY"
+                    r="6.5"
+                    fill="#E11D48"
+                    fill-opacity="0.18"
+                  />
+                  <circle
+                    :cx="pt.cx"
+                    :cy="pt.lineY"
+                    r="3.5"
+                    fill="#FFFFFF"
+                    stroke="#E11D48"
+                    stroke-width="2"
+                  />
+                  <text
+                    :x="pt.cx"
+                    :y="pt.lineY - 8"
+                    text-anchor="middle"
+                    font-size="10"
+                    font-weight="700"
+                    fill="#E11D48"
+                  >{{ hideAmount ? '•••' : pt.netAssetLabel }}</text>
+
+                  <!-- 底部 X 轴周期标签 -->
+                  <text
+                    :x="pt.cx"
+                    y="243"
+                    text-anchor="middle"
+                    font-size="10.5"
+                    :font-weight="activeTrendPoint?.date === pt.endDate ? '700' : '500'"
+                    :fill="activeTrendPoint?.date === pt.endDate ? '#E11D48' : 'var(--text-muted)'"
+                  >{{ pt.label }}</text>
                 </g>
               </svg>
-
-              <!-- X 轴单行两端对齐日期与提示 -->
-              <div class="trend-x-axis">
-                <span style="flex-shrink: 0; white-space: nowrap;">{{ trendSnapshots[0]?.date || '开始' }}</span>
-                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; opacity: 0.85;">点击节点查看历史</span>
-                <span style="flex-shrink: 0; white-space: nowrap;">{{ trendSnapshots[trendSnapshots.length - 1]?.date || '今天' }}</span>
-              </div>
             </div>
           </div>
         </section>
@@ -3712,41 +3847,48 @@
       <!-- ============================================== -->
       <div v-if="currentTab === 'transactions'" style="display: flex; flex-direction: column; gap: 12px;">
         
-        <!-- 顶部单行功能栏: 📷 智能识别 + 记一笔 + 🔍 流水搜索 -->
-        <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
-          <button class="btn-ocr-header" @click="triggerOcrUpload" style="padding: 6px 8px; font-size: 12px; white-space: nowrap; flex-shrink: 0;">
-            📷 智能识别
-          </button>
-          <button class="btn-primary" @click="openNewTxModal" style="padding: 6px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; gap: 3px;">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            记一笔
-          </button>
-          <div style="position: relative; flex: 1; min-width: 0;">
-            <svg style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <!-- 第一行顶栏：左侧 流水明细 标题 + 右侧 📷 智能识别票据/长图 与 + 记一笔 -->
+        <div class="acc-header-actions">
+          <div class="card-title">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
             </svg>
-            <input
-              type="text"
-              v-model="txSearchInput"
-              class="form-input"
-              placeholder="流水搜索"
-              style="width: 100%; padding-left: 26px; padding-right: 24px; font-size: 12px; height: 32px; border-radius: 10px;"
-            />
-            <button
-              v-if="txSearchInput"
-              type="button"
-              @click="clearTxSearch"
-              style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 14px; padding: 3px;"
-              title="清空搜索"
-            >×</button>
+            流水明细
           </div>
+          <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+            <button class="btn-ocr-header" @click="triggerOcrUpload" style="white-space: nowrap; flex-shrink: 0;">
+              📷 智能识别票据/长图
+            </button>
+            <button class="btn-primary" @click="openNewTxModal" style="white-space: nowrap; flex-shrink: 0;">
+              <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              记一笔
+            </button>
+          </div>
+        </div>
+
+        <!-- 第二行：全宽流水实时搜索框 -->
+        <div style="position: relative; margin-top: -2px;">
+          <input
+            type="text"
+            v-model="txSearchInput"
+            class="form-input"
+            placeholder="🔍 搜索账户、分类、金额或备注..."
+            style="width: 100%; padding-left: 14px; padding-right: 32px; font-size: 13px; height: 38px; border-radius: 10px;"
+          />
+          <button
+            v-if="txSearchInput"
+            type="button"
+            @click="clearTxSearch"
+            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: none; background: none; color: var(--text-muted); cursor: pointer; font-size: 16px; padding: 4px;"
+            title="清空搜索"
+          >×</button>
         </div>
 
         <div v-if="txSearchKeyword" style="font-size: 12px; color: var(--text-muted); margin-top: -4px; padding: 5px 10px; border-radius: 8px; background: var(--bg-subtle); border: 1px solid var(--border-subtle);">
           共找到 <b style="color: var(--text-main);">{{ filteredTxStats.count }}</b> 笔记录 | 支出 <span class="amt-expense">¥{{ hideAmount ? '•••' : formatNumber(filteredTxStats.totalExpense) }}</span> · 收入 <span class="amt-income">¥{{ hideAmount ? '•••' : formatNumber(filteredTxStats.totalIncome) }}</span>
         </div>
 
-        <!-- 筛选控件 (紧凑展示 全部收支/支出/收入/内部转账 + 全部账户) -->
+        <!-- 第三行：紧凑筛选栏 (全部收支/支出/收入/内部转账 + 全部账户) -->
         <div class="tx-filter-row">
           <div class="filter-pills">
             <button class="pill" :class="{ active: txFilterType === '' }" @click="txFilterType = ''">全部收支</button>
@@ -3917,7 +4059,10 @@
         <div class="card">
           <div class="card-header">
             <div class="card-title">
-              <span>🏷️ 消费支出分类排行</span>
+              <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10h-10z"/>
+              </svg>
+              <span>消费支出分类排行</span>
             </div>
             <span style="font-size: 12px; color: var(--text-muted);">按支出金额降序</span>
           </div>
@@ -3928,9 +4073,9 @@
           </div>
 
           <div v-else style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- SVG 扇区直接标注纯文字（分类名称 + 百分比）环形饼图 -->
+            <!-- SVG 扇区外部引导线直标纯文字（分类名称 + 百分比，颜色与扇区一一对应）环形饼图 -->
             <div class="pie-chart-wrapper">
-              <svg :viewBox="`0 0 380 ${expensePieData.height}`" class="pie-svg-canvas">
+              <svg viewBox="0 0 360 220" class="pie-svg-canvas">
                 <template v-for="(seg, idx) in expensePieData.slices" :key="seg.category + '-' + idx">
                   <circle
                     v-if="seg.isFull"
@@ -3951,23 +4096,22 @@
                 </template>
                 <!-- 中心圆孔背景 -->
                 <circle :cx="expensePieData.cx" :cy="expensePieData.cy" :r="expensePieData.r - 1" fill="var(--bg-card)" stroke="var(--border-subtle)" stroke-width="1" />
-                <text :x="expensePieData.cx" :y="expensePieData.cy - 6" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--text-muted)">
+                <text :x="expensePieData.cx" :y="expensePieData.cy - 5" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--text-muted)">
                   {{ analyticsTimeMode === 'year' ? '全年支出' : '月支出' }}
                 </text>
-                <text :x="expensePieData.cx" :y="expensePieData.cy + 11" text-anchor="middle" font-size="12" font-weight="800" fill="var(--text-main)">
+                <text :x="expensePieData.cx" :y="expensePieData.cy + 10" text-anchor="middle" font-size="10.5" font-weight="800" fill="var(--text-main)">
                   ¥{{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalExpense) }}
                 </text>
-                <!-- 扇区外延引导线与纯文字标签 (无图标) -->
+                <!-- 扇区外圆周外侧引导线与同色纯文字标签 -->
                 <g v-for="(lbl, lIdx) in expensePieData.labels" :key="'exp-lbl-' + lIdx">
-                  <circle :cx="lbl.ax" :cy="lbl.ay" r="2.2" :fill="lbl.color" />
                   <polyline :points="lbl.points" fill="none" :stroke="lbl.color" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
                   <text
                     :x="lbl.textX"
-                    :y="lbl.textY + 3.5"
+                    :y="lbl.textY + 3.8"
                     :text-anchor="lbl.anchor"
-                    font-size="10.5"
+                    font-size="11"
                     font-weight="700"
-                    fill="var(--text-main)"
+                    :fill="lbl.color"
                   >{{ lbl.label }}</text>
                 </g>
               </svg>
@@ -4024,9 +4168,9 @@
           </div>
 
           <div v-else style="display: flex; flex-direction: column; gap: 12px;">
-            <!-- SVG 收入扇区直标环形饼图 -->
+            <!-- SVG 收入扇区外部引导线直标环形饼图 (严格居中 + 文字与扇区同色) -->
             <div class="pie-chart-wrapper">
-              <svg :viewBox="`0 0 380 ${incomePieData.height}`" class="pie-svg-canvas">
+              <svg viewBox="0 0 360 220" class="pie-svg-canvas">
                 <template v-for="(seg, idx) in incomePieData.slices" :key="seg.category + '-' + idx">
                   <circle
                     v-if="seg.isFull"
@@ -4046,22 +4190,21 @@
                   />
                 </template>
                 <circle :cx="incomePieData.cx" :cy="incomePieData.cy" :r="incomePieData.r - 1" fill="var(--bg-card)" stroke="var(--border-subtle)" stroke-width="1" />
-                <text :x="incomePieData.cx" :y="incomePieData.cy - 6" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--text-muted)">
+                <text :x="incomePieData.cx" :y="incomePieData.cy - 5" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--text-muted)">
                   {{ analyticsTimeMode === 'year' ? '全年收入' : '月收入' }}
                 </text>
-                <text :x="incomePieData.cx" :y="incomePieData.cy + 11" text-anchor="middle" font-size="12" font-weight="800" fill="#10b981">
+                <text :x="incomePieData.cx" :y="incomePieData.cy + 10" text-anchor="middle" font-size="10.5" font-weight="800" fill="#10b981">
                   ¥{{ hideAmount ? '•••' : formatNumber(monthlyAnalytics.totalIncome) }}
                 </text>
                 <g v-for="(lbl, lIdx) in incomePieData.labels" :key="'inc-lbl-' + lIdx">
-                  <circle :cx="lbl.ax" :cy="lbl.ay" r="2.2" :fill="lbl.color" />
                   <polyline :points="lbl.points" fill="none" :stroke="lbl.color" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" />
                   <text
                     :x="lbl.textX"
-                    :y="lbl.textY + 3.5"
+                    :y="lbl.textY + 3.8"
                     :text-anchor="lbl.anchor"
-                    font-size="10.5"
+                    font-size="11"
                     font-weight="700"
-                    fill="var(--text-main)"
+                    :fill="lbl.color"
                   >{{ lbl.label }}</text>
                 </g>
               </svg>
@@ -5574,6 +5717,34 @@
       </div>
     </div>
 
+    <!-- 淘宝/京东式剪贴板账单粘贴确认弹框 -->
+    <div v-if="clipboardConfirmModal.visible && !isLocked" class="clipboard-confirm-backdrop" @click.self="cancelClipboardPrompt">
+      <div class="clipboard-confirm-card">
+        <div class="clipboard-confirm-title">🐱 检测到剪贴板内容</div>
+        <div class="clipboard-confirm-preview">
+          “{{ clipboardConfirmModal.preview }}”
+        </div>
+        <div class="clipboard-confirm-actions">
+          <button
+            type="button"
+            class="btn-secondary"
+            style="flex: 1; justify-content: center; padding: 10px 12px; font-size: 13.5px; border-radius: 12px;"
+            @click="cancelClipboardPrompt"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="btn-primary"
+            style="flex: 1.35; justify-content: center; padding: 10px 12px; font-size: 13.5px; border-radius: 12px;"
+            @click="confirmClipboardPrompt"
+          >
+            粘贴并识别
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 浮动 Toast 消息 -->
     <div v-if="toastMessage" class="toast-box" :class="{ 'is-fading': toastFading }">
       <span>✨</span>
@@ -5632,8 +5803,19 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.7');
+        const currentVersion = ref('v5.0.8');
         const versionHistoryList = [
+          {
+            version: 'v5.0.8',
+            date: '2026-11-18',
+            title: '📊 资产趋势双层组合图、统计饼图居中重构与剪贴板确认弹框',
+            features: [
+              '「资产趋势」双层组合统计图与玫红色统一配色：采用上方累计净资产平滑折线（白底空心圆圈与上方数值标注）+ 下方周期盈余正负柱状图（#E11D48 玫红正盈余 / #F59E0B 警示负盈余），支持点击周期节点查看详情；',
+              '统计页支出/收入环形饼图居中防裁切：采用 360×220 居中画布（R=54, r=33），全外部引导线引出与扇区同色的纯文字「分类 + 百分比」并防碰撞错位（单分类固定右上角 -25°），同步替换排行标题图标消除乱码；',
+              '流水页布局回归与跳转复位：恢复第一行「流水明细」标题与第二行全宽搜索框，保留紧凑筛选栏；点击「全部流水」或切换导航时自动重置页面与列表滚动条至顶部；',
+              '淘宝式剪贴板确认弹框与输入框清理：新增居中「检测到剪贴板内容」预览确认弹窗，集成 sessionStorage 防重复弹窗与 iOS 一次性手势兜底；彻底清除喵记账底部输入框冗余提示词，缓存升级至 personal-asset-pwa-v50。'
+            ]
+          },
           {
             version: 'v5.0.7',
             date: '2026-11-18',
@@ -7143,19 +7325,19 @@
           return `conic-gradient(${segments.join(', ')})`;
         });
 
-        // SVG 扇区直接标注环形饼图生成器（自动对 <5% 相邻小扇区外延引导线错位防重叠）
+        // SVG 扇区外部引导线直标环形饼图生成器（viewBox 360x220 严格居中 + R=54/r=33 + 全外部引导线绝不穿孔）
         function buildAnnotatedPieData(list, total) {
-          const cx = 190;
-          const R = 60;
-          const r = 34;
+          const W = 360;
+          const H = 220;
+          const cx = 180;
+          const cy = 110;
+          const R = 54;
+          const r = 33;
           if (!list || list.length === 0 || total <= 0) {
-            return { cx, cy: 115, height: 230, R, r, slices: [], labels: [] };
+            return { cx, cy, height: H, R, r, slices: [], labels: [] };
           }
 
-          // 预计算左右两侧标签数量，动态决定画布高度避免上下溢出
           let curAngle = -Math.PI / 2;
-          let rightCount = 0;
-          let leftCount = 0;
           const rawSlices = list.map((item) => {
             const frac = item.amount / total;
             const sweep = frac * Math.PI * 2;
@@ -7163,13 +7345,8 @@
             const endAngle = curAngle + sweep;
             const midAngle = (startAngle + endAngle) / 2;
             curAngle = endAngle;
-            const isRight = list.length === 1 ? true : Math.cos(midAngle) >= 0;
-            if (isRight) rightCount++; else leftCount++;
-            return { item, startAngle, endAngle, midAngle, isRight };
+            return { item, startAngle, endAngle, midAngle };
           });
-
-          const height = Math.max(220, Math.max(rightCount, leftCount) * 18 + 38);
-          const cy = +(height / 2).toFixed(1);
 
           const slices = rawSlices.map((s) => {
             const { item, startAngle, endAngle } = s;
@@ -7197,32 +7374,42 @@
 
           const rightItems = [];
           const leftItems = [];
+          const singleSliceAngle = (-25 * Math.PI) / 180; // 单分类 100% 固定右上角 -25°
+
           for (const s of rawSlices) {
-            const angle = list.length === 1 ? 0 : s.midAngle;
-            const ax = cx + (R - 2) * Math.cos(angle);
-            const ay = cy + (R - 2) * Math.sin(angle);
-            const ny = cy + (R + 14) * Math.sin(angle);
+            const isSingle = list.length === 1 || (s.endAngle - s.startAngle) >= Math.PI * 1.999;
+            const angle = isSingle ? singleSliceAngle : s.midAngle;
+            const isRight = isSingle ? true : Math.cos(angle) >= 0;
+            // 起点严格落在外圆周外侧 3px (R + 3 = 57)
+            const x1 = cx + (R + 3) * Math.cos(angle);
+            const y1 = cy + (R + 3) * Math.sin(angle);
+            // 拐点参考纵坐标 (R + 16 = 70)
+            const rawX2 = cx + (R + 16) * Math.cos(angle);
+            const ny = cy + (R + 16) * Math.sin(angle);
             const entry = {
               item: s.item,
               angle,
-              ax,
-              ay,
+              x1,
+              y1,
+              rawX2,
               ny,
-              isRight: s.isRight,
-              isSmall: Number(s.item.percent) < 5
+              isRight
             };
-            if (s.isRight) rightItems.push(entry);
+            if (isRight) rightItems.push(entry);
             else leftItems.push(entry);
           }
 
           function layoutSide(sideList, isRight) {
+            if (sideList.length === 0) return [];
             sideList.sort((a, b) => a.ny - b.ny);
-            const minGap = 15.5;
-            const topBound = 14;
-            const bottomBound = height - 12;
+            const topBound = 18;
+            const bottomBound = 202;
+            const minGap = sideList.length > 1
+              ? Math.min(16, (bottomBound - topBound) / (sideList.length - 1))
+              : 16;
 
             for (let i = 0; i < sideList.length; i++) {
-              let y = Math.max(topBound, sideList[i].ny);
+              let y = Math.max(topBound, Math.min(bottomBound, sideList[i].ny));
               if (i > 0) {
                 y = Math.max(y, sideList[i - 1].textY + minGap);
               }
@@ -7237,30 +7424,26 @@
               sideList[i].textY = Math.max(topBound, sideList[i].textY);
             }
 
-            let smallRun = 0;
-            return sideList.map((entry, idx) => {
-              if (entry.isSmall) {
-                smallRun = (idx > 0 && sideList[idx - 1].isSmall) ? (smallRun + 1) : 0;
-              } else {
-                smallRun = 0;
-              }
+            const safeR = R + 12; // 确保拐点永不进入圆环及中心孔
+            return sideList.map((entry) => {
               const dir = isRight ? 1 : -1;
-              const radialExtra = entry.isSmall ? (10 + (smallRun % 3) * 8) : 11;
-              const elbowExtra = entry.isSmall ? (20 + (smallRun % 3) * 8) : 18;
-              const rawKx = cx + (R + radialExtra) * Math.cos(entry.angle);
-              const kx = isRight ? Math.max(rawKx, entry.ax + 4) : Math.min(rawKx, entry.ax - 4);
-              const ky = entry.textY;
-              const elbowX = cx + dir * (R + elbowExtra);
-              const textX = elbowX + dir * 4;
+              const y2 = entry.textY;
+              let x2 = entry.rawX2;
+              const dy = y2 - cy;
+              if (Math.abs(dy) < safeR) {
+                const minDx = Math.sqrt(safeR * safeR - dy * dy);
+                x2 = isRight ? Math.max(x2, cx + minDx) : Math.min(x2, cx - minDx);
+              }
+              const x3 = x2 + dir * 14;
+              const textX = x3 + dir * 2;
+              const label = `${entry.item.category} ${entry.item.percent}%`;
               return {
-                ax: +entry.ax.toFixed(1),
-                ay: +entry.ay.toFixed(1),
                 textX: +textX.toFixed(1),
-                textY: +entry.textY.toFixed(1),
+                textY: +y2.toFixed(1),
                 anchor: isRight ? 'start' : 'end',
                 color: entry.item.color,
-                label: `${entry.item.category} ${entry.item.percent}%`,
-                points: `${entry.ax.toFixed(1)},${entry.ay.toFixed(1)} ${kx.toFixed(1)},${ky.toFixed(1)} ${elbowX.toFixed(1)},${entry.textY.toFixed(1)}`
+                label,
+                points: `${entry.x1.toFixed(1)},${entry.y1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)} ${x3.toFixed(1)},${y2.toFixed(1)}`
               };
             });
           }
@@ -7269,7 +7452,7 @@
             ...layoutSide(rightItems, true),
             ...layoutSide(leftItems, false)
           ];
-          return { cx, cy, height, R, r, slices, labels };
+          return { cx, cy, height: H, R, r, slices, labels };
         }
 
         const expensePieData = computed(() =>
@@ -7489,6 +7672,144 @@
           d += ` L ${last.x} ${bottomY} Z`;
           return d;
         });
+
+        // 双层资产趋势组合图（上方累计净资产平滑折线 + 下方周期盈余正负柱状图）
+        function formatComboCompactNumber(val) {
+          const num = Number(val) || 0;
+          if (Math.abs(num) >= 100 || Number.isInteger(num)) {
+            return String(Math.round(num));
+          }
+          return String(+num.toFixed(1));
+        }
+
+        const assetComboChart = computed(() => {
+          const snaps = Array.isArray(trendSnapshots.value) ? trendSnapshots.value : [];
+          if (snaps.length === 0) {
+            return { items: [], linePath: '', slotW: 60, barW: 18 };
+          }
+
+          // 按 YYYY-MM 聚合为月度周期；若所有快照均在同一个月内，按最新最多 8 个日期展示避免仅单点
+          const sorted = [...snaps].sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+          const monthMap = new Map();
+          for (const s of sorted) {
+            const dStr = String(s.date || '');
+            const ym = dStr.slice(0, 7) || 'unknown';
+            if (!monthMap.has(ym)) {
+              monthMap.set(ym, { ym, snaps: [] });
+            }
+            monthMap.get(ym).snaps.push(s);
+          }
+
+          let rawPeriods = [];
+          const monthBuckets = Array.from(monthMap.values());
+          if (monthBuckets.length >= 2) {
+            const recentMonths = monthBuckets.slice(-12);
+            for (let i = 0; i < recentMonths.length; i++) {
+              const b = recentMonths[i];
+              const firstSnap = b.snaps[0];
+              const lastSnap = b.snaps[b.snaps.length - 1];
+              const endNetAsset = Number(lastSnap.netAsset || 0);
+              const startBase = i === 0
+                ? Number(firstSnap.netAsset || 0)
+                : Number(recentMonths[i - 1].snaps[recentMonths[i - 1].snaps.length - 1].netAsset || 0);
+              const surplus = +(endNetAsset - startBase).toFixed(2);
+              const parts = b.ym.split('-');
+              const monthNum = parts[1] ? Number(parts[1]) : (i + 1);
+              rawPeriods.push({
+                key: b.ym,
+                label: `${monthNum}月`,
+                endDate: lastSnap.date,
+                endNetAsset,
+                surplus
+              });
+            }
+          } else {
+            const recentDaily = sorted.slice(-8);
+            for (let i = 0; i < recentDaily.length; i++) {
+              const s = recentDaily[i];
+              const endNetAsset = Number(s.netAsset || 0);
+              const prevNet = i === 0 ? endNetAsset : Number(recentDaily[i - 1].netAsset || 0);
+              const surplus = i === 0 ? 0 : +(endNetAsset - prevNet).toFixed(2);
+              const dParts = String(s.date || '').split('-');
+              const label = dParts.length === 3
+                ? (recentDaily.length === 1 ? `${Number(dParts[1])}月` : `${Number(dParts[1])}/${Number(dParts[2])}`)
+                : String(s.date || '');
+              rawPeriods.push({
+                key: s.date || String(i),
+                label,
+                endDate: s.date,
+                endNetAsset,
+                surplus
+              });
+            }
+          }
+
+          const n = rawPeriods.length;
+          const W = 500;
+          const padX = 28;
+          const usableW = W - padX * 2;
+          const slotW = usableW / Math.max(n, 1);
+          const barW = Math.min(24, Math.max(10, slotW * 0.44));
+
+          const assetVals = rawPeriods.map((d) => d.endNetAsset);
+          let minA = Math.min(...assetVals);
+          let maxA = Math.max(...assetVals);
+          if (minA === maxA) {
+            minA = minA === 0 ? -100 : minA * 0.9;
+            maxA = maxA === 0 ? 100 : maxA * 1.1;
+          }
+          const rangeA = maxA - minA;
+          const maxAbsSurplus = Math.max(1, ...rawPeriods.map((d) => Math.abs(d.surplus)));
+          const zeroY = 178;
+          const maxBarH = 34;
+
+          const items = rawPeriods.map((d, idx) => {
+            const cx = n === 1 ? W / 2 : +(padX + slotW * (idx + 0.5)).toFixed(1);
+            const lineY = +(114 - ((d.endNetAsset - minA) / rangeA) * 76).toFixed(1);
+            const isPos = d.surplus >= 0;
+            const barH = d.surplus === 0
+              ? 3
+              : +Math.max(4, (Math.abs(d.surplus) / maxAbsSurplus) * maxBarH).toFixed(1);
+            const barY = isPos ? +(zeroY - barH).toFixed(1) : zeroY;
+            const absSurplusText = formatComboCompactNumber(Math.abs(d.surplus));
+            const surplusLabel = d.surplus === 0 ? '+0' : (isPos ? `+${absSurplusText}` : `-${absSurplusText}`);
+            return {
+              ...d,
+              cx,
+              lineY,
+              barY,
+              barH,
+              netAssetLabel: formatComboCompactNumber(d.endNetAsset),
+              surplusLabel
+            };
+          });
+
+          let linePath = '';
+          if (items.length === 1) {
+            linePath = `M ${items[0].cx - 24} ${items[0].lineY} L ${items[0].cx + 24} ${items[0].lineY}`;
+          } else if (items.length > 1) {
+            linePath = `M ${items[0].cx} ${items[0].lineY}`;
+            for (let i = 1; i < items.length; i++) {
+              const prev = items[i - 1];
+              const curr = items[i];
+              const midX = (prev.cx + curr.cx) / 2;
+              linePath += ` C ${midX.toFixed(1)} ${prev.lineY}, ${midX.toFixed(1)} ${curr.lineY}, ${curr.cx} ${curr.lineY}`;
+            }
+          }
+
+          return { items, linePath, slotW, barW };
+        });
+
+        function selectComboPoint(pt) {
+          if (!pt) return;
+          activeTrendPoint.value = {
+            date: pt.endDate,
+            netAsset: pt.endNetAsset,
+            surplus: pt.surplus,
+            label: pt.label
+          };
+          triggerHaptic('light');
+        }
 
         const overallGrowth = computed(() => {
           const list = trendSnapshots.value;
@@ -7712,7 +8033,21 @@
         }
 
         function getCategoryColor(cat, type) {
-          if (type === 'income') return '#10b981';
+          if (type === 'income') {
+            const incomeColorMap = {
+              '工资薪酬': '#10b981',
+              '奖金补贴': '#0ea5e9',
+              '兼职副业': '#8b5cf6',
+              '投资收益': '#f59e0b',
+              '投资理财': '#14b8a6',
+              '营业盈余': '#06b6d4',
+              '礼金红包': '#f43f5e',
+              '退款返现': '#6366f1',
+              '余额调整': '#d97706',
+              '其他收入': '#64748b'
+            };
+            return incomeColorMap[cat] || '#10b981';
+          }
           if (type === 'transfer') return '#38bdf8';
           if (cat === '余额调整') return '#f59e0b';
           const colorMap = {
@@ -7752,7 +8087,16 @@
             Object.assign(overview, stats);
             trendSnapshots.value = trends;
 
-            if (trends.length > 0) {
+            const comboItems = assetComboChart.value.items;
+            if (comboItems.length > 0) {
+              const latestPt = comboItems[comboItems.length - 1];
+              activeTrendPoint.value = {
+                date: latestPt.endDate,
+                netAsset: latestPt.endNetAsset,
+                surplus: latestPt.surplus,
+                label: latestPt.label
+              };
+            } else if (trends.length > 0) {
               activeTrendPoint.value = trends[trends.length - 1];
             } else {
               activeTrendPoint.value = null;
@@ -7938,9 +8282,38 @@
           } catch (_) {}
         }
 
+        function scrollPageToTop() {
+          try {
+            if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+              window.scrollTo(0, 0);
+            }
+            if (typeof document !== 'undefined') {
+              if (document.documentElement) document.documentElement.scrollTop = 0;
+              if (document.body) document.body.scrollTop = 0;
+              const appEl = document.getElementById('app');
+              if (appEl) appEl.scrollTop = 0;
+              const mainEl = document.querySelector('main.container');
+              if (mainEl) mainEl.scrollTop = 0;
+              document.querySelectorAll('.container, .tx-list-container').forEach((el) => {
+                el.scrollTop = 0;
+              });
+            }
+          } catch (_) {}
+        }
+
         function switchTab(tab) {
           currentTab.value = tab;
           triggerHaptic('light');
+          nextTick(() => {
+            scrollPageToTop();
+            if (typeof requestAnimationFrame === 'function') {
+              requestAnimationFrame(scrollPageToTop);
+            }
+          });
+        }
+
+        function goToAllTransactions() {
+          switchTab('transactions');
         }
 
         function selectTxCategory(catName) {
@@ -8000,18 +8373,58 @@
           }
         }
 
-        // 宽容型剪贴板自动填单检测（剥离可选 MIAOWU_OCR: 前缀，无前缀时只要提取出有效金额即自动填单）
+        // 淘宝/京东式剪贴板账单粘贴确认弹框与 sessionStorage 防重复触发
         const CLIPBOARD_OCR_PREFIX = 'MIAOWU_OCR:';
-        let lastHandledClipboardHash = '';
-        let lastHandledClipboardText = '';
+        const SESSION_CLIP_HANDLED_KEY = 'miaowu_last_handled_clip_text';
+        const clipboardConfirmModal = reactive({
+          visible: false,
+          text: '',
+          preview: '',
+          parsed: null
+        });
+        let lastHandledClipboardTextMem = '';
+        let gestureProbeBound = false;
 
-        function computeClipboardTextHash(str) {
-          let hash = 2166136261;
-          for (let i = 0; i < str.length; i++) {
-            hash ^= str.charCodeAt(i);
-            hash = Math.imul(hash, 16777619);
-          }
-          return `${str.length}:${hash >>> 0}`;
+        function getLastHandledClipboardText() {
+          try {
+            if (typeof sessionStorage !== 'undefined') {
+              return sessionStorage.getItem(SESSION_CLIP_HANDLED_KEY) || lastHandledClipboardTextMem;
+            }
+          } catch (_) {}
+          return lastHandledClipboardTextMem;
+        }
+
+        function setLastHandledClipboardText(text) {
+          lastHandledClipboardTextMem = text;
+          try {
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.setItem(SESSION_CLIP_HANDLED_KEY, text);
+            }
+          } catch (_) {}
+        }
+
+        function cleanupGestureClipboardProbe() {
+          gestureProbeBound = false;
+          try {
+            if (typeof document !== 'undefined' && typeof document.removeEventListener === 'function') {
+              document.removeEventListener('pointerdown', onOneTimeGestureClipboardProbe, true);
+              document.removeEventListener('click', onOneTimeGestureClipboardProbe, true);
+            }
+          } catch (_) {}
+        }
+
+        function onOneTimeGestureClipboardProbe() {
+          cleanupGestureClipboardProbe();
+          if (isLocked.value || clipboardConfirmModal.visible || showTxModal.value) return;
+          checkClipboardAutoBill(true);
+        }
+
+        function bindOneTimeGestureClipboardProbe() {
+          if (gestureProbeBound) return;
+          if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+          gestureProbeBound = true;
+          document.addEventListener('pointerdown', onOneTimeGestureClipboardProbe, { once: true, capture: true });
+          document.addEventListener('click', onOneTimeGestureClipboardProbe, { once: true, capture: true });
         }
 
         async function checkClipboardAutoBill(isUserGesture = false) {
@@ -8032,46 +8445,69 @@
               : trimmedClip.trim();
             if (!cleanText) return false;
 
+            if (cleanText === getLastHandledClipboardText()) {
+              return false;
+            }
+
             let parsed = null;
             if (window.CatButlerParser && typeof window.CatButlerParser.parseOcrBillText === 'function') {
               parsed = window.CatButlerParser.parseOcrBillText(cleanText, accounts.value);
             }
             if (!parsed || !(parsed.amount > 0)) {
-              if (isUserGesture) {
-                showToast('剪贴板文本中未识别到有效账单金额');
-              }
               return false;
             }
 
-            const textHash = computeClipboardTextHash(cleanText);
-            if (textHash === lastHandledClipboardHash && cleanText === lastHandledClipboardText) {
-              return false;
-            }
-
-            lastHandledClipboardHash = textHash;
-            lastHandledClipboardText = cleanText;
-
-            if (typeof navigator.clipboard.writeText === 'function') {
-              try {
-                await navigator.clipboard.writeText('');
-              } catch (_) {
-                // 部分浏览器禁止静默覆盖剪贴板，安全忽略，已依赖内存哈希防重
-              }
-            }
-
-            applyAutoBillText(cleanText, '🐱 已从快捷指令识别账单，请核对后入账', parsed);
+            const singleLine = cleanText.replace(/\s+/g, ' ').trim();
+            clipboardConfirmModal.text = cleanText;
+            clipboardConfirmModal.preview = singleLine.length > 24 ? `${singleLine.slice(0, 24)}...` : singleLine;
+            clipboardConfirmModal.parsed = parsed;
+            clipboardConfirmModal.visible = true;
+            triggerHaptic('light');
             return true;
           } catch (err) {
             const isPermissionDenied = err && (
               err.name === 'NotAllowedError' ||
               err.name === 'SecurityError' ||
-              /NotAllowedError/i.test(String(err.message || err))
+              /NotAllowedError|permission|gesture|denied/i.test(String(err.message || err))
             );
-            if (!isPermissionDenied) {
+            if (!isUserGesture && isPermissionDenied) {
+              bindOneTimeGestureClipboardProbe();
+            } else if (!isPermissionDenied) {
               console.warn('[AutoBill] 剪贴板读取异常:', err);
             }
             return false;
           }
+        }
+
+        function cancelClipboardPrompt() {
+          if (clipboardConfirmModal.text) {
+            setLastHandledClipboardText(clipboardConfirmModal.text);
+          }
+          clipboardConfirmModal.visible = false;
+          clipboardConfirmModal.text = '';
+          clipboardConfirmModal.preview = '';
+          clipboardConfirmModal.parsed = null;
+          triggerHaptic('light');
+        }
+
+        async function confirmClipboardPrompt() {
+          const text = clipboardConfirmModal.text;
+          const parsed = clipboardConfirmModal.parsed;
+          if (text) {
+            setLastHandledClipboardText(text);
+          }
+          clipboardConfirmModal.visible = false;
+          clipboardConfirmModal.text = '';
+          clipboardConfirmModal.preview = '';
+          clipboardConfirmModal.parsed = null;
+          triggerHaptic('medium');
+
+          if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            try {
+              await navigator.clipboard.writeText('');
+            } catch (_) {}
+          }
+          applyAutoBillText(text, '🐱 已从剪贴板识别账单，请核对后入账', parsed);
         }
 
         // 右下角悬浮 "+" 按钮统一入口：智能分流
@@ -9392,7 +9828,9 @@
             if (document.visibilityState === 'visible') {
               if (clipboardVisibilityTimer) clearTimeout(clipboardVisibilityTimer);
               clipboardVisibilityTimer = setTimeout(() => {
-                checkClipboardAutoBill(false);
+                if (!isLocked.value && !clipboardConfirmModal.visible && !showTxModal.value) {
+                  checkClipboardAutoBill(false);
+                }
               }, 200);
             }
 
@@ -9491,8 +9929,17 @@
             }
           } catch (_) { /* 网页端安全忽略 */ }
 
-          // 3) 页面首次加载完成时检测一次系统剪贴板 (MIAOWU_OCR:)
-          if (!urlAutoBillHandled) {
+          // 解锁后自动探测剪贴板一次（若因权限受限则挂载一次性手势兜底）
+          watch(isLocked, (locked, wasLocked) => {
+            if (wasLocked && !locked && !clipboardConfirmModal.visible && !showTxModal.value) {
+              setTimeout(() => {
+                checkClipboardAutoBill(false);
+              }, 180);
+            }
+          });
+
+          // 3) 页面首次加载完成时检测一次系统剪贴板
+          if (!urlAutoBillHandled && !isLocked.value) {
             checkClipboardAutoBill(false);
           }
 
@@ -9559,6 +10006,7 @@
           handleFaceIdUnlock,
           triggerHaptic,
           switchTab,
+          goToAllTransactions,
           selectTxCategory,
           currentTab,
           hideAmount,
@@ -9589,6 +10037,8 @@
           trendPoints,
           trendLinePath,
           trendAreaPath,
+          assetComboChart,
+          selectComboPoint,
           overallGrowth,
           overallGrowthPercent,
           overview,
@@ -9601,6 +10051,9 @@
           txSearchKeyword,
           clearTxSearch,
           txAutoBanner,
+          clipboardConfirmModal,
+          cancelClipboardPrompt,
+          confirmClipboardPrompt,
           checkClipboardAutoBill,
           icloudAutoBackup,
           icloudAvailable,
