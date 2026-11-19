@@ -98,7 +98,7 @@
   // Accounts (账户操作)
   // ==========================================
 
-  async function getAllAccounts() {
+  async function readRawAccounts() {
     const db = await openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction('accounts', 'readonly');
@@ -107,6 +107,112 @@
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
+  }
+
+  /**
+   * 严格不变量自愈巡检（叶子存钱、母账户纯汇总）：
+   * 若发现任何已有子账户的母账户自身 balance !== 0，自动将该残留金额合并入其名下「存款」子账户（不存在则自动创建），
+   * 并将母账户自身 balance 强制清零后写回 IndexedDB。
+   */
+  async function healParentAccountsIfNeeded() {
+    const list = await readRawAccounts();
+    if (!list.length) return list;
+
+    const childrenMap = new Map();
+    for (const acc of list) {
+      if (!acc || !acc.parentId) continue;
+      const pid = String(acc.parentId);
+      if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+      childrenMap.get(pid).push(acc);
+    }
+
+    const db = await openDB();
+    const nowIso = new Date().toISOString();
+    const toPut = [];
+    const toAdd = [];
+
+    for (const acc of list) {
+      if (!acc || !acc.id) continue;
+      const children = childrenMap.get(String(acc.id));
+      if (!children || children.length === 0) continue;
+
+      const residual = +(Number(acc.balance || 0)).toFixed(2);
+      if (residual === 0) continue;
+
+      const depositChild = children.find((c) => String(c.name || '').trim() === '存款');
+      if (depositChild) {
+        depositChild.balance = +(Number(depositChild.balance || 0) + residual).toFixed(2);
+        depositChild.updatedAt = nowIso;
+        toPut.push(depositChild);
+      } else {
+        const newDeposit = {
+          id: generateId('acc'),
+          name: '存款',
+          type: 'bank',
+          balance: residual,
+          parentId: String(acc.id),
+          currency: acc.currency || 'CNY',
+          color: '#2563eb',
+          icon: '💳',
+          notes: '',
+          creditLimit: 0,
+          updatedAt: nowIso
+        };
+        children.push(newDeposit);
+        toAdd.push(newDeposit);
+      }
+
+      acc.balance = 0;
+      acc.updatedAt = nowIso;
+      toPut.push(acc);
+    }
+
+    if (toPut.length === 0 && toAdd.length === 0) {
+      return list;
+    }
+
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('accounts', 'readwrite');
+      const store = tx.objectStore('accounts');
+      for (const item of toAdd) store.add(item);
+      for (const item of toPut) store.put(item);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+
+    await updateTodaySnapshot();
+    return readRawAccounts();
+  }
+
+  async function getAllAccounts() {
+    return healParentAccountsIfNeeded();
+  }
+
+  /**
+   * 统一检测账户创建重名冲突：
+   * - 情况 A1: parentId 为空，一级主账户已有同名且名下有子账户
+   * - 情况 A2: parentId 为空，一级主账户已有同名但暂无子账户
+   * - 情况 B: parentId 非空，该母账户下已存在同名子账户
+   */
+  function detectAccountCreationConflict({ name, parentId = null, accounts = [], excludeId = '' }) {
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName || !Array.isArray(accounts)) return null;
+    const pid = parentId ? String(parentId) : '';
+
+    if (!pid) {
+      const targetAcc = accounts.find((a) => a && a.id !== excludeId && !a.parentId && String(a.name || '').trim() === trimmedName);
+      if (!targetAcc) return null;
+      const children = accounts.filter((a) => a && a.id !== excludeId && a.parentId && String(a.parentId) === String(targetAcc.id));
+      if (children.length > 0) {
+        return { kind: 'A1', targetAcc, children };
+      }
+      return { kind: 'A2', targetAcc, children: [] };
+    }
+
+    const parentAcc = accounts.find((a) => a && String(a.id) === pid) || null;
+    const targetSub = accounts.find((a) => a && a.id !== excludeId && a.parentId && String(a.parentId) === pid && String(a.name || '').trim() === trimmedName);
+    if (!targetSub) return null;
+    return { kind: 'B', parentAcc, targetSub };
   }
 
   async function getAccount(id) {
@@ -128,6 +234,7 @@
       name: accountData.name || '新账户',
       type: accountData.type || 'bank', // cash, bank, investment, credit, other
       balance: Number(accountData.balance || 0),
+      parentId: accountData.parentId ? String(accountData.parentId) : null,
       currency: accountData.currency || 'CNY',
       color: accountData.color || '#3b82f6',
       icon: accountData.icon || '💳',
@@ -154,10 +261,14 @@
     const existing = await getAccount(accountData.id);
     if (!existing) throw new Error('账户不存在');
 
+    const rawAccounts = await readRawAccounts();
+    const hasChildren = rawAccounts.some((a) => a && a.parentId && String(a.parentId) === String(accountData.id));
+
     const updated = {
       ...existing,
       ...accountData,
-      balance: Number(accountData.balance !== undefined ? accountData.balance : existing.balance),
+      parentId: accountData.parentId !== undefined ? (accountData.parentId ? String(accountData.parentId) : null) : (existing.parentId || null),
+      balance: hasChildren ? 0 : Number(accountData.balance !== undefined ? accountData.balance : existing.balance),
       creditLimit: accountData.creditLimit !== undefined ? Number(accountData.creditLimit) : (existing.creditLimit || 0),
       updatedAt: new Date().toISOString()
     };
@@ -174,7 +285,77 @@
     return updated;
   }
 
+  /**
+   * 首次为非零余额独立主账户添加子账户（或迁入现有独立账户）时，处理原余额的统一事务辅助函数
+   * mode === 'split': 创建原余额子账户(A) + 创建或更新子账户(B)，并将母账户 balance 归零
+   * mode === 'merge': 仅保留 1 个子账户(B)，其余额严格等于 Number(oldBalance) + Number(newBalance)，并将母账户 balance 归零
+   */
+  async function createFirstSubAccountWithOldBalance({ parentId, newChildPayload, mode = 'split', legacyChildPayload = null, existingChildId = '' }) {
+    const parent = await getAccount(parentId);
+    if (!parent) throw new Error('母账户不存在');
+
+    const oldBalance = +(Number(parent.balance || 0)).toFixed(2);
+    const newBalance = +(Number((newChildPayload && newChildPayload.balance) || 0)).toFixed(2);
+
+    // 1. 强不变量：将母账户自身 balance 设为 0
+    await updateAccount({ id: parentId, balance: 0 });
+
+    const saveChild = async (finalBal) => {
+      if (existingChildId) {
+        return updateAccount({
+          ...newChildPayload,
+          id: existingChildId,
+          parentId,
+          balance: finalBal
+        });
+      }
+      return addAccount({
+        ...newChildPayload,
+        parentId,
+        balance: finalBal
+      });
+    };
+
+    if (mode === 'split') {
+      const legacyAcc = await addAccount({
+        name: (legacyChildPayload && legacyChildPayload.name && String(legacyChildPayload.name).trim()) || '存款',
+        type: (legacyChildPayload && legacyChildPayload.type) || parent.type || 'bank',
+        balance: oldBalance,
+        parentId,
+        icon: (legacyChildPayload && legacyChildPayload.icon) || parent.icon || '💳',
+        color: (legacyChildPayload && legacyChildPayload.color) || parent.color || '#3b82f6',
+        notes: (legacyChildPayload && legacyChildPayload.notes) || ''
+      });
+      const newAcc = await saveChild(newBalance);
+      return {
+        mode: 'split',
+        oldBalance,
+        newBalance,
+        totalBalance: +(oldBalance + newBalance).toFixed(2),
+        legacyAccount: legacyAcc,
+        newAccount: newAcc
+      };
+    }
+
+    const mergedBalance = +(oldBalance + newBalance).toFixed(2);
+    const mergedAcc = await saveChild(mergedBalance);
+    return {
+      mode: 'merge',
+      oldBalance,
+      newBalance,
+      totalBalance: mergedBalance,
+      legacyAccount: null,
+      newAccount: mergedAcc
+    };
+  }
+
   async function deleteAccount(id) {
+    const allAccounts = await getAllAccounts();
+    const hasChild = allAccounts.some(acc => acc && acc.parentId === id);
+    if (hasChild) {
+      throw new Error('该主账户名下仍有子账户，请先删除或迁出所有子账户');
+    }
+
     const db = await openDB();
     await new Promise((resolve, reject) => {
       const tx = db.transaction('accounts', 'readwrite');
@@ -497,35 +678,64 @@
   // ==========================================
 
   /**
-   * 计算并持久化保存当天的资产快照
+   * 计算资产汇总（防止母账户与子账户重复计算）
+   * 若某账户名下存在子账户（parentId === acc.id），则跳过该母账户自身余额，仅汇总叶节点余额
    */
-  async function updateTodaySnapshot(customDate = null) {
-    const accounts = await getAllAccounts();
-    const today = customDate || formatDate();
+  function calculateAssetSummary(accounts = []) {
+    const list = Array.isArray(accounts) ? accounts : [];
+    const parentIdSet = new Set();
+    for (const acc of list) {
+      if (acc && acc.parentId) {
+        parentIdSet.add(acc.parentId);
+      }
+    }
 
     let totalAsset = 0;
     let totalLiability = 0;
     const balances = {};
+    const leafAccounts = [];
 
-    accounts.forEach(acc => {
+    for (const acc of list) {
+      if (!acc) continue;
       const bal = Number(acc.balance || 0);
       balances[acc.id] = bal;
 
+      if (parentIdSet.has(acc.id)) {
+        continue;
+      }
+
+      leafAccounts.push(acc);
       if (acc.type === 'credit') {
         // 信用卡/借贷账户：统一定义欠款为负债 (取绝对值 Math.abs，清零时为 0)
         totalLiability += Math.abs(bal);
+      } else if (bal >= 0) {
+        totalAsset += bal;
       } else {
-        if (bal >= 0) {
-          totalAsset += bal;
-        } else {
-          totalLiability += Math.abs(bal);
-        }
+        totalLiability += Math.abs(bal);
       }
-    });
+    }
 
     totalAsset = +totalAsset.toFixed(2);
     totalLiability = +totalLiability.toFixed(2);
     const netAsset = +(totalAsset - totalLiability).toFixed(2);
+
+    return {
+      totalAsset,
+      totalLiability,
+      netAsset,
+      balances,
+      parentIdSet,
+      leafAccounts
+    };
+  }
+
+  /**
+   * 计算并持久化保存当天的资产快照
+   */
+  async function updateTodaySnapshot(customDate = null) {
+    const accounts = await readRawAccounts();
+    const today = customDate || formatDate();
+    const { totalAsset, totalLiability, netAsset, balances } = calculateAssetSummary(accounts);
 
     const snapshot = {
       date: today,
@@ -907,11 +1117,15 @@
     formatDate,
     // Accounts
     getAllAccounts,
+    healParentAccountsIfNeeded,
+    detectAccountCreationConflict,
     getAccount,
     addAccount,
     updateAccount,
+    createFirstSubAccountWithOldBalance,
     deleteAccount,
     adjustBalance,
+    calculateAssetSummary,
     // Transactions
     getAllTransactions,
     getTransaction,

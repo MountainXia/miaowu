@@ -27,7 +27,7 @@
   <script src="./db.js"></script>
   <script src="./icloudSync.js"></script>
   <script src="./biometricLock.js"></script>
-  <script src="./components/CatButler.js?v=5.1.0"></script>
+  <script src="./components/CatButler.js?v=5.1.5"></script>
 
   <style>
     /* ================================================= */
@@ -1238,6 +1238,137 @@
 
     .btn-sm.danger:hover {
       background: rgba(244, 63, 94, 0.15);
+    }
+
+    /* 多级子账户树形层级样式 */
+    .acc-parent-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(59, 130, 246, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(59, 130, 246, 0.24);
+      cursor: pointer;
+    }
+
+    .sub-accounts-wrap {
+      margin-top: 2px;
+      margin-left: 10px;
+      padding-left: 12px;
+      border-left: 2px dashed rgba(148, 163, 184, 0.45);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sub-account-card {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .sub-account-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .sub-account-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .sub-acc-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+
+    .sub-type-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    .sub-account-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .migrate-radio-card {
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-subtle);
+      border-radius: 12px;
+      padding: 12px 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: 10px;
+    }
+
+    .migrate-radio-card.active {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .migrate-radio-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .migrate-radio-desc {
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--text-muted);
+      margin-top: 5px;
+      padding-left: 22px;
+    }
+
+    .migrate-radio-subform {
+      margin-top: 10px;
+      padding-left: 22px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .migrate-radio-subform label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
     /* 底部导航栏 */
@@ -3735,86 +3866,136 @@
           </button>
         </div>
 
-        <!-- 账户卡片列表 (展示 20+ 款精美图标) -->
-        <div v-if="filteredAccounts.length > 0" class="accounts-grid">
+        <!-- 账户卡片列表 (支持一级主账户与缩进多级子账户展示) -->
+        <div v-if="filteredAccountGroups.length > 0" class="accounts-grid">
           <div
-            v-for="acc in filteredAccounts"
-            :key="acc.id"
+            v-for="group in filteredAccountGroups"
+            :key="group.parent.id"
             class="account-card"
           >
             <div class="acc-card-top">
               <div class="acc-brand">
                 <div class="acc-icon">
-                  <img v-if="getAccountIconImg(acc)" :src="getAccountIconImg(acc)" class="w-10 h-10 object-contain" :alt="acc.name" />
-                  <span v-else>{{ acc.icon || getAccountEmoji(acc.type) }}</span>
+                  <img v-if="getAccountIconImg(group.parent)" :src="getAccountIconImg(group.parent)" class="w-10 h-10 object-contain" :alt="group.parent.name" />
+                  <span v-else>{{ group.parent.icon || getAccountEmoji(group.parent.type) }}</span>
                 </div>
                 <div class="acc-name-box">
-                  <div class="acc-name">{{ acc.name }}</div>
-                  <div class="acc-type-text">{{ getAccountTypeLabel(acc.type) }} <span v-if="acc.notes">· {{ acc.notes }}</span></div>
+                  <div class="acc-name" style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <span>{{ group.parent.name }}</span>
+                    <button
+                      v-if="group.allChildren.length > 0"
+                      type="button"
+                      class="acc-parent-toggle"
+                      @click="toggleParentCollapse(group.parent.id)"
+                      :title="isParentCollapsed(group.parent.id) ? '展开子账户' : '收起子账户'"
+                    >
+                      <span>{{ isParentCollapsed(group.parent.id) ? '▸' : '▾' }}</span>
+                      <span>{{ group.allChildren.length }} 个子账户</span>
+                    </button>
+                  </div>
+                  <div class="acc-type-text">{{ getAccountTypeLabel(group.parent.type) }} <span v-if="group.parent.notes">· {{ group.parent.notes }}</span></div>
                 </div>
               </div>
             </div>
 
-            <!-- 余额区域 -->
+            <!-- 余额区域：若有子账户，统计名下所有子账户余额总额 -->
             <div class="acc-balance-section">
               <div>
-                <div class="acc-bal-title">{{ acc.type === 'credit' ? '当前已用欠款 / 余额' : '当前实时余额' }}</div>
-                <div class="acc-bal-value" :class="{ 'is-credit': acc.type === 'credit' }">
-                  <span class="acc-bal-currency">¥</span>{{ hideAmount ? '••••••' : formatNumber(acc.balance) }}
+                <div class="acc-bal-title">
+                  {{ group.allChildren.length > 0 ? '账户总额' : (group.parent.type === 'credit' ? '当前已用欠款 / 余额' : '当前实时余额') }}
+                </div>
+                <div class="acc-bal-value" :class="{ 'is-credit': group.allChildren.length === 0 && group.parent.type === 'credit' }">
+                  <span class="acc-bal-currency">¥</span>{{ hideAmount ? '••••••' : formatNumber(getAccountDisplayBalance(group.parent)) }}
                 </div>
               </div>
 
-              <!-- 快捷调额按钮 -->
-              <button class="btn-sm adjust" @click="openAdjustModal(acc)">
+              <!-- 无子账户时显示快捷调额 -->
+              <button v-if="group.allChildren.length === 0" class="btn-sm adjust" @click="openAdjustModal(group.parent)">
                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 直接调额
               </button>
             </div>
 
-            <!-- 信用卡专属：额度与额度剩余状态面板 -->
-            <div v-if="acc.type === 'credit'" class="credit-limit-section" style="background: var(--bg-subtle); border-radius: 10px; padding: 10px 12px; margin: 8px 0 10px; border: 1px solid var(--border-subtle);">
+            <!-- 信用卡专属：仅当未拆分子账户时显示母卡额度面板 -->
+            <div v-if="group.parent.type === 'credit' && group.allChildren.length === 0" class="credit-limit-section" style="background: var(--bg-subtle); border-radius: 10px; padding: 10px 12px; margin: 8px 0 10px; border: 1px solid var(--border-subtle);">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                 <div style="display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 11px; font-weight: 700; color: var(--text-muted);">💳 信用总额度</span>
                   <span style="font-size: 13px; font-weight: 800; color: var(--text-main);">
-                    ¥{{ hideAmount ? '••••' : (acc.creditLimit ? formatNumber(acc.creditLimit) : '未设置') }}
+                    ¥{{ hideAmount ? '••••' : (group.parent.creditLimit ? formatNumber(group.parent.creditLimit) : '未设置') }}
                   </span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
                   <span style="font-size: 11px; font-weight: 700; color: #10b981;">剩余可用</span>
                   <span style="font-size: 14px; font-weight: 800; color: #10b981;">
-                    ¥{{ hideAmount ? '••••' : (acc.creditLimit ? formatNumber(getCreditCardRemainingLimit(acc)) : formatNumber(acc.balance)) }}
+                    ¥{{ hideAmount ? '••••' : (group.parent.creditLimit ? formatNumber(getCreditCardRemainingLimit(group.parent)) : formatNumber(group.parent.balance)) }}
                   </span>
                 </div>
               </div>
 
               <!-- 额度剩余进度条 -->
-              <div v-if="acc.creditLimit > 0" style="margin-top: 4px;">
+              <div v-if="group.parent.creditLimit > 0" style="margin-top: 4px;">
                 <div style="height: 6px; background: rgba(16, 185, 129, 0.2); border-radius: 4px; overflow: hidden; position: relative;">
                   <div
                     style="height: 100%; background: #10b981; border-radius: 4px; transition: width 0.3s ease;"
-                    :style="{ width: Math.max(0, Math.min(100, Math.round(((getCreditCardRemainingLimit(acc)) / acc.creditLimit) * 100))) + '%' }"
+                    :style="{ width: Math.max(0, Math.min(100, Math.round(((getCreditCardRemainingLimit(group.parent)) / group.parent.creditLimit) * 100))) + '%' }"
                   ></div>
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 10.5px; color: var(--text-muted);">
-                  <span>已透支欠款: ¥{{ hideAmount ? '•••' : formatNumber(acc.balance < 0 ? Math.abs(acc.balance) : 0) }}</span>
-                  <span>额度剩余率: {{ Math.max(0, Math.min(100, Math.round(((getCreditCardRemainingLimit(acc)) / acc.creditLimit) * 100))) }}%</span>
+                  <span>已透支欠款: ¥{{ hideAmount ? '•••' : formatNumber(group.parent.balance < 0 ? Math.abs(group.parent.balance) : 0) }}</span>
+                  <span>额度剩余率: {{ Math.max(0, Math.min(100, Math.round(((getCreditCardRemainingLimit(group.parent)) / group.parent.creditLimit) * 100))) }}%</span>
                 </div>
               </div>
               <div v-else style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
                 <span>暂未设置总额度</span>
-                <button class="btn-sm" style="padding: 2px 8px; font-size: 11px;" @click="openEditAccountModal(acc)">点击设置额度</button>
+                <button class="btn-sm" style="padding: 2px 8px; font-size: 11px;" @click="openEditAccountModal(group.parent)">点击设置额度</button>
+              </div>
+            </div>
+
+            <!-- 缩进层级子账户列表 -->
+            <div v-if="group.children.length > 0 && !isParentCollapsed(group.parent.id)" class="sub-accounts-wrap">
+              <div
+                v-for="sub in group.children"
+                :key="sub.id"
+                class="sub-account-card"
+              >
+                <div class="sub-account-top">
+                  <div class="sub-account-brand">
+                    <div class="sub-acc-icon">
+                      <img v-if="getAccountIconImg(sub)" :src="getAccountIconImg(sub)" class="w-10 h-10 object-contain" style="width: 24px; height: 24px;" :alt="sub.name" />
+                      <span v-else>{{ sub.icon || getAccountEmoji(sub.type) }}</span>
+                    </div>
+                    <div style="min-width: 0; flex: 1;">
+                      <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">{{ sub.name }}</span>
+                        <span class="sub-type-badge">{{ getAccountTypeLabel(sub.type) }}</span>
+                      </div>
+                      <div v-if="sub.notes" style="font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ sub.notes }}
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size: 15px; font-weight: 800; white-space: nowrap;" :style="{ color: sub.type === 'credit' ? 'var(--danger)' : 'var(--text-main)' }">
+                    ¥{{ hideAmount ? '••••' : formatNumber(sub.balance) }}
+                  </div>
+                </div>
+                <div class="sub-account-actions">
+                  <button class="btn-sm adjust" style="padding: 3px 8px; font-size: 11px;" @click="openAdjustModal(sub)">直接调额</button>
+                  <button class="btn-sm" style="padding: 3px 8px; font-size: 11px;" @click="openEditAccountModal(sub)">编辑</button>
+                  <button class="btn-sm danger" style="padding: 3px 8px; font-size: 11px;" @click="confirmDeleteAccount(sub)">删除</button>
+                </div>
               </div>
             </div>
 
             <!-- 底部操作与更新时间 -->
-            <div class="acc-card-actions">
-              <div class="acc-time">更新于 {{ formatTime(acc.updatedAt) }}</div>
-              <div class="acc-btns">
-                <button class="btn-sm" :disabled="isFirstAccount(acc)" @click="moveAccount(acc.id, -1)" title="上移一位" style="padding: 4px 7px;">⬆</button>
-                <button class="btn-sm" :disabled="isLastAccount(acc)" @click="moveAccount(acc.id, 1)" title="下移一位" style="padding: 4px 7px;">⬇</button>
-                <button class="btn-sm" @click="openEditAccountModal(acc)">编辑</button>
-                <button class="btn-sm danger" @click="confirmDeleteAccount(acc)">删除</button>
+            <div class="acc-card-actions" style="flex-wrap: wrap; gap: 6px;">
+              <div class="acc-time">更新于 {{ formatTime(group.parent.updatedAt) }}</div>
+              <div class="acc-btns" style="flex-wrap: wrap;">
+                <button class="btn-sm" @click="openAddSubAccountModal(group.parent)" style="color: var(--primary); border-color: rgba(59,130,246,0.35); font-weight: 700;">+ 子账户</button>
+                <button class="btn-sm" :disabled="isFirstAccount(group.parent)" @click="moveAccount(group.parent.id, -1)" title="上移一位" style="padding: 4px 7px;">⬆</button>
+                <button class="btn-sm" :disabled="isLastAccount(group.parent)" @click="moveAccount(group.parent.id, 1)" title="下移一位" style="padding: 4px 7px;">⬇</button>
+                <button class="btn-sm" @click="openEditAccountModal(group.parent)">编辑</button>
+                <button class="btn-sm danger" @click="confirmDeleteAccount(group.parent)">删除</button>
               </div>
             </div>
           </div>
@@ -3904,7 +4085,7 @@
           >
             <option value="">全部账户</option>
             <option value="pure">仅看纯流水 (不计入资产)</option>
-            <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ a.name }}</option>
+            <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.icon || '' }} {{ getAccountHierarchyLabel(a) }}</option>
           </select>
         </div>
 
@@ -4446,6 +4627,7 @@
     <cat-butler
       v-if="!isLocked"
       :accounts="accounts"
+      :account-icon-list="accountIconList"
       :get-category-img="getCategoryImg"
       :get-category-emoji="getCategoryEmoji"
       :get-account-icon-img="getAccountIconImg"
@@ -4906,7 +5088,12 @@
       <div class="modal-box tx-modal-box">
         <div class="modal-header">
           <div class="modal-title">
-            <span>🐾 记一笔</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;">
+              <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              <span>记一笔</span>
+            </span>
           </div>
           <button class="btn-close" @click="showTxModal = false">✕</button>
         </div>
@@ -4977,7 +5164,16 @@
                 </span>
                 <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box; padding-left: 36px;">
                   <option value="">纯流水 (不计入账户)</option>
-                  <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
+                  <template v-for="sec in groupedTxAccountSections" :key="sec.key">
+                    <optgroup v-if="sec.isGroup" :label="sec.label">
+                      <option v-for="item in sec.items" :key="item.id" :value="item.id">
+                        {{ item.label }} (¥{{ formatNumber(item.balance) }})
+                      </option>
+                    </optgroup>
+                    <option v-else :value="sec.items[0].id">
+                      {{ sec.items[0].label }} (¥{{ formatNumber(sec.items[0].balance) }})
+                    </option>
+                  </template>
                 </select>
               </div>
             </div>
@@ -4999,7 +5195,16 @@
                   <span v-else style="font-size: 15px;">💳</span>
                 </span>
                 <select v-model="txForm.accountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box; padding-left: 36px;">
-                  <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }} (¥{{ formatNumber(a.balance) }})</option>
+                  <template v-for="sec in groupedTxAccountSections" :key="sec.key">
+                    <optgroup v-if="sec.isGroup" :label="sec.label">
+                      <option v-for="item in sec.items" :key="item.id" :value="item.id">
+                        {{ item.label }} (¥{{ formatNumber(item.balance) }})
+                      </option>
+                    </optgroup>
+                    <option v-else :value="sec.items[0].id">
+                      {{ sec.items[0].label }} (¥{{ formatNumber(sec.items[0].balance) }})
+                    </option>
+                  </template>
                 </select>
               </div>
             </div>
@@ -5013,7 +5218,16 @@
                   <span v-else style="font-size: 15px;">💳</span>
                 </span>
                 <select v-model="txForm.toAccountId" class="form-select" style="min-width: 0; width: 100%; box-sizing: border-box; padding-left: 36px;">
-                  <option v-for="a in accounts" :key="a.id" :value="a.id" :disabled="a.id === txForm.accountId">{{ a.name }}</option>
+                  <template v-for="sec in groupedTxAccountSections" :key="sec.key">
+                    <optgroup v-if="sec.isGroup" :label="sec.label">
+                      <option v-for="item in sec.items" :key="item.id" :value="item.id" :disabled="item.id === txForm.accountId">
+                        {{ item.label }} (¥{{ formatNumber(item.balance) }})
+                      </option>
+                    </optgroup>
+                    <option v-else :value="sec.items[0].id" :disabled="sec.items[0].id === txForm.accountId">
+                      {{ sec.items[0].label }} (¥{{ formatNumber(sec.items[0].balance) }})
+                    </option>
+                  </template>
                 </select>
               </div>
             </div>
@@ -5582,7 +5796,39 @@
 
         <div class="form-group">
           <label class="form-label">账户名称</label>
-          <input type="text" v-model="accountForm.name" class="form-input" placeholder="例如：招商银行工资卡、微信零钱" />
+          <input
+            ref="accountNameInputRef"
+            type="text"
+            v-model="accountForm.name"
+            @input="accountNameError = ''"
+            class="form-input"
+            :style="accountNameError ? 'border-color: #ea580c;' : ''"
+            placeholder="例如：招商银行工资卡、微信零钱"
+          />
+          <div v-if="accountNameError" style="font-size: 11.5px; font-weight: 700; color: #ea580c; margin-top: 5px;">
+            ⚠️ {{ accountNameError }}
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">归属母账户 (可选)</label>
+          <select
+            v-model="accountForm.parentId"
+            class="form-select"
+            :disabled="isEditAccount && hasChildAccounts(accountForm.id)"
+          >
+            <option value="">无（作为独立主账户）</option>
+            <option
+              v-for="p in availableParentAccounts"
+              :key="p.id"
+              :value="p.id"
+            >
+              {{ p.icon || getAccountEmoji(p.type) }} {{ p.name }} (¥{{ formatNumber(getAccountDisplayBalance(p)) }})
+            </option>
+          </select>
+          <div v-if="isEditAccount && hasChildAccounts(accountForm.id)" style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+            💡 该账户名下已挂载子账户，暂不可再设为其他账户的子账户。
+          </div>
         </div>
 
         <div class="form-group">
@@ -5667,6 +5913,170 @@
     </div>
 
     <!-- ============================================== -->
+    <!-- 弹窗 3.5: 首次添加子账户原余额处理确认弹窗            -->
+    <!-- ============================================== -->
+    <div v-if="balanceMigrateModal.visible" class="modal-backdrop" @click.self="cancelBalanceMigrationModal">
+      <div class="modal-box" style="max-width: 440px;">
+        <div class="modal-header">
+          <div class="modal-title" style="font-size: 15.5px;">
+            <span>如何处理「{{ balanceMigrateModal.parentName }}」原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }}？</span>
+          </div>
+          <button class="btn-close" @click="cancelBalanceMigrationModal">✕</button>
+        </div>
+
+        <div style="font-size: 12.5px; line-height: 1.55; color: var(--text-muted); margin-bottom: 12px;">
+          添加子账户后，「{{ balanceMigrateModal.parentName }}」将自动统计所有子账户总额。请选择原有金额的记录方式：
+        </div>
+
+        <!-- 选项 A（默认选中）：保留为独立子账户（推荐） -->
+        <div
+          class="migrate-radio-card"
+          :class="{ active: balanceMigrateModal.mode === 'split' }"
+          @click="balanceMigrateModal.mode = 'split'"
+        >
+          <div class="migrate-radio-head">
+            <input type="radio" name="idxMigrateMode" value="split" v-model="balanceMigrateModal.mode" />
+            <span>保留为独立子账户（推荐）</span>
+          </div>
+          <div class="migrate-radio-desc">
+            原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 单独算作一个子账户，与新建的「{{ balanceMigrateModal.newChildName }} (¥{{ formatNumber(balanceMigrateModal.newBalance) }})」分开记录，{{ balanceMigrateModal.parentName }}总额为 ¥{{ formatNumber(balanceMigrateModal.oldBalance + balanceMigrateModal.newBalance) }}。
+          </div>
+          <div v-if="balanceMigrateModal.mode === 'split'" class="migrate-radio-subform" @click.stop>
+            <label>原余额子账户名称
+              <input type="text" class="form-input" v-model="balanceMigrateModal.legacyName" placeholder="存款" style="padding: 6px 8px; font-size: 12.5px;" />
+            </label>
+            <label>账户类型
+              <select class="form-select" v-model="balanceMigrateModal.legacyType" style="padding: 6px 8px; font-size: 12.5px;">
+                <option value="bank">储蓄/银行卡</option>
+                <option value="cash">活期/零钱</option>
+                <option value="investment">投资理财</option>
+                <option value="credit">信用/负债</option>
+                <option value="other">其他资产</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- 选项 B：直接并入新建子账户 -->
+        <div
+          class="migrate-radio-card"
+          :class="{ active: balanceMigrateModal.mode === 'merge' }"
+          @click="balanceMigrateModal.mode = 'merge'"
+        >
+          <div class="migrate-radio-head">
+            <input type="radio" name="idxMigrateMode" value="merge" v-model="balanceMigrateModal.mode" />
+            <span>直接并入新建的「{{ balanceMigrateModal.newChildName }}」</span>
+          </div>
+          <div class="migrate-radio-desc">
+            原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 直接加进「{{ balanceMigrateModal.newChildName }}」里，合并后「{{ balanceMigrateModal.newChildName }}」余额为 ¥{{ formatNumber(balanceMigrateModal.oldBalance + balanceMigrateModal.newBalance) }}。
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 14px;">
+          <button type="button" class="btn-secondary" style="flex: 1; justify-content: center; padding: 10px;" @click="cancelBalanceMigrationModal">
+            取消
+          </button>
+          <button type="button" class="btn-primary" style="flex: 1.4; justify-content: center; padding: 10px;" @click="confirmBalanceMigration">
+            确认
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 3.6: 全场景重名账户防重与分流引导弹窗           -->
+    <!-- ============================================== -->
+    <div v-if="duplicateAccountModal.visible" class="modal-backdrop" @click.self="cancelDuplicateRename">
+      <div class="modal-box" style="max-width: 440px;">
+        <div class="modal-header">
+          <div class="modal-title" style="font-size: 15.5px;">
+            <span v-if="duplicateAccountModal.kind === 'A1'">「{{ duplicateAccountModal.fullDisplayName }}」已包含子账户</span>
+            <span v-else-if="duplicateAccountModal.kind === 'A2'">已存在独立账户「{{ duplicateAccountModal.fullDisplayName }}」</span>
+            <span v-else>已存在同名子账户「{{ duplicateAccountModal.fullDisplayName }}」</span>
+          </div>
+          <button class="btn-close" @click="cancelDuplicateRename">✕</button>
+        </div>
+
+        <div style="font-size: 13px; line-height: 1.6; color: var(--text-main); background: var(--bg-subtle); padding: 11px 13px; border-radius: 12px; border: 1px solid var(--border-subtle); margin-bottom: 12px;">
+          <template v-if="duplicateAccountModal.kind === 'A1'">
+            「<strong>{{ duplicateAccountModal.fullDisplayName }}</strong>」下已有子账户，金额由子账户自动汇总。本次
+            <strong style="color: var(--primary);">¥{{ formatNumber(duplicateAccountModal.addBalance) }}</strong>
+            只能作为子账户存入，请选择：
+          </template>
+          <template v-else>
+            当前「<strong>{{ duplicateAccountModal.fullDisplayName }}</strong>」余额为
+            <strong style="color: var(--primary);">¥{{ formatNumber(duplicateAccountModal.oldBalance) }}</strong>。
+            请选择本次 <strong style="color: var(--primary);">¥{{ formatNumber(duplicateAccountModal.addBalance) }}</strong> 的处理方式：
+          </template>
+        </div>
+
+        <div v-if="duplicateAccountModal.subError" style="font-size: 12px; font-weight: 700; color: #ea580c; background: rgba(249,115,22,0.1); padding: 6px 10px; border-radius: 8px; margin-bottom: 10px;">
+          {{ duplicateAccountModal.subError }}
+        </div>
+
+        <!-- 分支 A1：母账户已有子账户 -->
+        <template v-if="duplicateAccountModal.kind === 'A1'">
+          <div class="migrate-radio-card active" style="cursor: default;">
+            <div style="font-size: 13.5px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">
+              1. 作为「{{ duplicateAccountModal.fullDisplayName }}」的新子账户存入（推荐）
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="text" v-model="duplicateAccountModal.newSubName" class="form-input" placeholder="子账户名称，如：存款" style="flex: 1; padding: 7px 10px; font-size: 13px;" />
+              <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 13px; white-space: nowrap;" @click="confirmA1CreateSubAccount">
+                确认存入
+              </button>
+            </div>
+          </div>
+
+          <div class="migrate-radio-card" style="cursor: default;">
+            <div style="font-size: 13.5px; font-weight: 800; color: var(--text-main); margin-bottom: 8px;">
+              2. 并入已有子账户
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <select v-model="duplicateAccountModal.selectedChildId" class="form-select" style="flex: 1; padding: 7px 10px; font-size: 13px;">
+                <option v-for="c in duplicateAccountModal.children" :key="c.id" :value="c.id">{{ c.name }} (¥{{ formatNumber(c.balance) }})</option>
+              </select>
+              <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 13px; white-space: nowrap;" :disabled="!duplicateAccountModal.selectedChildId" @click="confirmA1MergeExistingChild">
+                确认并入
+              </button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-secondary" style="width: 100%; justify-content: center; padding: 10px;" @click="cancelDuplicateRename">
+            3. 改名新建独立账户
+          </button>
+        </template>
+
+        <!-- 分支 A2：独立同名主账户 -->
+        <template v-else-if="duplicateAccountModal.kind === 'A2'">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn-primary" style="width: 100%; justify-content: center; padding: 11px;" @click="confirmDuplicateMerge">
+              直接合并余额（合并后 ¥{{ formatNumber(duplicateAccountModal.mergedBalance) }}）
+            </button>
+            <button type="button" class="btn-secondary" style="width: 100%; justify-content: center; padding: 10px; color: var(--primary); border-color: rgba(59,130,246,0.35);" @click="confirmA2ConvertToSubAccount">
+              转为子账户归入「{{ duplicateAccountModal.fullDisplayName }}」名下
+            </button>
+            <button type="button" class="btn-secondary" style="width: 100%; justify-content: center; padding: 10px;" @click="cancelDuplicateRename">
+              改名新建独立账户
+            </button>
+          </div>
+        </template>
+
+        <!-- 分支 B：同母账户下已存在同名子账户 -->
+        <template v-else>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button type="button" class="btn-primary" style="width: 100%; justify-content: center; padding: 11px;" @click="confirmDuplicateMerge">
+              直接合并余额（合并后 ¥{{ formatNumber(duplicateAccountModal.mergedBalance) }}）
+            </button>
+            <button type="button" class="btn-secondary" style="width: 100%; justify-content: center; padding: 10px;" @click="cancelDuplicateRename">
+              修改名称新建
+            </button>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
     <!-- 弹窗 4: 账户展示顺序自定义调整弹窗                -->
     <!-- ============================================== -->
     <div v-if="showReorderModal" class="modal-backdrop" @click.self="showReorderModal = false">
@@ -5694,10 +6104,10 @@
               <span v-else style="font-size: 20px;">{{ acc.icon || getAccountEmoji(acc.type) }}</span>
               <div style="min-width: 0; flex: 1;">
                 <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  {{ acc.name }}
+                  {{ getAccountHierarchyLabel(acc) }}
                 </div>
                 <div style="font-size: 11px; color: var(--text-muted);">
-                  {{ getAccountTypeLabel(acc.type) }} · ¥{{ formatNumber(acc.balance) }}
+                  {{ getAccountTypeLabel(acc.type) }} · ¥{{ formatNumber(getAccountDisplayBalance(acc)) }}
                 </div>
               </div>
             </div>
@@ -5804,8 +6214,19 @@
             }
           }
         });
-        const currentVersion = ref('v5.1.0');
+        const currentVersion = ref('v5.2.0');
         const versionHistoryList = [
+          {
+            version: 'v5.2.0',
+            date: '2026-11-19',
+            title: '🏦 账户多级子账户管理、喵管家自然语言建户与全场景防重分流',
+            features: [
+              '多级子账户树形管理与状态机自愈：新增兼容式 parentId 子账户模型，「账户」页支持缩进树展示、`+ 子账户` 与删除保护；实行“叶子存钱、母账户纯汇总（账户总额）”不变量及启动自愈巡检，彻底消除残留幽灵余额与总资产重复累加；',
+              '首次拆分子账户引导与记账分组排序：首次为有余额的独立账户添加/迁入子账户时，弹窗引导「保留为独立子账户（如存款）」或「直接并入」；「记一笔」4 处账户选择器统一按「母账户 - 子账户」分组连续展示；',
+              '「喵记账」升级为「喵管家」支持对话建户：内置全量银行与 5 类账户优先级识别词库，智能关联母账户并裁剪前缀，提供全字段可编辑「确认创建账户」卡片及 21 种系统图标选择联动；',
+              '全场景重名冲突引导与图标净化：精准分流已包含子账户的母账户、独立同名账户与同名子账户（支持存子账户、合并金额、转子账户或改名），清除界面方框乱码并升级缓存至 personal-asset-pwa-v57。'
+            ]
+          },
           {
             version: 'v5.1.0',
             date: '2026-11-19',
@@ -6923,10 +7344,43 @@
           name: '',
           type: 'bank',
           balance: 0,
+          parentId: '',
           creditLimit: '',
           icon: '💳',
           color: '#2563eb',
           notes: ''
+        });
+
+        const collapsedParentIds = ref({});
+        const accountNameInputRef = ref(null);
+        const accountNameError = ref('');
+        const duplicateAccountModal = reactive({
+          visible: false,
+          kind: '', // 'A1' | 'A2' | 'B'
+          existingId: '',
+          parentId: '',
+          children: [],
+          newSubName: '存款',
+          selectedChildId: '',
+          subError: '',
+          pendingPayload: null,
+          fullDisplayName: '',
+          oldBalance: 0,
+          addBalance: 0,
+          mergedBalance: 0
+        });
+        const balanceMigrateModal = reactive({
+          visible: false,
+          parentId: '',
+          parentName: '',
+          oldBalance: 0,
+          newChildName: '',
+          newBalance: 0,
+          mode: 'split',
+          legacyName: '存款',
+          legacyType: 'bank',
+          existingChildId: '',
+          childPayload: null
         });
 
         // 21 种账户精选标识图标
@@ -7138,7 +7592,128 @@
           return accounts.value[accounts.value.length - 1]?.id === acc.id;
         }
 
-        // 账户筛选 (支持资产分类 + 关键字即时全局搜索)
+        function getChildAccounts(parentId) {
+          if (!parentId) return [];
+          return accounts.value.filter(a => a && a.parentId === parentId);
+        }
+
+        function hasChildAccounts(accId) {
+          if (!accId) return false;
+          return accounts.value.some(a => a && a.parentId === accId);
+        }
+
+        function getAccountDisplayBalance(acc) {
+          if (!acc) return 0;
+          const children = getChildAccounts(acc.id);
+          if (children.length > 0) {
+            return +children.reduce((sum, c) => sum + Number(c.balance || 0), 0).toFixed(2);
+          }
+          return Number(acc.balance || 0);
+        }
+
+        function getAccountHierarchyLabel(acc) {
+          if (!acc) return '';
+          if (acc.parentId) {
+            const parent = accounts.value.find(a => a.id === acc.parentId);
+            if (parent) return `${parent.name} - ${acc.name}`;
+          }
+          return acc.name;
+        }
+
+        function toggleParentCollapse(parentId) {
+          collapsedParentIds.value = {
+            ...collapsedParentIds.value,
+            [parentId]: !collapsedParentIds.value[parentId]
+          };
+        }
+
+        function isParentCollapsed(parentId) {
+          return !!collapsedParentIds.value[parentId];
+        }
+
+        // 统一生成「记一笔」账户下拉分组结构（按主账户顺序：有子账户则母账户作为分组头，子账户连续紧挨排列）
+        function buildGroupedTxAccountSections(accList = []) {
+          const list = Array.isArray(accList) ? accList : [];
+          const primaries = list.filter(a => a && !a.parentId);
+          const sections = [];
+
+          for (const parent of primaries) {
+            const children = list.filter(a => a && a.parentId === parent.id);
+            if (children.length > 0) {
+              sections.push({
+                key: parent.id,
+                isGroup: true,
+                label: `${parent.icon || getAccountEmoji(parent.type)} ${parent.name}`,
+                items: children.map(c => ({
+                  id: c.id,
+                  label: `${parent.name} - ${c.name}`,
+                  balance: Number(c.balance || 0),
+                  account: c
+                }))
+              });
+            } else {
+              sections.push({
+                key: parent.id,
+                isGroup: false,
+                items: [{
+                  id: parent.id,
+                  label: parent.name,
+                  balance: Number(parent.balance || 0),
+                  account: parent
+                }]
+              });
+            }
+          }
+          return sections;
+        }
+
+        const groupedTxAccountSections = computed(() => buildGroupedTxAccountSections(accounts.value));
+
+        const availableParentAccounts = computed(() => {
+          return accounts.value.filter(a => a && !a.parentId && a.id !== accountForm.id);
+        });
+
+        function matchesAccountFilter(a) {
+          if (!a) return false;
+          if (selectedAccountCategory.value !== 'all' && a.type !== selectedAccountCategory.value) {
+            return false;
+          }
+          const kw = (accountSearchKeyword.value || '').trim().toLowerCase();
+          if (kw) {
+            const name = (a.name || '').toLowerCase();
+            const hierarchy = getAccountHierarchyLabel(a).toLowerCase();
+            const notes = (a.notes || '').toLowerCase();
+            const typeLabel = getAccountTypeLabel(a.type).toLowerCase();
+            return name.includes(kw) || hierarchy.includes(kw) || notes.includes(kw) || typeLabel.includes(kw);
+          }
+          return true;
+        }
+
+        // 账户筛选 (支持一级主账户 + 子账户树形聚合)
+        const filteredAccountGroups = computed(() => {
+          const primaries = accounts.value.filter(a => a && !a.parentId);
+          const hasFilter = selectedAccountCategory.value !== 'all' || !!(accountSearchKeyword.value || '').trim();
+          const groups = [];
+
+          for (const parent of primaries) {
+            const allChildren = getChildAccounts(parent.id);
+            if (!hasFilter) {
+              groups.push({ parent, children: allChildren, allChildren });
+              continue;
+            }
+            const parentHit = matchesAccountFilter(parent);
+            const matchedChildren = allChildren.filter(matchesAccountFilter);
+            if (parentHit || matchedChildren.length > 0) {
+              groups.push({
+                parent,
+                children: matchedChildren.length > 0 ? matchedChildren : allChildren,
+                allChildren
+              });
+            }
+          }
+          return groups;
+        });
+
         const filteredAccounts = computed(() => {
           let list = accounts.value;
           if (selectedAccountCategory.value !== 'all') {
@@ -7214,7 +7789,11 @@
             if (txFilterAccountId.value === 'pure') {
               list = list.filter(t => !t.accountId);
             } else {
-              list = list.filter(t => t.accountId === txFilterAccountId.value || t.toAccountId === txFilterAccountId.value);
+              const targetIds = new Set([txFilterAccountId.value]);
+              for (const child of getChildAccounts(txFilterAccountId.value)) {
+                targetIds.add(child.id);
+              }
+              list = list.filter(t => targetIds.has(t.accountId) || targetIds.has(t.toAccountId));
             }
           }
           const kw = txSearchKeyword.value;
@@ -7560,7 +8139,7 @@
           triggerHaptic('light');
         }
 
-        // 资产类型汇总
+        // 资产类型汇总（使用叶节点账户防止母账户与子账户重复累加）
         const assetTypeSummaries = computed(() => {
           const typeDefs = [
             { type: 'cash', label: '现金活期', color: '#0284c7' },
@@ -7570,13 +8149,14 @@
             { type: 'other', label: '其他资产', color: '#10b981' }
           ];
 
-          const totalAssetPositive = accounts.value.reduce((sum, a) => {
+          const { leafAccounts } = AssetDB.calculateAssetSummary(accounts.value);
+          const totalAssetPositive = leafAccounts.reduce((sum, a) => {
             const b = Number(a.balance || 0);
             return a.type !== 'credit' && b > 0 ? sum + b : sum;
           }, 0);
 
           return typeDefs.map(def => {
-            const matching = accounts.value.filter(a => a.type === def.type);
+            const matching = leafAccounts.filter(a => a.type === def.type);
             const total = matching.reduce((sum, a) => {
               const val = Number(a.balance || 0);
               return sum + (def.type === 'credit' ? Math.abs(val) : val);
@@ -7897,7 +8477,9 @@
         function getAccountName(id) {
           if (!id) return '纯流水 (不计入资产)';
           const acc = accounts.value.find(a => a.id === id);
-          return acc ? (acc.icon ? acc.icon + ' ' + acc.name : acc.name) : '未知账户';
+          if (!acc) return '未知账户';
+          const label = getAccountHierarchyLabel(acc);
+          return acc.icon ? acc.icon + ' ' + label : label;
         }
 
         function getSelectedAccount(id) {
@@ -8210,8 +8792,9 @@
           txAutoBanner.value = '';
           txForm.type = 'expense';
           txForm.amount = '';
-          txForm.accountId = accounts.value.length > 0 ? accounts.value[0].id : '';
-          txForm.toAccountId = accounts.value.length > 1 ? accounts.value[1].id : '';
+          const selectable = groupedTxAccountSections.value.flatMap(sec => sec.items);
+          txForm.accountId = selectable.length > 0 ? selectable[0].id : '';
+          txForm.toAccountId = selectable.length > 1 ? selectable[1].id : '';
           txForm.category = '餐饮美食';
           txForm.date = AssetDB.formatDate();
           txForm.notes = '';
@@ -8553,6 +9136,16 @@
             txForm.category = '餐饮美食';
           } else {
             txForm.category = '内部转账';
+            const selectable = groupedTxAccountSections.value.flatMap(sec => sec.items);
+            if (selectable.length > 0) {
+              if (!txForm.accountId || !selectable.some(item => item.id === txForm.accountId)) {
+                txForm.accountId = selectable[0].id;
+              }
+              if (!txForm.toAccountId || txForm.toAccountId === txForm.accountId || !selectable.some(item => item.id === txForm.toAccountId)) {
+                const other = selectable.find(item => item.id !== txForm.accountId);
+                txForm.toAccountId = other ? other.id : '';
+              }
+            }
           }
         }
 
@@ -9296,12 +9889,14 @@
         }
 
         // 账户创建 / 编辑 Modal
-        function openAddAccountModal() {
+        function openAddAccountModal(defaultParentId = '') {
           isEditAccount.value = false;
+          accountNameError.value = '';
           accountForm.id = '';
           accountForm.name = '';
           accountForm.type = 'bank';
           accountForm.balance = '';
+          accountForm.parentId = typeof defaultParentId === 'string' ? defaultParentId : '';
           accountForm.creditLimit = '';
           accountForm.icon = '💳';
           accountForm.color = '#f97316';
@@ -9309,12 +9904,25 @@
           showAccountModal.value = true;
         }
 
+        function openAddSubAccountModal(parentAcc) {
+          if (!parentAcc) {
+            openAddAccountModal('');
+            return;
+          }
+          openAddAccountModal(parentAcc.id);
+          accountForm.type = parentAcc.type || 'bank';
+          accountForm.icon = parentAcc.icon || '💳';
+          accountForm.color = parentAcc.color || '#f97316';
+        }
+
         function openEditAccountModal(acc) {
           isEditAccount.value = true;
+          accountNameError.value = '';
           accountForm.id = acc.id;
           accountForm.name = acc.name;
           accountForm.type = acc.type;
           accountForm.balance = acc.balance;
+          accountForm.parentId = acc.parentId || '';
           accountForm.creditLimit = acc.creditLimit !== undefined && acc.creditLimit !== null ? acc.creditLimit : '';
           accountForm.icon = acc.icon || '💳';
           accountForm.color = acc.color || '#f97316';
@@ -9322,8 +9930,200 @@
           showAccountModal.value = true;
         }
 
+        async function finalizeNewAccountCreation(payload, migrationOpts = null) {
+          const createdIds = [];
+          let toastText = migrationOpts && migrationOpts.existingChildId ? '账户已归并并更新 ✨' : '新账户已创建成功';
+
+          if (migrationOpts && payload.parentId) {
+            const parentAcc = accounts.value.find(a => a.id === payload.parentId);
+            const legacyType = migrationOpts.legacyType || (parentAcc ? parentAcc.type : 'bank') || 'bank';
+            const legacyName = String(migrationOpts.legacyName || '').trim() || '存款';
+            const res = await AssetDB.createFirstSubAccountWithOldBalance({
+              parentId: payload.parentId,
+              newChildPayload: payload,
+              mode: migrationOpts.mode,
+              existingChildId: migrationOpts.existingChildId || '',
+              legacyChildPayload: {
+                name: legacyName,
+                type: legacyType,
+                icon: getAccountEmoji(legacyType),
+                color: parentAcc ? parentAcc.color : '#3b82f6',
+                notes: ''
+              }
+            });
+            if (res.legacyAccount && res.legacyAccount.id) createdIds.push(res.legacyAccount.id);
+            if (res.newAccount && res.newAccount.id) createdIds.push(res.newAccount.id);
+            toastText = res.mode === 'split'
+              ? `已保留原余额为「${legacyName}」并设置「${payload.name}」✨`
+              : `已合并原余额 ¥${formatNumber(res.oldBalance)} 至「${payload.name}」✨`;
+          } else {
+            const newAcc = await AssetDB.addAccount(payload);
+            if (newAcc && newAcc.id) createdIds.push(newAcc.id);
+          }
+
+          // 自动将新创建账户追加到自定义排序末尾
+          const savedOrder = getSavedAccountOrder();
+          let orderChanged = false;
+          for (const cid of createdIds) {
+            if (cid && !savedOrder.includes(cid)) {
+              savedOrder.push(cid);
+              orderChanged = true;
+            }
+          }
+          if (orderChanged) {
+            localStorage.setItem('cat_account_order', JSON.stringify(savedOrder));
+          }
+          showAccountModal.value = false;
+          showToast(toastText);
+          await refreshAllData();
+        }
+
+        async function confirmBalanceMigration() {
+          if (!balanceMigrateModal.childPayload) {
+            balanceMigrateModal.visible = false;
+            return;
+          }
+          if (balanceMigrateModal.mode === 'split' && !String(balanceMigrateModal.legacyName || '').trim()) {
+            showToast('请输入原余额子账户名称');
+            return;
+          }
+          const payload = { ...balanceMigrateModal.childPayload };
+          const migrationOpts = {
+            mode: balanceMigrateModal.mode,
+            legacyName: String(balanceMigrateModal.legacyName || '').trim() || '存款',
+            legacyType: balanceMigrateModal.legacyType || 'bank',
+            existingChildId: balanceMigrateModal.existingChildId || ''
+          };
+          balanceMigrateModal.visible = false;
+          balanceMigrateModal.existingChildId = '';
+          balanceMigrateModal.childPayload = null;
+          try {
+            await finalizeNewAccountCreation(payload, migrationOpts);
+          } catch (e) {
+            alert('保存失败: ' + e.message);
+          }
+        }
+
+        function cancelBalanceMigrationModal() {
+          balanceMigrateModal.visible = false;
+          balanceMigrateModal.existingChildId = '';
+          balanceMigrateModal.childPayload = null;
+        }
+
+        function findDuplicateSiblingAccount(trimmedName, parentIdVal, excludeId = '') {
+          return AssetDB.detectAccountCreationConflict({
+            name: trimmedName,
+            parentId: parentIdVal,
+            accounts: accounts.value,
+            excludeId
+          });
+        }
+
+        function focusManualAccountNameInput() {
+          nextTick(() => {
+            if (accountNameInputRef.value && typeof accountNameInputRef.value.focus === 'function') {
+              accountNameInputRef.value.focus();
+            }
+          });
+        }
+
+        async function confirmDuplicateMerge() {
+          if (!duplicateAccountModal.existingId) {
+            duplicateAccountModal.visible = false;
+            return;
+          }
+          try {
+            await AssetDB.updateAccount({
+              id: duplicateAccountModal.existingId,
+              balance: duplicateAccountModal.mergedBalance
+            });
+            const msg = `已将 ¥${formatNumber(duplicateAccountModal.addBalance)} 合并入「${duplicateAccountModal.fullDisplayName}」，当前余额 ¥${formatNumber(duplicateAccountModal.mergedBalance)} ✨`;
+            duplicateAccountModal.visible = false;
+            duplicateAccountModal.pendingPayload = null;
+            showAccountModal.value = false;
+            accountNameError.value = '';
+            showToast(msg);
+            await refreshAllData();
+          } catch (e) {
+            alert('合并失败: ' + e.message);
+          }
+        }
+
+        async function confirmA1CreateSubAccount() {
+          const subName = String(duplicateAccountModal.newSubName || '').trim();
+          if (!subName) {
+            duplicateAccountModal.subError = '请输入子账户名称';
+            return;
+          }
+          const existingSub = duplicateAccountModal.children.find(c => c && String(c.name || '').trim() === subName);
+          if (existingSub) {
+            const oldBal = +(Number(existingSub.balance || 0)).toFixed(2);
+            const addBal = duplicateAccountModal.addBalance;
+            duplicateAccountModal.kind = 'B';
+            duplicateAccountModal.existingId = existingSub.id;
+            duplicateAccountModal.fullDisplayName = `${duplicateAccountModal.fullDisplayName} - ${existingSub.name}`;
+            duplicateAccountModal.oldBalance = oldBal;
+            duplicateAccountModal.mergedBalance = +(oldBal + addBal).toFixed(2);
+            duplicateAccountModal.subError = `该母账户下已存在同名子账户「${existingSub.name}」，可选择直接并入或修改名称`;
+            return;
+          }
+          const base = duplicateAccountModal.pendingPayload || {};
+          duplicateAccountModal.visible = false;
+          duplicateAccountModal.subError = '';
+          duplicateAccountModal.pendingPayload = null;
+          try {
+            await finalizeNewAccountCreation({
+              ...base,
+              name: subName,
+              parentId: String(duplicateAccountModal.parentId)
+            }, null);
+          } catch (e) {
+            alert('创建子账户失败: ' + e.message);
+          }
+        }
+
+        async function confirmA1MergeExistingChild() {
+          const targetChild = duplicateAccountModal.children.find(c => c && c.id === duplicateAccountModal.selectedChildId);
+          if (!targetChild) return;
+          const oldBal = +(Number(targetChild.balance || 0)).toFixed(2);
+          const mergedBal = +(oldBal + duplicateAccountModal.addBalance).toFixed(2);
+          try {
+            await AssetDB.updateAccount({ id: targetChild.id, balance: mergedBal });
+            const msg = `已将 ¥${formatNumber(duplicateAccountModal.addBalance)} 合并入「${duplicateAccountModal.fullDisplayName} - ${targetChild.name}」，当前余额 ¥${formatNumber(mergedBal)} ✨`;
+            duplicateAccountModal.visible = false;
+            duplicateAccountModal.pendingPayload = null;
+            showAccountModal.value = false;
+            accountNameError.value = '';
+            showToast(msg);
+            await refreshAllData();
+          } catch (e) {
+            alert('合并失败: ' + e.message);
+          }
+        }
+
+        function confirmA2ConvertToSubAccount() {
+          const targetId = duplicateAccountModal.existingId;
+          const targetName = duplicateAccountModal.fullDisplayName;
+          duplicateAccountModal.visible = false;
+          duplicateAccountModal.pendingPayload = null;
+          accountForm.parentId = targetId;
+          accountForm.name = '';
+          accountNameError.value = `请输入归属于「${targetName}」的子账户名称（如：存款 / 理财）`;
+          focusManualAccountNameInput();
+        }
+
+        function cancelDuplicateRename() {
+          const kind = duplicateAccountModal.kind;
+          duplicateAccountModal.visible = false;
+          duplicateAccountModal.subError = '';
+          duplicateAccountModal.pendingPayload = null;
+          accountNameError.value = kind === 'B' ? '请修改为不同子账户名称' : '请修改为不同名称';
+          focusManualAccountNameInput();
+        }
+
         async function submitAccountForm() {
-          if (!accountForm.name.trim()) {
+          const trimmedName = accountForm.name.trim();
+          if (!trimmedName) {
             showToast('请输入账户名称');
             return;
           }
@@ -9332,46 +10132,151 @@
             const creditLimitVal = accountForm.type === 'credit'
               ? (Number(accountForm.creditLimit) || 0)
               : 0;
+            const parentIdVal = accountForm.parentId ? String(accountForm.parentId) : null;
 
             if (isEditAccount.value) {
+              const oldAcc = accounts.value.find(a => a.id === accountForm.id);
+              const effectiveParentId = hasChildAccounts(accountForm.id) ? null : parentIdVal;
+
+              // 编辑时检查同级重名冲突
+              const editDup = findDuplicateSiblingAccount(trimmedName, effectiveParentId, accountForm.id);
+              if (editDup) {
+                accountNameError.value = effectiveParentId ? '该母账户下已存在同名子账户，请修改名称' : '一级主账户中已存在同名账户，请修改名称';
+                focusManualAccountNameInput();
+                return;
+              }
+
+              // 编辑归并联动：独立账户挂载至此前无子账户且有余额的母账户时，触发原余额拆分确认弹窗
+              if (effectiveParentId && (!oldAcc || oldAcc.parentId !== effectiveParentId)) {
+                const parentAcc = accounts.value.find(a => a.id === effectiveParentId);
+                const isFirstChild = parentAcc && getChildAccounts(parentAcc.id).length === 0;
+                const oldBal = parentAcc ? +(Number(parentAcc.balance || 0)).toFixed(2) : 0;
+                if (isFirstChild && oldBal !== 0) {
+                  balanceMigrateModal.parentId = parentAcc.id;
+                  balanceMigrateModal.parentName = parentAcc.name;
+                  balanceMigrateModal.oldBalance = oldBal;
+                  balanceMigrateModal.newChildName = trimmedName;
+                  balanceMigrateModal.newBalance = +(Number(accountForm.balance) || 0).toFixed(2);
+                  balanceMigrateModal.mode = 'split';
+                  balanceMigrateModal.legacyName = '存款';
+                  balanceMigrateModal.legacyType = parentAcc.type || 'bank';
+                  balanceMigrateModal.existingChildId = accountForm.id;
+                  balanceMigrateModal.childPayload = {
+                    name: trimmedName,
+                    type: accountForm.type,
+                    balance: Number(accountForm.balance) || 0,
+                    parentId: effectiveParentId,
+                    creditLimit: creditLimitVal,
+                    icon: accountForm.icon,
+                    color: accountForm.color,
+                    notes: accountForm.notes.trim()
+                  };
+                  balanceMigrateModal.visible = true;
+                  return;
+                }
+              }
+
               await AssetDB.updateAccount({
                 id: accountForm.id,
-                name: accountForm.name.trim(),
+                name: trimmedName,
                 type: accountForm.type,
                 balance: Number(accountForm.balance) || 0,
+                parentId: effectiveParentId,
                 creditLimit: creditLimitVal,
                 icon: accountForm.icon,
                 color: accountForm.color,
                 notes: accountForm.notes.trim()
               });
+              showAccountModal.value = false;
               showToast('账户信息及金额已更正 ✨');
+              await refreshAllData();
             } else {
-              const newAcc = await AssetDB.addAccount({
-                name: accountForm.name.trim(),
+              const payload = {
+                name: trimmedName,
                 type: accountForm.type,
                 balance: Number(accountForm.balance) || 0,
+                parentId: parentIdVal,
                 creditLimit: creditLimitVal,
                 icon: accountForm.icon,
                 color: accountForm.color,
                 notes: accountForm.notes.trim()
-              });
-              // 自动将新创建账户追加到自定义排序末尾
-              const savedOrder = getSavedAccountOrder();
-              if (newAcc && newAcc.id && !savedOrder.includes(newAcc.id)) {
-                savedOrder.push(newAcc.id);
-                localStorage.setItem('cat_account_order', JSON.stringify(savedOrder));
+              };
+
+              // 全场景重名冲突防重检测（A1 / A2 / B）
+              const conflict = findDuplicateSiblingAccount(trimmedName, parentIdVal);
+              if (conflict) {
+                const addBal = +(Number(payload.balance || 0)).toFixed(2);
+                duplicateAccountModal.kind = conflict.kind;
+                duplicateAccountModal.pendingPayload = payload;
+                duplicateAccountModal.addBalance = addBal;
+                duplicateAccountModal.subError = '';
+
+                if (conflict.kind === 'A1') {
+                  duplicateAccountModal.existingId = conflict.targetAcc.id;
+                  duplicateAccountModal.parentId = conflict.targetAcc.id;
+                  duplicateAccountModal.children = conflict.children;
+                  duplicateAccountModal.newSubName = '存款';
+                  duplicateAccountModal.selectedChildId = conflict.children[0] ? conflict.children[0].id : '';
+                  duplicateAccountModal.fullDisplayName = conflict.targetAcc.name;
+                  duplicateAccountModal.oldBalance = 0;
+                  duplicateAccountModal.mergedBalance = addBal;
+                } else if (conflict.kind === 'A2') {
+                  const oldBal = +(Number(conflict.targetAcc.balance || 0)).toFixed(2);
+                  duplicateAccountModal.existingId = conflict.targetAcc.id;
+                  duplicateAccountModal.parentId = '';
+                  duplicateAccountModal.children = [];
+                  duplicateAccountModal.fullDisplayName = conflict.targetAcc.name;
+                  duplicateAccountModal.oldBalance = oldBal;
+                  duplicateAccountModal.mergedBalance = +(oldBal + addBal).toFixed(2);
+                } else {
+                  const oldBal = +(Number(conflict.targetSub.balance || 0)).toFixed(2);
+                  const pName = conflict.parentAcc ? conflict.parentAcc.name : '';
+                  duplicateAccountModal.existingId = conflict.targetSub.id;
+                  duplicateAccountModal.parentId = conflict.parentAcc ? conflict.parentAcc.id : '';
+                  duplicateAccountModal.children = [];
+                  duplicateAccountModal.fullDisplayName = pName ? `${pName} - ${conflict.targetSub.name}` : conflict.targetSub.name;
+                  duplicateAccountModal.oldBalance = oldBal;
+                  duplicateAccountModal.mergedBalance = +(oldBal + addBal).toFixed(2);
+                }
+                duplicateAccountModal.visible = true;
+                return;
               }
-              showToast('新账户已创建成功');
+
+              // 首次为一个原本有余额的独立账户添加子账户时，弹出“保留为独立子账户 vs 直接并入”弹窗
+              if (parentIdVal) {
+                const parentAcc = accounts.value.find(a => a.id === parentIdVal);
+                const isFirstChild = parentAcc && getChildAccounts(parentAcc.id).length === 0;
+                const oldBal = parentAcc ? +(Number(parentAcc.balance || 0)).toFixed(2) : 0;
+                if (isFirstChild && oldBal !== 0) {
+                  balanceMigrateModal.parentId = parentAcc.id;
+                  balanceMigrateModal.parentName = parentAcc.name;
+                  balanceMigrateModal.oldBalance = oldBal;
+                  balanceMigrateModal.newChildName = payload.name;
+                  balanceMigrateModal.newBalance = +(Number(payload.balance || 0)).toFixed(2);
+                  balanceMigrateModal.mode = 'split';
+                  balanceMigrateModal.legacyName = '存款';
+                  balanceMigrateModal.legacyType = parentAcc.type || 'bank';
+                  balanceMigrateModal.existingChildId = '';
+                  balanceMigrateModal.childPayload = payload;
+                  balanceMigrateModal.visible = true;
+                  return;
+                }
+              }
+
+              await finalizeNewAccountCreation(payload, null);
             }
-            showAccountModal.value = false;
-            await refreshAllData();
           } catch (e) {
             alert('保存失败: ' + e.message);
           }
         }
 
         async function confirmDeleteAccount(acc) {
-          if (confirm(`确认删除账户【${acc.name}】吗？\n当前余额 ¥${acc.balance} 将不再计入净资产。`)) {
+          const children = getChildAccounts(acc.id);
+          if (children.length > 0) {
+            alert(`⚠️ 无法删除主账户【${acc.name}】\n该账户名下仍有 ${children.length} 个子账户（${children.map(c => c.name).join('、')}），请先处理或删除其所有子账户。`);
+            return;
+          }
+          if (confirm(`确认删除账户【${getAccountHierarchyLabel(acc)}】吗？\n当前余额 ¥${acc.balance} 将不再计入净资产。`)) {
             await AssetDB.deleteAccount(acc.id);
             // 从自定义排序列表中移除
             const savedOrder = getSavedAccountOrder().filter(id => id !== acc.id);
@@ -10064,6 +10969,20 @@
           overallGrowthPercent,
           overview,
           filteredAccounts,
+          filteredAccountGroups,
+          availableParentAccounts,
+          collapsedParentIds,
+          balanceMigrateModal,
+          getChildAccounts,
+          hasChildAccounts,
+          getAccountDisplayBalance,
+          getAccountHierarchyLabel,
+          groupedTxAccountSections,
+          toggleParentCollapse,
+          isParentCollapsed,
+          openAddSubAccountModal,
+          confirmBalanceMigration,
+          cancelBalanceMigrationModal,
           filteredTransactions,
           filteredTxStats,
           recentTransactions,
@@ -10125,6 +11044,14 @@
           getCreditCardRemainingLimit,
           getCreditCardUsagePct,
           accountForm,
+          accountNameInputRef,
+          accountNameError,
+          duplicateAccountModal,
+          confirmDuplicateMerge,
+          confirmA1CreateSubAccount,
+          confirmA1MergeExistingChild,
+          confirmA2ConvertToSubAccount,
+          cancelDuplicateRename,
           accountIconList,
           expenseCategories,
           incomeCategories,
