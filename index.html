@@ -27,7 +27,7 @@
   <script src="./db.js"></script>
   <script src="./icloudSync.js"></script>
   <script src="./biometricLock.js"></script>
-  <script src="./components/CatButler.js?v=5.1.5"></script>
+  <script src="./components/CatButler.js?v=5.2.1"></script>
 
   <style>
     /* ================================================= */
@@ -1304,11 +1304,13 @@
     }
 
     .sub-type-badge {
-      display: inline-block;
-      padding: 1px 6px;
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
       border-radius: 6px;
       font-size: 10px;
       font-weight: 700;
+      line-height: 1.2;
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       color: var(--text-muted);
@@ -1369,6 +1371,136 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
+    }
+
+    .fund-source-box {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .fund-source-opt {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .fund-source-opt.active {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .split-row-item {
+      background: var(--bg-subtle);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 8px;
+      margin-bottom: 8px;
+    }
+
+    .split-row-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .split-ctrl {
+      height: 40px !important;
+      box-sizing: border-box !important;
+      margin: 0 !important;
+      vertical-align: middle !important;
+      font-size: 13px !important;
+      border-radius: 10px !important;
+    }
+
+    .split-icon-btn {
+      width: 40px;
+      height: 40px;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      vertical-align: middle;
+      border-radius: 10px;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-card);
+      color: var(--text-main);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.15s ease;
+    }
+
+    .split-icon-btn.active,
+    .split-icon-btn:hover {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.08);
+    }
+
+    .split-icon-popover {
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .split-icon-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+
+    .split-icon-opt {
+      height: 36px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border-subtle);
+      background: var(--bg-subtle);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      font-size: 17px;
+      transition: all 0.12s ease;
+    }
+
+    .split-icon-opt.active {
+      border-color: var(--primary);
+      background: rgba(59, 130, 246, 0.14);
+    }
+
+    .split-fallback-grid {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .split-modal-btn {
+      height: 44px !important;
+      border-radius: 12px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-sizing: border-box !important;
+      padding: 0 16px !important;
+      margin: 0 !important;
     }
 
     /* 底部导航栏 */
@@ -3959,15 +4091,15 @@
                 :key="sub.id"
                 class="sub-account-card"
               >
-                <div class="sub-account-top">
-                  <div class="sub-account-brand">
+                <div class="sub-account-top" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                  <div class="sub-account-brand" style="display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1;">
                     <div class="sub-acc-icon">
                       <img v-if="getAccountIconImg(sub)" :src="getAccountIconImg(sub)" class="w-10 h-10 object-contain" style="width: 24px; height: 24px;" :alt="sub.name" />
                       <span v-else>{{ sub.icon || getAccountEmoji(sub.type) }}</span>
                     </div>
-                    <div style="min-width: 0; flex: 1;">
+                    <div style="min-width: 0; flex: 1; display: flex; flex-direction: column; justify-content: center;">
                       <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main);">{{ sub.name }}</span>
+                        <span style="font-size: 13.5px; font-weight: 700; color: var(--text-main); line-height: 1.3; display: inline-flex; align-items: center;">{{ sub.name }}</span>
                         <span class="sub-type-badge">{{ getAccountTypeLabel(sub.type) }}</span>
                       </div>
                       <div v-if="sub.notes" style="font-size: 11px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -3975,7 +4107,7 @@
                       </div>
                     </div>
                   </div>
-                  <div style="font-size: 15px; font-weight: 800; white-space: nowrap;" :style="{ color: sub.type === 'credit' ? 'var(--danger)' : 'var(--text-main)' }">
+                  <div style="display: flex; align-items: center; font-size: 15px; font-weight: 800; line-height: 1.2; white-space: nowrap;" :style="{ color: sub.type === 'credit' ? 'var(--danger)' : 'var(--text-main)' }">
                     ¥{{ hideAmount ? '••••' : formatNumber(sub.balance) }}
                   </div>
                 </div>
@@ -3992,6 +4124,12 @@
               <div class="acc-time">更新于 {{ formatTime(group.parent.updatedAt) }}</div>
               <div class="acc-btns" style="flex-wrap: wrap;">
                 <button class="btn-sm" @click="openAddSubAccountModal(group.parent)" style="color: var(--primary); border-color: rgba(59,130,246,0.35); font-weight: 700;">+ 子账户</button>
+                <button
+                  v-if="getAccountDisplayBalance(group.parent) > 0"
+                  class="btn-sm"
+                  @click="openBatchSplitModal(group.parent)"
+                  style="color: #059669; border-color: rgba(16,185,129,0.35); font-weight: 700;"
+                >⚖️ 拆分</button>
                 <button class="btn-sm" :disabled="isFirstAccount(group.parent)" @click="moveAccount(group.parent.id, -1)" title="上移一位" style="padding: 4px 7px;">⬆</button>
                 <button class="btn-sm" :disabled="isLastAccount(group.parent)" @click="moveAccount(group.parent.id, 1)" title="下移一位" style="padding: 4px 7px;">⬇</button>
                 <button class="btn-sm" @click="openEditAccountModal(group.parent)">编辑</button>
@@ -5814,6 +5952,7 @@
           <label class="form-label">归属母账户 (可选)</label>
           <select
             v-model="accountForm.parentId"
+            @change="onAccountFormParentChange"
             class="form-select"
             :disabled="isEditAccount && hasChildAccounts(accountForm.id)"
           >
@@ -5882,6 +6021,49 @@
           </div>
         </div>
 
+        <!-- 动态资金来源选择：创建子账户且选定母账户已有正余额子账户时显示 -->
+        <div v-if="!isEditAccount && accountForm.parentId && accountFormPositiveChildren.length > 0" class="fund-source-box">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="form-label" style="margin-bottom: 0; font-weight: 700;">资金来源</span>
+            <span style="font-size: 11px; color: var(--primary); font-weight: 700;">母账户已有子账户</span>
+          </div>
+
+          <label class="fund-source-opt" :class="{ active: accountForm.fundingSource === 'external' }">
+            <input type="radio" name="idxFundSource" value="external" v-model="accountForm.fundingSource" style="margin-top: 3px; accent-color: var(--primary);" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 800; color: var(--text-main);">新增外部资金</div>
+              <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                直接新增入账，{{ getAccountFormParentName() }}总额增加 ¥{{ formatNumber(Number(accountForm.balance) || 0) }}
+              </div>
+            </div>
+          </label>
+
+          <label class="fund-source-opt" :class="{ active: accountForm.fundingSource === 'carve' }">
+            <input type="radio" name="idxFundSource" value="carve" v-model="accountForm.fundingSource" style="margin-top: 3px; accent-color: var(--primary);" />
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 13px; font-weight: 800; color: var(--text-main);">从已有子账户划出</div>
+              <div v-if="accountForm.fundingSource === 'carve'" style="margin-top: 6px;" @click.stop>
+                <select v-model="accountForm.deductFromChildId" class="form-select" style="padding: 6px 8px; font-size: 12.5px;">
+                  <option v-for="sub in accountFormPositiveChildren" :key="sub.id" :value="sub.id">
+                    {{ sub.name }} (¥{{ formatNumber(sub.balance) }})
+                  </option>
+                </select>
+                <template v-if="accountFormSelectedDeductChild">
+                  <div v-if="Number(accountForm.balance || 0) < 0" style="font-size: 11.5px; color: var(--danger); font-weight: 700; margin-top: 5px;">
+                    划出金额不能为负数
+                  </div>
+                  <div v-else-if="Number(accountFormSelectedDeductChild.balance || 0) < Number(accountForm.balance || 0)" style="font-size: 11.5px; color: var(--danger); font-weight: 700; margin-top: 5px;">
+                    「{{ accountFormSelectedDeductChild.name }}」当前余额 ¥{{ formatNumber(accountFormSelectedDeductChild.balance) }} 不足 ¥{{ formatNumber(Number(accountForm.balance) || 0) }}
+                  </div>
+                  <div v-else style="font-size: 11.5px; color: #059669; font-weight: 600; margin-top: 5px; line-height: 1.45;">
+                    将从「{{ accountFormSelectedDeductChild.name }}」扣除 ¥{{ formatNumber(Number(accountForm.balance) || 0) }}，扣减后剩余 ¥{{ formatNumber(Number(accountFormSelectedDeductChild.balance || 0) - (Number(accountForm.balance) || 0)) }}，{{ getAccountFormParentName() }}总额保持不变
+                  </div>
+                </template>
+              </div>
+            </div>
+          </label>
+        </div>
+
         <!-- 20+ 款精选标识图标选择器 -->
         <div class="form-group">
           <label class="form-label">选择账户标识图标 ({{ accountIconList.length }}种精选图标)</label>
@@ -5916,7 +6098,7 @@
     <!-- 弹窗 3.5: 首次添加子账户原余额处理确认弹窗            -->
     <!-- ============================================== -->
     <div v-if="balanceMigrateModal.visible" class="modal-backdrop" @click.self="cancelBalanceMigrationModal">
-      <div class="modal-box" style="max-width: 440px;">
+      <div class="modal-box" style="max-width: 440px; max-height: 85vh; overflow-y: auto;">
         <div class="modal-header">
           <div class="modal-title" style="font-size: 15.5px;">
             <span>如何处理「{{ balanceMigrateModal.parentName }}」原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }}？</span>
@@ -5928,7 +6110,42 @@
           添加子账户后，「{{ balanceMigrateModal.parentName }}」将自动统计所有子账户总额。请选择原有金额的记录方式：
         </div>
 
-        <!-- 选项 A（默认选中）：保留为独立子账户（推荐） -->
+        <!-- 选项 1（当 oldBalance > 0 且 oldBalance >= newBalance 时显示并默认选中）：从原余额中拆出（推荐） -->
+        <div
+          v-if="canCarveBalanceMigration()"
+          class="migrate-radio-card"
+          :class="{ active: balanceMigrateModal.mode === 'carve' }"
+          @click="balanceMigrateModal.mode = 'carve'"
+        >
+          <div class="migrate-radio-head">
+            <input type="radio" name="idxMigrateMode" value="carve" v-model="balanceMigrateModal.mode" />
+            <span>从原 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 中拆出（推荐）</span>
+          </div>
+          <div class="migrate-radio-desc">
+            <template v-if="getBalanceMigrationRemainder() > 0">
+              从原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 中划出 ¥{{ formatNumber(balanceMigrateModal.newBalance) }} 给「{{ balanceMigrateModal.newChildName }}」，剩余 ¥{{ formatNumber(getBalanceMigrationRemainder()) }} 保留为独立子账户，{{ balanceMigrateModal.parentName }}总额保持 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 不变。
+            </template>
+            <template v-else>
+              从原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 中划出全部给「{{ balanceMigrateModal.newChildName }}」，剩余 ¥0.00，确认后将仅创建「{{ balanceMigrateModal.newChildName }}」，{{ balanceMigrateModal.parentName }}总额保持 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 不变。
+            </template>
+          </div>
+          <div v-if="balanceMigrateModal.mode === 'carve' && getBalanceMigrationRemainder() > 0" class="migrate-radio-subform" @click.stop>
+            <label>剩余余额子账户名称
+              <input type="text" class="form-input" v-model="balanceMigrateModal.legacyName" placeholder="存款" style="padding: 6px 8px; font-size: 12.5px;" />
+            </label>
+            <label>账户类型
+              <select class="form-select" v-model="balanceMigrateModal.legacyType" style="padding: 6px 8px; font-size: 12.5px;">
+                <option value="bank">储蓄/银行卡</option>
+                <option value="cash">活期/零钱</option>
+                <option value="investment">投资理财</option>
+                <option value="credit">信用/负债</option>
+                <option value="other">其他资产</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <!-- 选项 2：作为新增资金，原余额单独保留 -->
         <div
           class="migrate-radio-card"
           :class="{ active: balanceMigrateModal.mode === 'split' }"
@@ -5936,10 +6153,10 @@
         >
           <div class="migrate-radio-head">
             <input type="radio" name="idxMigrateMode" value="split" v-model="balanceMigrateModal.mode" />
-            <span>保留为独立子账户（推荐）</span>
+            <span>作为新增资金，原 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 单独保留</span>
           </div>
           <div class="migrate-radio-desc">
-            原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 单独算作一个子账户，与新建的「{{ balanceMigrateModal.newChildName }} (¥{{ formatNumber(balanceMigrateModal.newBalance) }})」分开记录，{{ balanceMigrateModal.parentName }}总额为 ¥{{ formatNumber(balanceMigrateModal.oldBalance + balanceMigrateModal.newBalance) }}。
+            原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 单独算作一个子账户，与新建的「{{ balanceMigrateModal.newChildName }} (¥{{ formatNumber(balanceMigrateModal.newBalance) }})」分开记录，{{ balanceMigrateModal.parentName }}总额变为 ¥{{ formatNumber(balanceMigrateModal.oldBalance + balanceMigrateModal.newBalance) }}。
           </div>
           <div v-if="balanceMigrateModal.mode === 'split'" class="migrate-radio-subform" @click.stop>
             <label>原余额子账户名称
@@ -5957,7 +6174,7 @@
           </div>
         </div>
 
-        <!-- 选项 B：直接并入新建子账户 -->
+        <!-- 选项 3：全部并入新建子账户 -->
         <div
           class="migrate-radio-card"
           :class="{ active: balanceMigrateModal.mode === 'merge' }"
@@ -5965,11 +6182,15 @@
         >
           <div class="migrate-radio-head">
             <input type="radio" name="idxMigrateMode" value="merge" v-model="balanceMigrateModal.mode" />
-            <span>直接并入新建的「{{ balanceMigrateModal.newChildName }}」</span>
+            <span>全部并入新建的「{{ balanceMigrateModal.newChildName }}」</span>
           </div>
           <div class="migrate-radio-desc">
             原有的 ¥{{ formatNumber(balanceMigrateModal.oldBalance) }} 直接加进「{{ balanceMigrateModal.newChildName }}」里，合并后「{{ balanceMigrateModal.newChildName }}」余额为 ¥{{ formatNumber(balanceMigrateModal.oldBalance + balanceMigrateModal.newBalance) }}。
           </div>
+        </div>
+
+        <div v-if="balanceMigrateModal.errorMsg" style="font-size: 12px; font-weight: 700; color: #ea580c; background: rgba(249,115,22,0.1); padding: 7px 10px; border-radius: 8px; margin-top: 8px;">
+          ⚠️ {{ balanceMigrateModal.errorMsg }}
         </div>
 
         <div style="display: flex; gap: 8px; margin-top: 14px;">
@@ -6073,6 +6294,215 @@
             </button>
           </div>
         </template>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 3.7: 一键多笔余额拆分器                       -->
+    <!-- ============================================== -->
+    <div v-if="batchSplitModal.visible" class="modal-backdrop" @click.self="closeBatchSplitModal">
+      <div class="modal-box" style="max-width: 520px; max-height: 85vh; overflow-y: auto;">
+        <div class="modal-header">
+          <div class="modal-title" style="font-size: 15.5px;">
+            <span>⚖️ 拆分「{{ batchSplitModal.parentName }}」余额（总额 ¥{{ formatNumber(batchSplitModal.totalBalance) }}）</span>
+          </div>
+          <button class="btn-close" @click="closeBatchSplitModal">✕</button>
+        </div>
+
+        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px;">
+          将总额分配到不同子账户（已分配 ¥{{ formatNumber(batchSplitRowsSum) }}，未分配的剩余金额将自动保留在下方指定子账户中；同名子账户将保留原有流水记录）。
+        </div>
+
+        <div v-for="(row, rIdx) in batchSplitModal.rows" :key="row.uid" class="split-row-item">
+          <div class="split-row-line" style="display: flex; align-items: center; gap: 8px;">
+            <button
+              type="button"
+              class="split-icon-btn split-ctrl"
+              :class="{ active: batchSplitModal.activeIconPickerTarget === row.uid }"
+              @click="toggleSplitIconPicker(row.uid)"
+              title="选择子账户图标"
+              style="width: 40px; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; border-radius: 10px;"
+            >
+              <img v-if="getAccountIconImg({ icon: row.icon, name: row.name, type: row.type })" :src="getAccountIconImg({ icon: row.icon, name: row.name, type: row.type })" style="width: 22px; height: 22px; object-fit: contain;" alt="" />
+              <span v-else>{{ row.icon || inferSubAccountIcon(row.name, row.type) }}</span>
+            </button>
+            <input
+              type="text"
+              v-model="row.name"
+              @input="onSplitRowNameInput(row)"
+              class="form-input split-ctrl"
+              placeholder="子账户名称"
+              style="flex: 1.25; min-width: 0; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; font-size: 13px; border-radius: 10px; padding: 0 9px;"
+            />
+            <select
+              v-model="row.type"
+              @change="onSplitRowTypeChange(row)"
+              class="form-select split-ctrl"
+              style="flex: 1; min-width: 0; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; font-size: 13px; border-radius: 10px; padding: 0 6px;"
+            >
+              <option value="bank">储蓄/银行卡</option>
+              <option value="cash">活期/零钱</option>
+              <option value="investment">投资理财</option>
+              <option value="other">其他资产</option>
+            </select>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              v-model.number="row.amount"
+              class="form-input split-ctrl"
+              placeholder="金额 ¥"
+              style="flex: 0.85; min-width: 68px; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; font-size: 13px; font-weight: 700; border-radius: 10px; padding: 0 8px;"
+            />
+            <button
+              type="button"
+              class="btn-sm danger split-ctrl"
+              style="width: 38px; flex-shrink: 0; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; font-size: 13px; border-radius: 10px; padding: 0; display: inline-flex; align-items: center; justify-content: center;"
+              @click="removeBatchSplitRow(rIdx)"
+              title="删除此项"
+            >✕</button>
+          </div>
+
+          <div v-if="batchSplitModal.activeIconPickerTarget === row.uid" class="split-icon-popover">
+            <div class="split-icon-grid">
+              <button
+                v-for="item in accountIconList"
+                :key="item.icon"
+                type="button"
+                class="split-icon-opt"
+                :class="{ active: row.icon === item.icon }"
+                :title="item.label"
+                @click="selectSplitRowIcon(row, item.icon)"
+              >
+                <img v-if="getCategoryImg(item.label) || getCategoryImg(item.icon)" :src="getCategoryImg(item.label) || getCategoryImg(item.icon)" style="width: 22px; height: 22px; object-fit: contain;" :alt="item.label" />
+                <span v-else>{{ item.icon }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="btn-secondary"
+          style="width: 100%; height: 40px; justify-content: center; box-sizing: border-box; padding: 0 12px; font-size: 13px; border-radius: 10px; margin: 0 0 12px 0; border-style: dashed; display: inline-flex; align-items: center;"
+          @click="addBatchSplitRow"
+        >+ 添加一项</button>
+
+        <!-- 剩余归属子账户高亮计算栏 -->
+        <div
+          style="border-radius: 12px; padding: 12px; border: 1.5px solid; margin-bottom: 12px;"
+          :style="isBatchSplitOverBudget || batchSplitHasNegative
+            ? 'background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.45);'
+            : (batchSplitRemainder === 0
+              ? 'background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.35);'
+              : 'background: rgba(59,130,246,0.07); border-color: rgba(59,130,246,0.35);')"
+        >
+          <div v-if="batchSplitHasNegative" style="font-size: 13px; font-weight: 800; color: #dc2626;">
+            ⚠️ 拆分辨目金额不能为负数，请修正后保存
+          </div>
+          <div v-else-if="isBatchSplitOverBudget" style="font-size: 13px; font-weight: 800; color: #dc2626;">
+            ⚠️ 拆分辨目总额（¥{{ formatNumber(batchSplitRowsSum) }}）已超出账户总额 ¥{{ formatNumber(batchSplitModal.totalBalance) }}，超额 ¥{{ formatNumber(Math.abs(batchSplitRemainder)) }}，请调小各行金额
+          </div>
+          <template v-else>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span style="font-size: 13px; font-weight: 800; color: var(--text-main);">
+                剩余自动归入「{{ batchSplitModal.fallbackName || '存款' }}」的金额：
+              </span>
+              <span style="font-size: 16px; font-weight: 800;" :style="{ color: batchSplitRemainder > 0 ? 'var(--primary)' : '#059669' }">
+                ¥{{ formatNumber(batchSplitRemainder) }}
+              </span>
+            </div>
+
+            <template v-if="batchSplitRemainder > 0">
+              <div class="split-fallback-grid">
+                <div style="flex: 1.35; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+                  <span style="display: block; font-size: 11px; font-weight: 700; line-height: 16px; margin: 0; color: var(--text-muted);">剩余归属子账户</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <button
+                      type="button"
+                      class="split-icon-btn split-ctrl"
+                      :class="{ active: batchSplitModal.activeIconPickerTarget === 'fallback' }"
+                      @click="toggleSplitIconPicker('fallback')"
+                      title="选择剩余归属子账户图标"
+                      style="width: 40px; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; border-radius: 10px;"
+                    >
+                      <img v-if="getAccountIconImg({ icon: batchSplitModal.fallbackIcon, name: batchSplitModal.fallbackName, type: batchSplitModal.fallbackType })" :src="getAccountIconImg({ icon: batchSplitModal.fallbackIcon, name: batchSplitModal.fallbackName, type: batchSplitModal.fallbackType })" style="width: 22px; height: 22px; object-fit: contain;" alt="" />
+                      <span v-else>{{ batchSplitModal.fallbackIcon || inferSubAccountIcon(batchSplitModal.fallbackName, batchSplitModal.fallbackType) }}</span>
+                    </button>
+                    <input
+                      type="text"
+                      class="form-input split-ctrl"
+                      v-model="batchSplitModal.fallbackName"
+                      @input="onSplitFallbackNameInput"
+                      placeholder="存款"
+                      style="flex: 1; min-width: 0; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; font-size: 13px; border-radius: 10px; padding: 0 9px;"
+                    />
+                  </div>
+                </div>
+                <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+                  <span style="display: block; font-size: 11px; font-weight: 700; line-height: 16px; margin: 0; color: var(--text-muted);">账户类型</span>
+                  <select
+                    class="form-select split-ctrl"
+                    v-model="batchSplitModal.fallbackType"
+                    @change="onSplitFallbackTypeChange"
+                    style="width: 100%; height: 40px; box-sizing: border-box; margin: 0; vertical-align: middle; font-size: 13px; border-radius: 10px; padding: 0 8px;"
+                  >
+                    <option value="bank">储蓄/银行卡</option>
+                    <option value="cash">活期/零钱</option>
+                    <option value="investment">投资理财</option>
+                    <option value="other">其他资产</option>
+                  </select>
+                </div>
+              </div>
+
+              <div v-if="batchSplitModal.activeIconPickerTarget === 'fallback'" class="split-icon-popover">
+                <div class="split-icon-grid">
+                  <button
+                    v-for="item in accountIconList"
+                    :key="item.icon"
+                    type="button"
+                    class="split-icon-opt"
+                    :class="{ active: batchSplitModal.fallbackIcon === item.icon }"
+                    :title="item.label"
+                    @click="selectSplitFallbackIcon(item.icon)"
+                  >
+                    <img v-if="getCategoryImg(item.label) || getCategoryImg(item.icon)" :src="getCategoryImg(item.label) || getCategoryImg(item.icon)" style="width: 22px; height: 22px; object-fit: contain;" :alt="item.label" />
+                    <span v-else>{{ item.icon }}</span>
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <div v-else style="font-size: 11.5px; color: #059669; font-weight: 700; margin-top: 4px;">
+              ✓ 总额已全部分配到以上各项
+            </div>
+          </template>
+        </div>
+
+        <div v-if="batchSplitModal.errorMsg" style="font-size: 12px; font-weight: 700; color: #dc2626; background: rgba(239,68,68,0.09); padding: 7px 10px; border-radius: 8px; margin-bottom: 10px;">
+          ⚠️ {{ batchSplitModal.errorMsg }}
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button
+            type="button"
+            class="btn-secondary split-modal-btn"
+            style="flex: 1; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;"
+            :disabled="batchSplitModal.saving"
+            @click="closeBatchSplitModal"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="btn-primary split-modal-btn"
+            style="flex: 1.5; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;"
+            :disabled="batchSplitModal.saving || isBatchSplitOverBudget || batchSplitHasNegative"
+            @click="confirmBatchSplit"
+          >
+            {{ batchSplitModal.saving ? '拆分中...' : '确认拆分' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -6214,8 +6644,19 @@
             }
           }
         });
-        const currentVersion = ref('v5.2.0');
+        const currentVersion = ref('v5.3.0');
         const versionHistoryList = [
+          {
+            version: 'v5.3.0',
+            date: '2026-11-19',
+            title: '⚖️ 账户余额“内部拆分”全链路、子账户图标自动匹配与母账户净额公式统一',
+            features: [
+              '首次添加子账户支持「从原余额中拆出」：当母账户原余额 >= 新建子账户金额时默认选中内部拆出并实时计算剩余金额（如 5000 拆出 500 保留 4500 为独立子账户，差额为 0 时直接全额转入），小屏弹窗支持完整滚动；',
+              '后续创建子账户支持「从已有子账户划出」：在喵管家确认创建卡片及手动添加账户弹窗中动态展示资金来源，优先默认选中「存款」或最大余额子账户扣款并实时校验剩余额度，支持连续拆分（如 4500 ➔ 4300 ➔ 4000）；',
+              '账户卡片新增「⚖️ 拆分」一键多笔拆分器：支持动态增删多笔正资产拆分辨目与「剩余归属子账户」（保留原有同名子账户 ID 不断链流水），配备 40px 等高工整排版、21 种图标选择与按名称/类型智能匹配默认图标；',
+              '正资产拆分守恒与母账户净额公式统一：拆分弹窗仅保留正资产类型，统一母账户汇总公式（正资产相加、信用/负债子账户相减）对齐总览总净资产，并同步升级缓存至 personal-asset-pwa-v59。'
+            ]
+          },
           {
             version: 'v5.2.0',
             date: '2026-11-19',
@@ -7345,6 +7786,8 @@
           type: 'bank',
           balance: 0,
           parentId: '',
+          fundingSource: 'external',
+          deductFromChildId: '',
           creditLimit: '',
           icon: '💳',
           color: '#2563eb',
@@ -7380,7 +7823,25 @@
           legacyName: '存款',
           legacyType: 'bank',
           existingChildId: '',
+          errorMsg: '',
           childPayload: null
+        });
+        const batchSplitModal = reactive({
+          visible: false,
+          parentId: '',
+          parentName: '',
+          parentIcon: '💳',
+          parentColor: '#2563eb',
+          parentType: 'bank',
+          totalBalance: 0,
+          rows: [],
+          fallbackName: '存款',
+          fallbackType: 'bank',
+          fallbackIcon: '💳',
+          fallbackIconManuallySelected: false,
+          activeIconPickerTarget: null,
+          errorMsg: '',
+          saving: false
         });
 
         // 21 种账户精选标识图标
@@ -7606,7 +8067,13 @@
           if (!acc) return 0;
           const children = getChildAccounts(acc.id);
           if (children.length > 0) {
-            return +children.reduce((sum, c) => sum + Number(c.balance || 0), 0).toFixed(2);
+            if (AssetDB && typeof AssetDB.calculateParentNetBalance === 'function') {
+              return AssetDB.calculateParentNetBalance(acc.id, accounts.value);
+            }
+            return +children.reduce((sum, c) => {
+              const bal = Number((c && c.balance) || 0);
+              return (c && c.type === 'credit') ? sum - Math.abs(bal) : sum + bal;
+            }, 0).toFixed(2);
           }
           return Number(acc.balance || 0);
         }
@@ -9889,6 +10356,61 @@
         }
 
         // 账户创建 / 编辑 Modal
+        const accountFormPositiveChildren = computed(() => {
+          if (isEditAccount.value || !accountForm.parentId) return [];
+          return getChildAccounts(accountForm.parentId)
+            .filter(c => c && Number(c.balance || 0) > 0)
+            .sort((a, b) => {
+              const aDep = String(a.name || '').trim() === '存款' ? 0 : 1;
+              const bDep = String(b.name || '').trim() === '存款' ? 0 : 1;
+              if (aDep !== bDep) return aDep - bDep;
+              return Number(b.balance || 0) - Number(a.balance || 0);
+            });
+        });
+
+        const accountFormSelectedDeductChild = computed(() => {
+          const list = accountFormPositiveChildren.value;
+          if (!list.length) return null;
+          return list.find(c => c.id === accountForm.deductFromChildId) || list[0];
+        });
+
+        function pickPreferredDeductChildId(children) {
+          if (!Array.isArray(children) || !children.length) return '';
+          const deposit = children.find(c => c && String(c.name || '').trim() === '存款');
+          if (deposit) return String(deposit.id);
+          const sorted = [...children].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+          return sorted[0] ? String(sorted[0].id) : '';
+        }
+
+        function getAccountFormParentName() {
+          if (!accountForm.parentId) return '';
+          const p = accounts.value.find(a => a && a.id === accountForm.parentId);
+          return p ? p.name : '';
+        }
+
+        function onAccountFormParentChange() {
+          const pos = accountFormPositiveChildren.value;
+          if (pos.length > 0) {
+            if (!accountForm.deductFromChildId || !pos.some(c => c.id === accountForm.deductFromChildId)) {
+              accountForm.deductFromChildId = pickPreferredDeductChildId(pos);
+            }
+            if (!accountForm.fundingSource) accountForm.fundingSource = 'external';
+          } else {
+            accountForm.fundingSource = 'external';
+            accountForm.deductFromChildId = '';
+          }
+        }
+
+        function canCarveBalanceMigration() {
+          const oldBal = Number(balanceMigrateModal.oldBalance || 0);
+          const newBal = Number(balanceMigrateModal.newBalance || 0);
+          return oldBal > 0 && newBal >= 0 && oldBal >= newBal;
+        }
+
+        function getBalanceMigrationRemainder() {
+          return Math.max(0, +(Number(balanceMigrateModal.oldBalance || 0) - Number(balanceMigrateModal.newBalance || 0)).toFixed(2));
+        }
+
         function openAddAccountModal(defaultParentId = '') {
           isEditAccount.value = false;
           accountNameError.value = '';
@@ -9897,10 +10419,13 @@
           accountForm.type = 'bank';
           accountForm.balance = '';
           accountForm.parentId = typeof defaultParentId === 'string' ? defaultParentId : '';
+          accountForm.fundingSource = 'external';
+          accountForm.deductFromChildId = '';
           accountForm.creditLimit = '';
           accountForm.icon = '💳';
           accountForm.color = '#f97316';
           accountForm.notes = '';
+          onAccountFormParentChange();
           showAccountModal.value = true;
         }
 
@@ -9923,6 +10448,8 @@
           accountForm.type = acc.type;
           accountForm.balance = acc.balance;
           accountForm.parentId = acc.parentId || '';
+          accountForm.fundingSource = 'external';
+          accountForm.deductFromChildId = '';
           accountForm.creditLimit = acc.creditLimit !== undefined && acc.creditLimit !== null ? acc.creditLimit : '';
           accountForm.icon = acc.icon || '💳';
           accountForm.color = acc.color || '#f97316';
@@ -9953,9 +10480,23 @@
             });
             if (res.legacyAccount && res.legacyAccount.id) createdIds.push(res.legacyAccount.id);
             if (res.newAccount && res.newAccount.id) createdIds.push(res.newAccount.id);
-            toastText = res.mode === 'split'
-              ? `已保留原余额为「${legacyName}」并设置「${payload.name}」✨`
-              : `已合并原余额 ¥${formatNumber(res.oldBalance)} 至「${payload.name}」✨`;
+            if (res.mode === 'carve') {
+              toastText = res.legacyAccount
+                ? `已拆出 ¥${formatNumber(res.newBalance)} 至「${payload.name}」，剩余 ¥${formatNumber(res.remainderBalance)} 存为「${legacyName}」✨`
+                : `原余额已全部划入「${payload.name}」✨`;
+            } else if (res.mode === 'split') {
+              toastText = `已保留原余额为「${legacyName}」并设置「${payload.name}」✨`;
+            } else {
+              toastText = `已合并原余额 ¥${formatNumber(res.oldBalance)} 至「${payload.name}」✨`;
+            }
+          } else if (payload.parentId && migrationOpts === null && accountForm.fundingSource === 'carve' && accountForm.deductFromChildId && !isEditAccount.value && accountFormPositiveChildren.value.length > 0) {
+            const res = await AssetDB.createSubAccountFromExistingChild({
+              parentId: payload.parentId,
+              sourceChildId: accountForm.deductFromChildId,
+              newChildPayload: payload
+            });
+            if (res.newAccount && res.newAccount.id) createdIds.push(res.newAccount.id);
+            toastText = `已从「${res.sourceAccount.name}」划出 ¥${formatNumber(res.deductedAmount)} 创建「${payload.name}」✨`;
           } else {
             const newAcc = await AssetDB.addAccount(payload);
             if (newAcc && newAcc.id) createdIds.push(newAcc.id);
@@ -9983,10 +10524,20 @@
             balanceMigrateModal.visible = false;
             return;
           }
-          if (balanceMigrateModal.mode === 'split' && !String(balanceMigrateModal.legacyName || '').trim()) {
-            showToast('请输入原余额子账户名称');
-            return;
+          const needLegacyName = balanceMigrateModal.mode === 'split'
+            || (balanceMigrateModal.mode === 'carve' && getBalanceMigrationRemainder() > 0);
+          if (needLegacyName) {
+            const legacyTrimmed = String(balanceMigrateModal.legacyName || '').trim();
+            if (!legacyTrimmed) {
+              balanceMigrateModal.errorMsg = balanceMigrateModal.mode === 'carve' ? '请输入剩余余额子账户名称' : '请输入原余额子账户名称';
+              return;
+            }
+            if (legacyTrimmed === String(balanceMigrateModal.newChildName || '').trim()) {
+              balanceMigrateModal.errorMsg = '保留/剩余子账户名称不能与新建子账户同名，请修改';
+              return;
+            }
           }
+          balanceMigrateModal.errorMsg = '';
           const payload = { ...balanceMigrateModal.childPayload };
           const migrationOpts = {
             mode: balanceMigrateModal.mode,
@@ -10007,6 +10558,7 @@
         function cancelBalanceMigrationModal() {
           balanceMigrateModal.visible = false;
           balanceMigrateModal.existingChildId = '';
+          balanceMigrateModal.errorMsg = '';
           balanceMigrateModal.childPayload = null;
         }
 
@@ -10108,6 +10660,7 @@
           duplicateAccountModal.pendingPayload = null;
           accountForm.parentId = targetId;
           accountForm.name = '';
+          onAccountFormParentChange();
           accountNameError.value = `请输入归属于「${targetName}」的子账户名称（如：存款 / 理财）`;
           focusManualAccountNameInput();
         }
@@ -10152,15 +10705,17 @@
                 const isFirstChild = parentAcc && getChildAccounts(parentAcc.id).length === 0;
                 const oldBal = parentAcc ? +(Number(parentAcc.balance || 0)).toFixed(2) : 0;
                 if (isFirstChild && oldBal !== 0) {
+                  const newBal = +(Number(accountForm.balance) || 0).toFixed(2);
                   balanceMigrateModal.parentId = parentAcc.id;
                   balanceMigrateModal.parentName = parentAcc.name;
                   balanceMigrateModal.oldBalance = oldBal;
                   balanceMigrateModal.newChildName = trimmedName;
-                  balanceMigrateModal.newBalance = +(Number(accountForm.balance) || 0).toFixed(2);
-                  balanceMigrateModal.mode = 'split';
+                  balanceMigrateModal.newBalance = newBal;
+                  balanceMigrateModal.mode = (oldBal > 0 && newBal >= 0 && oldBal >= newBal) ? 'carve' : 'split';
                   balanceMigrateModal.legacyName = '存款';
                   balanceMigrateModal.legacyType = parentAcc.type || 'bank';
                   balanceMigrateModal.existingChildId = accountForm.id;
+                  balanceMigrateModal.errorMsg = '';
                   balanceMigrateModal.childPayload = {
                     name: trimmedName,
                     type: accountForm.type,
@@ -10242,21 +10797,42 @@
                 return;
               }
 
-              // 首次为一个原本有余额的独立账户添加子账户时，弹出“保留为独立子账户 vs 直接并入”弹窗
+              // 创建子账户时选择“从已有子账户划出”的余额校验
+              if (parentIdVal && accountForm.fundingSource === 'carve' && accountFormPositiveChildren.value.length > 0) {
+                const newBal = +(Number(payload.balance || 0)).toFixed(2);
+                if (newBal < 0) {
+                  showToast('从已有子账户划出时，初始余额不能为负数');
+                  return;
+                }
+                const srcChild = accountFormSelectedDeductChild.value;
+                if (!srcChild) {
+                  showToast('请选择要划出的子账户');
+                  return;
+                }
+                if (+(Number(srcChild.balance || 0)).toFixed(2) < newBal) {
+                  showToast(`「${srcChild.name}」当前余额 ¥${formatNumber(srcChild.balance)} 不足 ¥${formatNumber(newBal)}`);
+                  return;
+                }
+                accountForm.deductFromChildId = String(srcChild.id);
+              }
+
+              // 首次为一个原本有余额的独立账户添加子账户时，弹出原余额处理确认弹窗
               if (parentIdVal) {
                 const parentAcc = accounts.value.find(a => a.id === parentIdVal);
                 const isFirstChild = parentAcc && getChildAccounts(parentAcc.id).length === 0;
                 const oldBal = parentAcc ? +(Number(parentAcc.balance || 0)).toFixed(2) : 0;
                 if (isFirstChild && oldBal !== 0) {
+                  const newBal = +(Number(payload.balance || 0)).toFixed(2);
                   balanceMigrateModal.parentId = parentAcc.id;
                   balanceMigrateModal.parentName = parentAcc.name;
                   balanceMigrateModal.oldBalance = oldBal;
                   balanceMigrateModal.newChildName = payload.name;
-                  balanceMigrateModal.newBalance = +(Number(payload.balance || 0)).toFixed(2);
-                  balanceMigrateModal.mode = 'split';
+                  balanceMigrateModal.newBalance = newBal;
+                  balanceMigrateModal.mode = (oldBal > 0 && newBal >= 0 && oldBal >= newBal) ? 'carve' : 'split';
                   balanceMigrateModal.legacyName = '存款';
                   balanceMigrateModal.legacyType = parentAcc.type || 'bank';
                   balanceMigrateModal.existingChildId = '';
+                  balanceMigrateModal.errorMsg = '';
                   balanceMigrateModal.childPayload = payload;
                   balanceMigrateModal.visible = true;
                   return;
@@ -10283,6 +10859,280 @@
             localStorage.setItem('cat_account_order', JSON.stringify(savedOrder));
             showToast('账户已删除');
             await refreshAllData();
+          }
+        }
+
+        // ---------- 一键多笔余额拆分器 ----------
+        const batchSplitRowsSum = computed(() => {
+          return +(batchSplitModal.rows.reduce((sum, r) => {
+            const val = Number(r && r.amount);
+            return sum + (val > 0 ? val : 0);
+          }, 0)).toFixed(2);
+        });
+
+        const batchSplitHasNegative = computed(() => {
+          return batchSplitModal.rows.some(r => Number(r && r.amount) < 0);
+        });
+
+        const batchSplitRemainder = computed(() => {
+          return +(Number(batchSplitModal.totalBalance || 0) - batchSplitRowsSum.value).toFixed(2);
+        });
+
+        const isBatchSplitOverBudget = computed(() => {
+          return batchSplitRemainder.value < 0;
+        });
+
+        function sanitizePositiveAssetType(t, fallback = 'bank') {
+          return ['bank', 'cash', 'investment', 'other'].includes(t) ? t : fallback;
+        }
+
+        function inferSubAccountIcon(name = '', type = 'bank') {
+          const n = String(name || '').trim().toLowerCase();
+          if (n) {
+            if (/黄金|积存金|金条|金币|白银|贵金属/.test(n)) return '🪙';
+            if (/珠宝|首饰|钻石/.test(n)) return '💎';
+            if (/理财|基金|股票|证券|国债|债券|固收|etf|定投|投资|收益/.test(n)) return '📈';
+            if (/存单|定期|大额/.test(n)) return '🏦';
+            if (/工资|薪酬|薪资|奖金/.test(n)) return '💰';
+            if (/零钱|微信|支付宝|钱包|生活费|备用金/.test(n)) return '👛';
+            if (/现金|现钞|纸币/.test(n)) return '💵';
+            if (/存款|储蓄|活期|银行卡|卡/.test(n)) return '💳';
+            if (/保险|养老|社保|公积金/.test(n)) return '🔒';
+            if (/房产|买房|物业|首付|房/.test(n)) return '🏠';
+            if (/汽车|买车|座驾|车/.test(n)) return '🚗';
+            if (/育儿|宝宝|孩子/.test(n)) return '🍼';
+            if (/教育|学费/.test(n)) return '🎓';
+            if (/医疗|健康|看病/.test(n)) return '🏥';
+            if (/旅行|旅游|心愿/.test(n)) return '✈️';
+            if (/红包|人情|礼金/.test(n)) return '🎁';
+            if (/数字|虚拟|数字人民币/.test(n)) return '💻';
+          }
+          switch (type) {
+            case 'investment': return '📈';
+            case 'cash': return '👛';
+            case 'other': return '📦';
+            case 'bank':
+            default:
+              return '💳';
+          }
+        }
+
+        function toggleSplitIconPicker(targetId) {
+          batchSplitModal.activeIconPickerTarget = (batchSplitModal.activeIconPickerTarget === targetId) ? null : targetId;
+        }
+
+        function selectSplitRowIcon(row, iconStr) {
+          if (!row) return;
+          row.icon = iconStr;
+          row.iconManuallySelected = true;
+          batchSplitModal.activeIconPickerTarget = null;
+        }
+
+        function selectSplitFallbackIcon(iconStr) {
+          batchSplitModal.fallbackIcon = iconStr;
+          batchSplitModal.fallbackIconManuallySelected = true;
+          batchSplitModal.activeIconPickerTarget = null;
+        }
+
+        function onSplitRowNameInput(row) {
+          if (!row || row.iconManuallySelected) return;
+          row.icon = inferSubAccountIcon(row.name, row.type);
+        }
+
+        function onSplitRowTypeChange(row) {
+          if (!row || row.iconManuallySelected) return;
+          row.icon = inferSubAccountIcon(row.name, row.type);
+        }
+
+        function onSplitFallbackNameInput() {
+          if (batchSplitModal.fallbackIconManuallySelected) return;
+          batchSplitModal.fallbackIcon = inferSubAccountIcon(batchSplitModal.fallbackName, batchSplitModal.fallbackType);
+        }
+
+        function onSplitFallbackTypeChange() {
+          if (batchSplitModal.fallbackIconManuallySelected) return;
+          batchSplitModal.fallbackIcon = inferSubAccountIcon(batchSplitModal.fallbackName, batchSplitModal.fallbackType);
+        }
+
+        function openBatchSplitModal(parentAcc) {
+          if (!parentAcc) return;
+          const totalBal = +(getAccountDisplayBalance(parentAcc)).toFixed(2);
+          const existingChildren = getChildAccounts(parentAcc.id);
+          const depositChild = existingChildren.find(c => c && String(c.name || '').trim() === '存款');
+          const otherChildren = existingChildren.filter(c => !depositChild || c.id !== depositChild.id);
+          const safeParentType = sanitizePositiveAssetType(parentAcc.type, 'bank');
+          const fbType = sanitizePositiveAssetType(depositChild ? depositChild.type : safeParentType, 'bank');
+
+          batchSplitModal.parentId = parentAcc.id;
+          batchSplitModal.parentName = parentAcc.name;
+          batchSplitModal.parentIcon = parentAcc.icon || getAccountEmoji(parentAcc.type);
+          batchSplitModal.parentColor = parentAcc.color || '#2563eb';
+          batchSplitModal.parentType = safeParentType;
+          batchSplitModal.totalBalance = totalBal;
+          batchSplitModal.fallbackName = '存款';
+          batchSplitModal.fallbackType = fbType;
+          batchSplitModal.fallbackIcon = (depositChild && depositChild.icon) ? depositChild.icon : inferSubAccountIcon('存款', fbType);
+          batchSplitModal.fallbackIconManuallySelected = !!(depositChild && depositChild.icon);
+          batchSplitModal.activeIconPickerTarget = null;
+          batchSplitModal.errorMsg = '';
+          batchSplitModal.saving = false;
+
+          if (otherChildren.length > 0) {
+            batchSplitModal.rows = otherChildren.map((c, idx) => {
+              const rowType = sanitizePositiveAssetType(c.type || safeParentType, 'bank');
+              return {
+                uid: `${c.id}_${idx}`,
+                name: c.name,
+                type: rowType,
+                amount: +(Number(c.balance || 0)).toFixed(2),
+                icon: c.icon || inferSubAccountIcon(c.name, rowType),
+                iconManuallySelected: !!c.icon,
+                notes: c.notes || ''
+              };
+            });
+          } else {
+            const defaultRowType = safeParentType === 'bank' ? 'investment' : safeParentType;
+            batchSplitModal.rows = [{
+              uid: 'row_' + Date.now(),
+              name: '',
+              type: defaultRowType,
+              amount: '',
+              icon: inferSubAccountIcon('', defaultRowType),
+              iconManuallySelected: false,
+              notes: ''
+            }];
+          }
+          batchSplitModal.visible = true;
+        }
+
+        function addBatchSplitRow() {
+          const rowType = sanitizePositiveAssetType(batchSplitModal.parentType, 'bank');
+          batchSplitModal.rows.push({
+            uid: 'row_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            name: '',
+            type: rowType,
+            amount: '',
+            icon: inferSubAccountIcon('', rowType),
+            iconManuallySelected: false,
+            notes: ''
+          });
+          batchSplitModal.activeIconPickerTarget = null;
+          batchSplitModal.errorMsg = '';
+        }
+
+        function removeBatchSplitRow(idx) {
+          const removed = batchSplitModal.rows[idx];
+          if (removed && batchSplitModal.activeIconPickerTarget === removed.uid) {
+            batchSplitModal.activeIconPickerTarget = null;
+          }
+          batchSplitModal.rows.splice(idx, 1);
+          batchSplitModal.errorMsg = '';
+        }
+
+        function closeBatchSplitModal() {
+          if (batchSplitModal.saving) return;
+          batchSplitModal.visible = false;
+          batchSplitModal.activeIconPickerTarget = null;
+          batchSplitModal.errorMsg = '';
+        }
+
+        async function confirmBatchSplit() {
+          if (batchSplitModal.saving) return;
+          batchSplitModal.errorMsg = '';
+          batchSplitModal.activeIconPickerTarget = null;
+
+          if (batchSplitHasNegative.value) {
+            batchSplitModal.errorMsg = '拆分辨目金额不能为负数';
+            return;
+          }
+          if (isBatchSplitOverBudget.value) {
+            batchSplitModal.errorMsg = '各行金额之和超出账户总额，请调小金额后再保存';
+            return;
+          }
+
+          const items = [];
+          const seen = new Set();
+          for (let i = 0; i < batchSplitModal.rows.length; i++) {
+            const row = batchSplitModal.rows[i];
+            const nameTrimmed = String((row && row.name) || '').trim();
+            const amtNum = +(Number((row && row.amount) || 0)).toFixed(2);
+            if (!nameTrimmed && amtNum === 0) continue;
+            if (!nameTrimmed) {
+              batchSplitModal.errorMsg = `请填写第 ${i + 1} 项的子账户名称`;
+              return;
+            }
+            if (row.type === 'credit') {
+              batchSplitModal.errorMsg = `余额拆分仅支持正资产账户类型，「${nameTrimmed}」不能设为信用/负债`;
+              return;
+            }
+            if (seen.has(nameTrimmed)) {
+              batchSplitModal.errorMsg = `拆分辨目「${nameTrimmed}」重复，请修改名称`;
+              return;
+            }
+            seen.add(nameTrimmed);
+            const finalType = sanitizePositiveAssetType(row.type || batchSplitModal.parentType, 'bank');
+            items.push({
+              name: nameTrimmed,
+              type: finalType,
+              balance: amtNum,
+              icon: row.icon || inferSubAccountIcon(nameTrimmed, finalType),
+              color: batchSplitModal.parentColor,
+              notes: row.notes || ''
+            });
+          }
+
+          const rem = batchSplitRemainder.value;
+          if (rem > 0) {
+            const fbName = String(batchSplitModal.fallbackName || '').trim();
+            if (!fbName) {
+              batchSplitModal.errorMsg = '请填写剩余金额归入的子账户名称';
+              return;
+            }
+            if (batchSplitModal.fallbackType === 'credit') {
+              batchSplitModal.errorMsg = '剩余归属子账户仅支持正资产账户类型';
+              return;
+            }
+            if (seen.has(fbName)) {
+              batchSplitModal.errorMsg = `拆分辨目中已存在「${fbName}」，请修改剩余归属子账户或明细行名称`;
+              return;
+            }
+            seen.add(fbName);
+            const fbType = sanitizePositiveAssetType(batchSplitModal.fallbackType || batchSplitModal.parentType, 'bank');
+            items.push({
+              name: fbName,
+              type: fbType,
+              balance: rem,
+              icon: batchSplitModal.fallbackIcon || inferSubAccountIcon(fbName, fbType),
+              color: batchSplitModal.parentColor,
+              notes: ''
+            });
+          }
+
+          if (items.length === 0) {
+            batchSplitModal.errorMsg = '请至少设置一个有效的拆分目标子账户';
+            return;
+          }
+
+          batchSplitModal.saving = true;
+          try {
+            const res = await AssetDB.applyAccountSplitPlan({
+              parentId: batchSplitModal.parentId,
+              items
+            });
+            const deletedSet = new Set(res.deletedIds || []);
+            let savedOrder = getSavedAccountOrder().filter(id => !deletedSet.has(id));
+            for (const aid of (res.addedIds || [])) {
+              if (aid && !savedOrder.includes(aid)) savedOrder.push(aid);
+            }
+            localStorage.setItem('cat_account_order', JSON.stringify(savedOrder));
+
+            batchSplitModal.visible = false;
+            showToast(`已完成「${batchSplitModal.parentName}」多笔余额拆分（共 ${items.length} 个子账户）✨`);
+            await refreshAllData();
+          } catch (e) {
+            batchSplitModal.errorMsg = '拆分保存失败: ' + e.message;
+          } finally {
+            batchSplitModal.saving = false;
           }
         }
 
@@ -10973,6 +11823,30 @@
           availableParentAccounts,
           collapsedParentIds,
           balanceMigrateModal,
+          batchSplitModal,
+          batchSplitRowsSum,
+          batchSplitHasNegative,
+          batchSplitRemainder,
+          isBatchSplitOverBudget,
+          openBatchSplitModal,
+          addBatchSplitRow,
+          removeBatchSplitRow,
+          closeBatchSplitModal,
+          confirmBatchSplit,
+          inferSubAccountIcon,
+          toggleSplitIconPicker,
+          selectSplitRowIcon,
+          selectSplitFallbackIcon,
+          onSplitRowNameInput,
+          onSplitRowTypeChange,
+          onSplitFallbackNameInput,
+          onSplitFallbackTypeChange,
+          accountFormPositiveChildren,
+          accountFormSelectedDeductChild,
+          getAccountFormParentName,
+          onAccountFormParentChange,
+          canCarveBalanceMigration,
+          getBalanceMigrationRemainder,
           getChildAccounts,
           hasChildAccounts,
           getAccountDisplayBalance,

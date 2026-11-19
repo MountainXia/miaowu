@@ -287,6 +287,7 @@
 
   /**
    * 首次为非零余额独立主账户添加子账户（或迁入现有独立账户）时，处理原余额的统一事务辅助函数
+   * mode === 'carve': 从原余额中拆出 newBalance 给目标子账户(B)，剩余 (oldBalance - newBalance > 0) 存为独立子账户(A)，母账户 balance 归零
    * mode === 'split': 创建原余额子账户(A) + 创建或更新子账户(B)，并将母账户 balance 归零
    * mode === 'merge': 仅保留 1 个子账户(B)，其余额严格等于 Number(oldBalance) + Number(newBalance)，并将母账户 balance 归零
    */
@@ -296,6 +297,41 @@
 
     const oldBalance = +(Number(parent.balance || 0)).toFixed(2);
     const newBalance = +(Number((newChildPayload && newChildPayload.balance) || 0)).toFixed(2);
+
+    if (mode === 'carve') {
+      if (newBalance < 0) throw new Error('拆出金额不能为负数');
+      const remainder = +(oldBalance - newBalance).toFixed(2);
+      if (remainder < 0) throw new Error('母账户原余额不足以拆出该金额');
+
+      await updateAccount({ id: parentId, balance: 0 });
+
+      const newAcc = existingChildId
+        ? await updateAccount({ ...newChildPayload, id: existingChildId, parentId, balance: newBalance })
+        : await addAccount({ ...newChildPayload, parentId, balance: newBalance });
+
+      let legacyAcc = null;
+      if (remainder > 0) {
+        legacyAcc = await addAccount({
+          name: (legacyChildPayload && legacyChildPayload.name && String(legacyChildPayload.name).trim()) || '存款',
+          type: (legacyChildPayload && legacyChildPayload.type) || parent.type || 'bank',
+          balance: remainder,
+          parentId,
+          icon: (legacyChildPayload && legacyChildPayload.icon) || parent.icon || '💳',
+          color: (legacyChildPayload && legacyChildPayload.color) || parent.color || '#3b82f6',
+          notes: (legacyChildPayload && legacyChildPayload.notes) || ''
+        });
+      }
+
+      return {
+        mode: 'carve',
+        oldBalance,
+        newBalance,
+        remainderBalance: Math.max(0, remainder),
+        totalBalance: oldBalance,
+        legacyAccount: legacyAcc,
+        newAccount: newAcc
+      };
+    }
 
     // 1. 强不变量：将母账户自身 balance 设为 0
     await updateAccount({ id: parentId, balance: 0 });
@@ -346,6 +382,159 @@
       totalBalance: mergedBalance,
       legacyAccount: null,
       newAccount: mergedAcc
+    };
+  }
+
+  /**
+   * 创建新子账户时，从同一母账户名下已有子账户中划出余额（单一读写事务，保证母账户总额零误差）
+   */
+  async function createSubAccountFromExistingChild({ parentId, sourceChildId, newChildPayload }) {
+    const parent = await getAccount(parentId);
+    if (!parent) throw new Error('母账户不存在');
+    const source = await getAccount(sourceChildId);
+    if (!source || String(source.parentId || '') !== String(parentId)) {
+      throw new Error('所选扣款子账户不存在或不属于该母账户');
+    }
+
+    const deductAmount = +(Number((newChildPayload && newChildPayload.balance) || 0)).toFixed(2);
+    if (deductAmount < 0) throw new Error('划出金额不能为负数');
+
+    const sourceBal = +(Number(source.balance || 0)).toFixed(2);
+    if (sourceBal < deductAmount) {
+      throw new Error(`「${source.name}」当前余额 ¥${sourceBal.toFixed(2)} 不足 ¥${deductAmount.toFixed(2)}`);
+    }
+
+    const nowIso = new Date().toISOString();
+    const updatedSource = {
+      ...source,
+      balance: +(sourceBal - deductAmount).toFixed(2),
+      updatedAt: nowIso
+    };
+    const newChild = {
+      id: (newChildPayload && newChildPayload.id) || generateId('acc'),
+      name: (newChildPayload && newChildPayload.name && String(newChildPayload.name).trim()) || '新子账户',
+      type: (newChildPayload && newChildPayload.type) || parent.type || 'bank',
+      balance: deductAmount,
+      parentId: String(parentId),
+      currency: (newChildPayload && newChildPayload.currency) || parent.currency || 'CNY',
+      color: (newChildPayload && newChildPayload.color) || parent.color || '#3b82f6',
+      icon: (newChildPayload && newChildPayload.icon) || parent.icon || '💳',
+      notes: (newChildPayload && newChildPayload.notes) || '',
+      creditLimit: (newChildPayload && newChildPayload.creditLimit !== undefined) ? Number(newChildPayload.creditLimit) : 0,
+      updatedAt: nowIso
+    };
+
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('accounts', 'readwrite');
+      const store = tx.objectStore('accounts');
+      store.put(updatedSource);
+      store.add(newChild);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+
+    await updateTodaySnapshot();
+    return {
+      sourceAccount: updatedSource,
+      newAccount: newChild,
+      deductedAmount: deductAmount
+    };
+  }
+
+  /**
+   * 批量拆分母账户/独立账户余额（保留原有同名子账户 ID 避免历史流水断链）
+   */
+  async function applyAccountSplitPlan({ parentId, items }) {
+    const parent = await getAccount(parentId);
+    if (!parent) throw new Error('目标账户不存在');
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('请至少提供一项拆分方案');
+    }
+
+    const rawAccounts = await readRawAccounts();
+    const existingChildren = rawAccounts.filter((a) => a && a.parentId && String(a.parentId) === String(parentId));
+    const existingByName = new Map();
+    for (const c of existingChildren) {
+      const key = String(c.name || '').trim();
+      if (key && !existingByName.has(key)) existingByName.set(key, c);
+    }
+
+    const seenNames = new Set();
+    const nowIso = new Date().toISOString();
+    const updatedParent = {
+      ...parent,
+      balance: 0,
+      updatedAt: nowIso
+    };
+
+    const toPut = [updatedParent];
+    const toAdd = [];
+    const keptIds = new Set();
+    const addedIds = [];
+
+    for (const item of items) {
+      const trimmedName = String((item && item.name) || '').trim();
+      if (!trimmedName) throw new Error('拆分辨目名称不能为空');
+      if (seenNames.has(trimmedName)) throw new Error(`拆分辨目「${trimmedName}」重复`);
+      seenNames.add(trimmedName);
+
+      const bal = +(Number((item && item.balance) || 0)).toFixed(2);
+      if (bal < 0) throw new Error(`「${trimmedName}」金额不能为负数`);
+
+      const existing = existingByName.get(trimmedName);
+      if (existing) {
+        keptIds.add(existing.id);
+        toPut.push({
+          ...existing,
+          name: trimmedName,
+          type: (item && item.type) || existing.type || parent.type || 'bank',
+          balance: bal,
+          icon: (item && item.icon) || existing.icon || parent.icon || '💳',
+          color: (item && item.color) || existing.color || parent.color || '#3b82f6',
+          notes: (item && item.notes !== undefined) ? item.notes : (existing.notes || ''),
+          updatedAt: nowIso
+        });
+      } else {
+        const newId = generateId('acc');
+        addedIds.push(newId);
+        toAdd.push({
+          id: newId,
+          name: trimmedName,
+          type: (item && item.type) || parent.type || 'bank',
+          balance: bal,
+          parentId: String(parentId),
+          currency: parent.currency || 'CNY',
+          color: (item && item.color) || parent.color || '#3b82f6',
+          icon: (item && item.icon) || parent.icon || '💳',
+          notes: (item && item.notes) || '',
+          creditLimit: 0,
+          updatedAt: nowIso
+        });
+      }
+    }
+
+    const toDeleteIds = existingChildren
+      .filter((c) => !keptIds.has(c.id))
+      .map((c) => c.id);
+
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('accounts', 'readwrite');
+      const store = tx.objectStore('accounts');
+      for (const delId of toDeleteIds) store.delete(delId);
+      for (const putItem of toPut) store.put(putItem);
+      for (const addItem of toAdd) store.add(addItem);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+
+    await updateTodaySnapshot();
+    return {
+      parentId: String(parentId),
+      keptIds: Array.from(keptIds),
+      addedIds,
+      deletedIds: toDeleteIds
     };
   }
 
@@ -727,6 +916,25 @@
       parentIdSet,
       leafAccounts
     };
+  }
+
+  /**
+   * 统一计算母账户净额总额（与 calculateAssetSummary 总净资产算法一致：正资产相加，信用/负债子账户取绝对值相减）
+   */
+  function calculateParentNetBalance(parentId, accounts = []) {
+    if (!parentId || !Array.isArray(accounts)) return 0;
+    const children = accounts.filter((a) => a && a.parentId && String(a.parentId) === String(parentId));
+    if (children.length === 0) {
+      const self = accounts.find((a) => a && String(a.id) === String(parentId));
+      return self ? Number(self.balance || 0) : 0;
+    }
+    return +children.reduce((sum, c) => {
+      const bal = Number((c && c.balance) || 0);
+      if (c && c.type === 'credit') {
+        return sum - Math.abs(bal);
+      }
+      return sum + bal;
+    }, 0).toFixed(2);
   }
 
   /**
@@ -1123,9 +1331,12 @@
     addAccount,
     updateAccount,
     createFirstSubAccountWithOldBalance,
+    createSubAccountFromExistingChild,
+    applyAccountSplitPlan,
     deleteAccount,
     adjustBalance,
     calculateAssetSummary,
+    calculateParentNetBalance,
     // Transactions
     getAllTransactions,
     getTransaction,

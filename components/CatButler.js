@@ -1257,7 +1257,12 @@
   .cb-check.cb-checked{border-color:var(--primary,#3b82f6);background:rgba(59,130,246,.12);color:var(--primary,#3b82f6)}
   .cb-check input{width:15px;height:15px;margin:0;accent-color:var(--primary,#3b82f6);cursor:pointer}
   .cb-acc-modal-mask{position:absolute;inset:0;background:rgba(0,0,0,.48);display:flex;align-items:center;justify-content:center;padding:16px;z-index:12;animation:cbFade .18s ease}
-  .cb-acc-modal{width:100%;max-width:420px;max-height:85%;overflow-y:auto;background:var(--bg-card,#fff);color:var(--text-main,#111);border-radius:20px;padding:16px;box-shadow:0 16px 40px rgba(0,0,0,.28);box-sizing:border-box;border:1px solid var(--border-subtle,#eee)}
+  .cb-acc-modal{width:100%;max-width:420px;max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg-card,#fff);color:var(--text-main,#111);border-radius:20px;padding:16px;box-shadow:0 16px 40px rgba(0,0,0,.28);box-sizing:border-box;border:1px solid var(--border-subtle,#eee)}
+  .cb-fund-box{background:var(--bg-subtle,#f7f7f7);border:1px solid var(--border-subtle,#e5e7eb);border-radius:11px;padding:9px 10px;display:flex;flex-direction:column;gap:7px}
+  .cb-fund-opt{display:flex;align-items:flex-start;gap:7px;padding:7px 8px;border-radius:9px;border:1.5px solid var(--border-subtle,#ddd);background:var(--bg-card,#fff);cursor:pointer;font-size:12px;transition:all .15s ease}
+  .cb-fund-opt.cb-fund-active{border-color:var(--primary,#3b82f6);background:rgba(59,130,246,.07)}
+  .cb-fund-opt input[type="radio"]{width:auto;margin:2px 0 0;padding:0;accent-color:var(--primary,#3b82f6);flex-shrink:0}
+  .cb-fund-warn{font-size:11.5px;font-weight:700;color:#dc2626;background:rgba(239,68,68,.09);padding:5px 8px;border-radius:7px;margin-top:4px}
   .cb-acc-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
   .cb-acc-modal-title{font-size:15px;font-weight:800}
   .cb-acc-warn{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.4);color:#b45309;font-size:12px;font-weight:700;padding:8px 10px;border-radius:10px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
@@ -1468,6 +1473,67 @@
         return getAccountTypeDisplayLabel(type);
       }
 
+      function getParentNameById(parentId) {
+        if (!parentId) return '';
+        const p = (props.accounts || []).find((a) => a && sameId(a.id, parentId));
+        return p ? p.name : '';
+      }
+
+      function getPositiveChildAccounts(parentId) {
+        if (!parentId) return [];
+        return (props.accounts || [])
+          .filter((a) => a && a.parentId && sameId(a.parentId, parentId) && Number(a.balance || 0) > 0)
+          .sort((a, b) => {
+            const aDep = String(a.name || '').trim() === '存款' ? 0 : 1;
+            const bDep = String(b.name || '').trim() === '存款' ? 0 : 1;
+            if (aDep !== bDep) return aDep - bDep;
+            return Number(b.balance || 0) - Number(a.balance || 0);
+          });
+      }
+
+      function pickPreferredSourceChildId(children) {
+        if (!Array.isArray(children) || children.length === 0) return '';
+        const deposit = children.find((c) => c && String(c.name || '').trim() === '存款');
+        if (deposit) return String(deposit.id);
+        const sorted = [...children].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0));
+        return sorted[0] ? String(sorted[0].id) : '';
+      }
+
+      function getSelectedDeductChild(msg) {
+        if (!msg || !msg.draftAccount || !msg.draftAccount.parentId) return null;
+        const list = getPositiveChildAccounts(msg.draftAccount.parentId);
+        return list.find((c) => sameId(c.id, msg.draftAccount.deductFromChildId)) || list[0] || null;
+      }
+
+      function onDraftParentChange(msg) {
+        if (!msg || !msg.draftAccount) return;
+        const posChildren = getPositiveChildAccounts(msg.draftAccount.parentId);
+        if (posChildren.length > 0) {
+          if (!msg.draftAccount.deductFromChildId || !posChildren.some((c) => sameId(c.id, msg.draftAccount.deductFromChildId))) {
+            msg.draftAccount.deductFromChildId = pickPreferredSourceChildId(posChildren);
+          }
+          if (!msg.draftAccount.fundingSource) {
+            msg.draftAccount.fundingSource = 'external';
+          }
+        } else {
+          msg.draftAccount.fundingSource = 'external';
+          msg.draftAccount.deductFromChildId = '';
+        }
+        msg.validationError = '';
+      }
+
+      function canCarveMigration(modal) {
+        if (!modal) return false;
+        const oldBal = Number(modal.oldBalance || 0);
+        const newBal = Number(modal.newBalance || 0);
+        return oldBal > 0 && newBal >= 0 && oldBal >= newBal;
+      }
+
+      function migrationCarveRemainder(modal) {
+        if (!modal) return 0;
+        return Math.max(0, +(Number(modal.oldBalance || 0) - Number(modal.newBalance || 0)).toFixed(2));
+      }
+
       function detectAccountConflict(trimmedName, parentIdVal) {
         const DB = (typeof AssetDB !== 'undefined') ? AssetDB : global.AssetDB; // eslint-disable-line no-undef
         const list = Array.isArray(props.accounts) ? props.accounts : [];
@@ -1552,7 +1618,12 @@
             } else {
               const oldBal = +(Number(parentAcc ? parentAcc.balance : 0)).toFixed(2);
               await DB.updateAccount({ id: parentId, balance: 0 });
-              if (migrationOpts.mode === 'split') {
+              if (migrationOpts.mode === 'carve') {
+                const remBal = +(oldBal - newChildBalance).toFixed(2);
+                const newAcc = await DB.addAccount({ ...childPayload, balance: newChildBalance, parentId });
+                const legacyAcc = remBal > 0 ? await DB.addAccount({ ...legacyPayload, balance: remBal, parentId }) : null;
+                res = { mode: 'carve', oldBalance: oldBal, newBalance: newChildBalance, remainderBalance: Math.max(0, remBal), totalBalance: oldBal, legacyAccount: legacyAcc, newAccount: newAcc };
+              } else if (migrationOpts.mode === 'split') {
                 const legacyAcc = await DB.addAccount({ ...legacyPayload, balance: oldBal, parentId });
                 const newAcc = await DB.addAccount({ ...childPayload, balance: newChildBalance, parentId });
                 res = { mode: 'split', oldBalance: oldBal, newBalance: newChildBalance, totalBalance: +(oldBal + newChildBalance).toFixed(2), legacyAccount: legacyAcc, newAccount: newAcc };
@@ -1568,13 +1639,40 @@
               createdIds.push(res.newAccount.id);
               mainCreatedId = res.newAccount.id;
             }
-            if (res.mode === 'split') {
+            if (res.mode === 'carve') {
+              finalDisplayedBalance = res.newBalance;
+              splitInfoText = res.legacyAccount
+                ? `已从原余额拆出，剩余 ¥${fmtMoney(res.remainderBalance)} 保留为「${legacyPayload.name}」，${parentName}总额保持 ¥${fmtMoney(res.oldBalance)}`
+                : `原余额已全额划入「${finalName}」，${parentName}总额保持 ¥${fmtMoney(res.oldBalance)}`;
+            } else if (res.mode === 'split') {
               finalDisplayedBalance = res.newBalance;
               splitInfoText = `原余额已保留为「${legacyPayload.name}」(¥${fmtMoney(res.oldBalance)})，${parentName}总额 ¥${fmtMoney(res.totalBalance)}`;
             } else {
               finalDisplayedBalance = res.totalBalance;
               splitInfoText = `已合并原余额 ¥${fmtMoney(res.oldBalance)}`;
             }
+          } else if (parentId && draft.fundingSource === 'carve' && draft.deductFromChildId && getPositiveChildAccounts(parentId).length > 0) {
+            const parentAcc = (props.accounts || []).find((a) => sameId(a.id, parentId));
+            if (parentAcc) parentName = parentAcc.name;
+            const childPayload = {
+              name: finalName,
+              type: finalType,
+              balance: newChildBalance,
+              icon: finalIcon,
+              color: finalColor,
+              notes: finalNotes
+            };
+            const res = await DB.createSubAccountFromExistingChild({
+              parentId,
+              sourceChildId: draft.deductFromChildId,
+              newChildPayload: childPayload
+            });
+            if (res.newAccount && res.newAccount.id) {
+              createdIds.push(res.newAccount.id);
+              mainCreatedId = res.newAccount.id;
+            }
+            finalDisplayedBalance = res.deductedAmount;
+            splitInfoText = `从「${res.sourceAccount.name}」划出 ¥${fmtMoney(res.deductedAmount)}，剩余 ¥${fmtMoney(res.sourceAccount.balance)}`;
           } else {
             if (parentId) {
               const parentAcc = (props.accounts || []).find((a) => sameId(a.id, parentId));
@@ -1700,19 +1798,39 @@
           return;
         }
 
-        // 2. 首次为仍有非零余额的独立母账户添加子账户时，弹出选项 A / 选项 B 确认弹窗
+        // 2. 从已有子账户划出时的资金来源校验
+        if (draft.parentId && draft.fundingSource === 'carve' && getPositiveChildAccounts(draft.parentId).length > 0) {
+          const newBal = +(Number(draft.balance || 0)).toFixed(2);
+          if (newBal < 0) {
+            msg.validationError = '从已有子账户划出时，初始余额不能为负数';
+            return;
+          }
+          const srcChild = getSelectedDeductChild(msg);
+          if (!srcChild) {
+            msg.validationError = '请选择要划出余额的子账户';
+            return;
+          }
+          if (+(Number(srcChild.balance || 0)).toFixed(2) < newBal) {
+            msg.validationError = `「${srcChild.name}」当前余额 ¥${fmtMoney(srcChild.balance)} 不足 ¥${fmtMoney(newBal)}，请调小金额或改用新增外部资金`;
+            return;
+          }
+        }
+
+        // 3. 首次为仍有非零余额的独立母账户添加子账户时，弹出原余额处理确认弹窗
         if (draft.parentId) {
           const parentAcc = (props.accounts || []).find((a) => sameId(a.id, draft.parentId));
           const hasChildren = parentAcc && (props.accounts || []).some((a) => a && sameId(a.parentId, parentAcc.id));
           const oldBal = parentAcc ? +(Number(parentAcc.balance || 0)).toFixed(2) : 0;
+          const newBal = +(Number(draft.balance || 0)).toFixed(2);
           if (parentAcc && !hasChildren && oldBal !== 0) {
+            const canCarve = oldBal > 0 && newBal >= 0 && oldBal >= newBal;
             migrationConfirmModal.msgRef = msg;
             migrationConfirmModal.parentId = parentAcc.id;
             migrationConfirmModal.parentName = parentAcc.name;
             migrationConfirmModal.oldBalance = oldBal;
             migrationConfirmModal.newChildName = trimmedName;
-            migrationConfirmModal.newBalance = +(Number(draft.balance || 0)).toFixed(2);
-            migrationConfirmModal.mode = 'split';
+            migrationConfirmModal.newBalance = newBal;
+            migrationConfirmModal.mode = canCarve ? 'carve' : 'split';
             migrationConfirmModal.legacyName = '存款';
             migrationConfirmModal.legacyType = parentAcc.type || 'bank';
             migrationConfirmModal.validationError = '';
@@ -1804,6 +1922,7 @@
         try {
           msg.draftAccount.parentId = String(parent.id);
           msg.draftAccount.name = subName;
+          onDraftParentChange(msg);
           duplicateConfirmModal.visible = false;
           duplicateConfirmModal.msgRef = null;
           await finalizeCreateAccountCard(msg, null);
@@ -1835,6 +1954,7 @@
         if (msg && target) {
           msg.draftAccount.parentId = String(target.id);
           msg.draftAccount.name = '';
+          onDraftParentChange(msg);
           msg.nameError = `请输入归属于「${target.name}」的子账户名称（如：存款 / 理财）`;
           msg.validationError = '';
           focusConfirmCardNameInput(msg);
@@ -1864,9 +1984,18 @@
       async function resolveMigrationConfirm() {
         const msg = migrationConfirmModal.msgRef;
         if (!msg || migrationConfirmModal.saving) return;
-        if (migrationConfirmModal.mode === 'split' && !String(migrationConfirmModal.legacyName || '').trim()) {
-          migrationConfirmModal.validationError = '请输入原余额子账户名称';
-          return;
+        const needLegacyName = migrationConfirmModal.mode === 'split'
+          || (migrationConfirmModal.mode === 'carve' && migrationCarveRemainder(migrationConfirmModal) > 0);
+        if (needLegacyName) {
+          const legacyTrimmed = String(migrationConfirmModal.legacyName || '').trim();
+          if (!legacyTrimmed) {
+            migrationConfirmModal.validationError = migrationConfirmModal.mode === 'carve' ? '请输入剩余余额子账户名称' : '请输入原余额子账户名称';
+            return;
+          }
+          if (legacyTrimmed === String(msg.draftAccount.name || '').trim()) {
+            migrationConfirmModal.validationError = '保留/剩余子账户名称不能与新建子账户同名，请修改';
+            return;
+          }
         }
         migrationConfirmModal.validationError = '';
         migrationConfirmModal.saving = true;
@@ -1904,6 +2033,8 @@
         // 1. 优先检测是否为“自然语言创建账户”指令（严禁直接写入 DB，统一推入可编辑待确认卡片）
         const accIntent = parseCreateAccountIntent(text, props.accounts || []);
         if (accIntent && accIntent.isCreateAccount) {
+          const initParentId = accIntent.parentId ? String(accIntent.parentId) : '';
+          const posChildren = initParentId ? getPositiveChildAccounts(initParentId) : [];
           messages.value.push({
             role: 'cat',
             type: 'account_confirm_card',
@@ -1918,8 +2049,10 @@
               icon: accIntent.icon || getDefaultIconForType(accIntent.type || 'bank'),
               color: accIntent.color || '#2563eb',
               iconManuallySelected: false,
-              parentId: accIntent.parentId ? String(accIntent.parentId) : '',
+              parentId: initParentId,
               balance: Number.isFinite(Number(accIntent.balance)) ? Number(accIntent.balance) : 0,
+              fundingSource: 'external',
+              deductFromChildId: pickPreferredSourceChildId(posChildren),
               notes: accIntent.notes || ''
             },
             resultAccount: null
@@ -2382,6 +2515,8 @@
         open, input, listEl, fabEl, inputEl, showPicker, isDragging, isListening, fabStyle, messages,
         favAccounts, activeAccountId, otherActive, isFav, toggleFav, pickAccount, sameId,
         primaryAccounts, resolvedIconOptions, iconOptImg, duplicateConfirmModal, migrationConfirmModal, getAccountTypeLabel,
+        getParentNameById, getPositiveChildAccounts, getSelectedDeductChild, onDraftParentChange,
+        canCarveMigration, migrationCarveRemainder,
         selectDraftAccountType, selectDraftAccountIcon, confirmAccountCard, cancelAccountCard,
         resolveDuplicateMerge, resolveA1CreateSubAccount, resolveA1MergeExistingChild, resolveA2ConvertToSubAccount,
         dismissDuplicateModalForRename, resolveMigrationConfirm, dismissMigrationModal,
@@ -2489,7 +2624,7 @@
 
                   <div>
                     <div class="cb-acc-label-row"><span>归属母账户</span></div>
-                    <select v-model="msg.draftAccount.parentId">
+                    <select v-model="msg.draftAccount.parentId" @change="onDraftParentChange(msg)">
                       <option value="">无（作为独立主账户）</option>
                       <option v-for="p in primaryAccounts" :key="p.id" :value="p.id">{{ p.name }}</option>
                     </select>
@@ -2504,6 +2639,70 @@
                       v-model.number="msg.draftAccount.balance"
                       placeholder="0.00"
                     />
+                  </div>
+
+                  <!-- 动态资金来源切换：当母账户已有正余额子账户时展示 -->
+                  <div v-if="msg.draftAccount.parentId && getPositiveChildAccounts(msg.draftAccount.parentId).length > 0" class="cb-fund-box">
+                    <div class="cb-acc-label-row" style="margin-bottom:0">
+                      <span>资金来源</span>
+                      <span style="font-size:10.5px;color:var(--primary,#3b82f6)">母账户已有子账户</span>
+                    </div>
+                    <label
+                      class="cb-fund-opt"
+                      :class="{ 'cb-fund-active': (msg.draftAccount.fundingSource || 'external') === 'external' }"
+                    >
+                      <input
+                        type="radio"
+                        :name="'cbFund_' + msg.cardUid"
+                        value="external"
+                        v-model="msg.draftAccount.fundingSource"
+                        style="width:auto;margin:2px 0 0;padding:0"
+                      />
+                      <div style="flex:1;min-width:0">
+                        <div style="font-weight:800;color:var(--text-main,#111)">新增外部资金</div>
+                        <div style="font-size:11px;color:var(--text-muted,#666);margin-top:2px">
+                          直接新增入账，{{ getParentNameById(msg.draftAccount.parentId) }}总额增加 ¥{{ fmtMoney(msg.draftAccount.balance || 0) }}
+                        </div>
+                      </div>
+                    </label>
+
+                    <label
+                      class="cb-fund-opt"
+                      :class="{ 'cb-fund-active': msg.draftAccount.fundingSource === 'carve' }"
+                    >
+                      <input
+                        type="radio"
+                        :name="'cbFund_' + msg.cardUid"
+                        value="carve"
+                        v-model="msg.draftAccount.fundingSource"
+                        style="width:auto;margin:2px 0 0;padding:0"
+                      />
+                      <div style="flex:1;min-width:0">
+                        <div style="font-weight:800;color:var(--text-main,#111)">从已有子账户划出</div>
+                        <div v-if="msg.draftAccount.fundingSource === 'carve'" style="margin-top:6px" @click.stop>
+                          <select v-model="msg.draftAccount.deductFromChildId" style="width:100%;font-size:12px;padding:6px 8px;background:var(--bg-subtle,#f7f7f7)">
+                            <option
+                              v-for="sub in getPositiveChildAccounts(msg.draftAccount.parentId)"
+                              :key="sub.id"
+                              :value="sub.id"
+                            >{{ sub.name }} (¥{{ fmtMoney(sub.balance) }})</option>
+                          </select>
+                          <template v-if="getSelectedDeductChild(msg)">
+                            <div
+                              v-if="Number(msg.draftAccount.balance || 0) < 0"
+                              class="cb-fund-warn"
+                            >划出金额不能为负数</div>
+                            <div
+                              v-else-if="Number(getSelectedDeductChild(msg).balance || 0) < Number(msg.draftAccount.balance || 0)"
+                              class="cb-fund-warn"
+                            >「{{ getSelectedDeductChild(msg).name }}」余额不足（当前 ¥{{ fmtMoney(getSelectedDeductChild(msg).balance) }}，无法划出 ¥{{ fmtMoney(msg.draftAccount.balance || 0) }}）</div>
+                            <div v-else style="font-size:11px;color:#059669;margin-top:4px;line-height:1.45;font-weight:600">
+                              将从「{{ getSelectedDeductChild(msg).name }}」扣除 ¥{{ fmtMoney(msg.draftAccount.balance || 0) }}，扣减后剩余 ¥{{ fmtMoney(Number(getSelectedDeductChild(msg).balance || 0) - Number(msg.draftAccount.balance || 0)) }}，{{ getParentNameById(msg.draftAccount.parentId) }}总额保持不变
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </label>
                   </div>
 
                   <div>
@@ -2747,9 +2946,9 @@
         </div>
       </div>
 
-      <!-- 首次添加子账户时，原余额处理确认弹窗（选项 A 拆分独立子账户 vs 选项 B 直接并入） -->
+      <!-- 首次添加子账户时，原余额处理确认弹窗（选项1 从原余额拆出 / 选项2 新增保留 / 选项3 全部并入） -->
       <div v-if="migrationConfirmModal.visible" class="cb-acc-modal-mask" @click.self="dismissMigrationModal">
-        <div class="cb-acc-modal">
+        <div class="cb-acc-modal" style="max-height:85vh;overflow-y:auto">
           <div class="cb-acc-modal-head">
             <div class="cb-acc-modal-title">如何处理「{{ migrationConfirmModal.parentName }}」原有的 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }}？</div>
             <button type="button" class="cb-close" @click="dismissMigrationModal">×</button>
@@ -2758,7 +2957,38 @@
             添加子账户后，「{{ migrationConfirmModal.parentName }}」将自动统计所有子账户总额。请选择原有金额的记录方式：
           </div>
 
-          <!-- 选项 A（默认选中）：保留为独立子账户（推荐） -->
+          <!-- 选项 1（当 oldBalance > 0 且 oldBalance >= newBalance 时展示并默认选中）：从原余额中拆出（推荐） -->
+          <div
+            v-if="canCarveMigration(migrationConfirmModal)"
+            class="cb-radio-card"
+            :class="{ 'cb-radio-active': migrationConfirmModal.mode === 'carve' }"
+            @click="migrationConfirmModal.mode = 'carve'"
+          >
+            <div class="cb-radio-head">
+              <input type="radio" name="cbMigrateMode" value="carve" v-model="migrationConfirmModal.mode" />
+              <span>从原 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 中拆出（推荐）</span>
+            </div>
+            <div class="cb-radio-desc">
+              <template v-if="migrationCarveRemainder(migrationConfirmModal) > 0">
+                从原有的 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 中划出 ¥{{ fmtMoney(migrationConfirmModal.newBalance) }} 给「{{ migrationConfirmModal.newChildName }}」，剩余 ¥{{ fmtMoney(migrationCarveRemainder(migrationConfirmModal)) }} 保留为独立子账户，{{ migrationConfirmModal.parentName }}总额保持 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 不变。
+              </template>
+              <template v-else>
+                从原有的 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 中划出全部给「{{ migrationConfirmModal.newChildName }}」，剩余 ¥0.00，确认后将仅创建「{{ migrationConfirmModal.newChildName }}」，{{ migrationConfirmModal.parentName }}总额保持 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 不变。
+              </template>
+            </div>
+            <div v-if="migrationConfirmModal.mode === 'carve' && migrationCarveRemainder(migrationConfirmModal) > 0" class="cb-radio-subform" @click.stop>
+              <label>剩余余额子账户名称
+                <input type="text" v-model="migrationConfirmModal.legacyName" placeholder="存款" />
+              </label>
+              <label>账户类型
+                <select v-model="migrationConfirmModal.legacyType">
+                  <option v-for="opt in ACCOUNT_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <!-- 选项 2：作为新增资金，原余额单独保留 -->
           <div
             class="cb-radio-card"
             :class="{ 'cb-radio-active': migrationConfirmModal.mode === 'split' }"
@@ -2766,10 +2996,10 @@
           >
             <div class="cb-radio-head">
               <input type="radio" name="cbMigrateMode" value="split" v-model="migrationConfirmModal.mode" />
-              <span>保留为独立子账户（推荐）</span>
+              <span>作为新增资金，原 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 单独保留</span>
             </div>
             <div class="cb-radio-desc">
-              原有的 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 单独算作一个子账户，与新建的「{{ migrationConfirmModal.newChildName }} (¥{{ fmtMoney(migrationConfirmModal.newBalance) }})」分开记录，{{ migrationConfirmModal.parentName }}总额为 ¥{{ fmtMoney(migrationConfirmModal.oldBalance + migrationConfirmModal.newBalance) }}。
+              原有的 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 单独算作一个子账户，与新建的「{{ migrationConfirmModal.newChildName }} (¥{{ fmtMoney(migrationConfirmModal.newBalance) }})」分开记录，{{ migrationConfirmModal.parentName }}总额变为 ¥{{ fmtMoney(migrationConfirmModal.oldBalance + migrationConfirmModal.newBalance) }}。
             </div>
             <div v-if="migrationConfirmModal.mode === 'split'" class="cb-radio-subform" @click.stop>
               <label>原余额子账户名称
@@ -2783,7 +3013,7 @@
             </div>
           </div>
 
-          <!-- 选项 B：直接并入新建子账户 -->
+          <!-- 选项 3：全部并入新建子账户 -->
           <div
             class="cb-radio-card"
             :class="{ 'cb-radio-active': migrationConfirmModal.mode === 'merge' }"
@@ -2791,7 +3021,7 @@
           >
             <div class="cb-radio-head">
               <input type="radio" name="cbMigrateMode" value="merge" v-model="migrationConfirmModal.mode" />
-              <span>直接并入新建的「{{ migrationConfirmModal.newChildName }}」</span>
+              <span>全部并入新建的「{{ migrationConfirmModal.newChildName }}」</span>
             </div>
             <div class="cb-radio-desc">
               原有的 ¥{{ fmtMoney(migrationConfirmModal.oldBalance) }} 直接加进「{{ migrationConfirmModal.newChildName }}」里，合并后「{{ migrationConfirmModal.newChildName }}」余额为 ¥{{ fmtMoney(migrationConfirmModal.oldBalance + migrationConfirmModal.newBalance) }}。
