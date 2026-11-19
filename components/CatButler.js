@@ -520,7 +520,8 @@
   const ICON_ALIAS = { '退款返回': '退款返还' };
 
   // ==================== 二、正则常量 ====================
-  const BRAND_NOISE_RE = /85度C|7-11|双11|双十一|(?<!\d)(?:711|618|520)(?!\d)/gi;
+  // Avoid ES2018 lookbehind assertions so older iOS WebKit / Safari (< 16.4) never throws a parse-time SyntaxError
+  const BRAND_NOISE_RE = /85度C|7-11|双11|双十一|(^|[^\d])((?:711|618|520))(?!\d)/gi;
   const UNIT_NOISE_RE = /\d+(?:\.\d+)?\s*(?:个|只|碗|杯|份|瓶|包|袋|斤|两|次|趟|路|号线|折|度C|天|月|日|号|年)/gi;
   const SPLIT_RE = /[，。、；;,\n\r]+/;
   const MULTI_RE = /([^\d\s]+)\s*(\d+(?:\.\d{1,2})?\s*(?:元|块钱|块|毛|角)?)/g;
@@ -569,20 +570,20 @@
     }
     if (!date) {
       const patterns = [
-        { re: /(\d{1,2})月(\d{1,2})[日号]?/, md: true },
-        { re: /(?<!\d)(\d{1,2})[-/](\d{1,2})(?!\d)/, md: true },
-        { re: /(?<!\d)(\d{1,2})\.(\d{1,2})[日号]/, md: true },
-        { re: /(?<![\d.])(\d{1,2})[号日](?!线)/, md: false }
+        { re: /((\d{1,2})月(\d{1,2})[日号]?)/, md: true },
+        { re: /(?:^|[^\d])((\d{1,2})[-/](\d{1,2}))(?!\d)/, md: true },
+        { re: /(?:^|[^\d])((\d{1,2})\.(\d{1,2})[日号])/, md: true },
+        { re: /(?:^|[^\d.])((\d{1,2})[号日])(?!线)/, md: false }
       ];
       for (const p of patterns) {
         const m = t.match(p.re);
         if (!m) continue;
         const ds = p.md
-          ? buildMonthDay(m[1], m[2], today)
-          : buildMonthDay(today.getMonth() + 1, m[1], today);
+          ? buildMonthDay(m[2], m[3], today)
+          : buildMonthDay(today.getMonth() + 1, m[2], today);
         if (ds) {
           date = ds;
-          t = t.replace(m[0], ' ');
+          t = t.replace(m[1], ' ');
           break;
         }
       }
@@ -668,7 +669,7 @@
     for (const piece of pieces) {
       const pieceAccount = matchAccount(piece, accounts);
       // 1. 品牌节日词数字保护（转全角，后续 \d 不再命中）
-      let p = piece.replace(BRAND_NOISE_RE, (m) => toFull(m));
+      let p = piece.replace(BRAND_NOISE_RE, (m, prefix, num) => (num !== undefined ? prefix + toFull(num) : toFull(m)));
       // 2. 日期识别与继承
       const dr = extractDate(p, today);
       if (dr.date) inheritedDate = dr.date;
@@ -733,7 +734,7 @@
     let cleaned = text
       .replace(/\d{4}[-/年]\d{1,2}[-/月]\d{1,2}日?/g, ' ')
       .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ')
-      .replace(/(?<![\d.])\d{8,}(?![\d.])/g, ' ');
+      .replace(/(^|[^\d.])\d{8,}(?![\d.])/g, '$1 ');
 
     // 2. 判定收支方向：包含 收款/退款/转入/已存入/红包 且不含 付款 时判为收入
     const hasIncomeCue = /(收款|退款|转入|已存入|红包)/.test(cleaned);
@@ -848,7 +849,7 @@
 
   // Node 环境（自动化测试）仅导出解析器
   if (typeof module !== 'undefined' && module.exports) module.exports = parserApi;
-  if (typeof global.Vue === 'undefined') return;
+  global.CatButlerParser = parserApi;
 
   // ==================== 四、样式注入（全部 cb- 前缀，零污染） ====================
   const CSS = `
@@ -940,13 +941,17 @@
     document.head.appendChild(el);
   }
 
-  // ==================== 五、Vue 组件 ====================
-  const { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } = global.Vue;
+  // ==================== 五、Vue 组件延迟/即时安全构建 ====================
   const LS_FAV = 'cat_butler_fav_accounts';
   const LS_POS = 'cat_butler_fab_pos';
   const AVATAR = 'icons/app-logo.png';
 
-  const CatButler = {
+  function buildCatButlerComponent() {
+    if (global.CatButler) return global.CatButler;
+    if (typeof global.Vue === 'undefined') return null;
+    const { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } = global.Vue;
+
+    const CatButler = {
     name: 'CatButler',
     props: {
       accounts: { type: Array, default: () => [] },
@@ -1137,9 +1142,9 @@
           return !isNaN(intVal) ? `${intVal}元` : _;
         });
         // 5. 独立或末尾的口语整百/整十/多位中文数字（如“两百”、“三千”、“二十五”），避开星期/日期/三餐
-        s = s.replace(/(?<![星期周第初])([零〇一二两三四五六七八九十百千万]{2,}|[两三四五六七八九])(?![餐天日月年号点次个只条张])/g, (m) => {
+        s = s.replace(/(^|[^星期周第初])([零〇一二两三四五六七八九十百千万]{2,}|[两三四五六七八九])(?![餐天日月年号点次个只条张])/g, (full, prefix, m) => {
           const intVal = cnToInt(m);
-          return (!isNaN(intVal) && intVal > 0) ? String(intVal) : m;
+          return (!isNaN(intVal) && intVal > 0) ? (prefix + String(intVal)) : full;
         });
         return s;
       }
@@ -1636,6 +1641,10 @@
 </div>`
   };
 
-  global.CatButler = CatButler;
-  global.CatButlerParser = parserApi;
+    global.CatButler = CatButler;
+    return CatButler;
+  }
+
+  global.initCatButler = buildCatButlerComponent;
+  buildCatButlerComponent();
 })(typeof window !== 'undefined' ? window : globalThis);
