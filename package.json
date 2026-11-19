@@ -1,6 +1,6 @@
 {
   "name": "personal-asset-pwa",
-  "version": "5.0.8",
+  "version": "5.0.9",
   "description": "喵的粮仓 - 纯本地离线个人资产与对话记账 PWA 应用",
   "private": true,
   "scripts": {

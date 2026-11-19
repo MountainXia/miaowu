@@ -852,14 +852,14 @@
 
   // ==================== 四、样式注入（全部 cb- 前缀，零污染） ====================
   const CSS = `
-  .cb-fab{position:fixed;right:16px;bottom:calc(150px + var(--safe-bottom, 16px));width:56px;height:56px;border-radius:50%;
-    z-index:46;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;background:var(--bg-card,#fff);
+  .cb-fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom, 20px) + 124px);width:56px;height:56px;border-radius:50%;
+    z-index:999;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;background:var(--bg-card,#fff);
     box-shadow:0 6px 20px rgba(0,0,0,.28);border:2.5px solid var(--primary,#3b82f6);padding:0;transition:left .25s ease,top .25s ease,transform .15s ease}
   .cb-fab.cb-dragging{transition:none;cursor:grabbing;transform:scale(1.08)}
   .cb-fab img{width:100%;height:100%;border-radius:50%;object-fit:cover;pointer-events:none;-webkit-user-drag:none}
   .cb-fab-badge{position:absolute;top:-6px;right:-10px;background:var(--primary,#3b82f6);color:#fff;font-size:10px;font-weight:800;
     padding:2px 6px;border-radius:10px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.2);pointer-events:none}
-  .cb-mask{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:60;display:flex;align-items:flex-end;justify-content:center;animation:cbFade .2s ease}
+  .cb-mask{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:1050;display:flex;align-items:flex-end;justify-content:center;animation:cbFade .2s ease}
   .cb-sheet{width:100%;max-width:720px;height:83vh;background:var(--bg-card,#fff);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
     border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;color:var(--text-main,#111);
     animation:cbUp .28s cubic-bezier(.2,.8,.2,1);padding-bottom:var(--safe-bottom,16px);position:relative;overflow:hidden}
@@ -956,7 +956,11 @@
     },
     emits: ['saved'],
     setup(props, { emit }) {
-      injectStyle();
+      try {
+        injectStyle();
+      } catch (e) {
+        console.warn('[CatButler] injectStyle fallback:', e);
+      }
 
       const open = ref(false);
       const input = ref('');
@@ -980,19 +984,34 @@
       const loadFav = () => { try { return JSON.parse(localStorage.getItem(LS_FAV) || 'null'); } catch (e) { return null; } };
       const favIds = ref(loadFav());
       const favAccounts = computed(() => {
-        const accs = props.accounts || [];
-        if (Array.isArray(favIds.value)) {
-          const valid = favIds.value.map((id) => accs.find((a) => sameId(a.id, id))).filter(Boolean);
-          if (valid.length || favIds.value.length === 0) return valid.slice(0, 3);
+        try {
+          const accs = Array.isArray(props.accounts) ? props.accounts : [];
+          if (Array.isArray(favIds.value)) {
+            const valid = favIds.value.map((id) => accs.find((a) => sameId(a.id, id))).filter(Boolean);
+            if (valid.length || favIds.value.length === 0) return valid.slice(0, 3);
+          }
+          return accs.slice(0, 3);
+        } catch (_) {
+          return [];
         }
-        return accs.slice(0, 3);
       });
-      const activeAccountId = ref(undefined); // undefined=未初始化；null=纯流水
+      const activeAccountId = ref(null); // null=纯流水（空账本默认可用）
       watch(() => props.accounts, (accs) => {
-        favIds.value = loadFav();
-        if (activeAccountId.value === undefined && accs && accs.length) activeAccountId.value = favAccounts.value[0]?.id ?? accs[0]?.id ?? null;
-        if (activeAccountId.value !== null && activeAccountId.value !== undefined && !(accs || []).some((a) => sameId(a.id, activeAccountId.value))) {
-          activeAccountId.value = favAccounts.value[0]?.id ?? accs[0]?.id ?? null;
+        try {
+          favIds.value = loadFav();
+          const list = Array.isArray(accs) ? accs : [];
+          if (!list.length) {
+            activeAccountId.value = null;
+            return;
+          }
+          if (activeAccountId.value === undefined || activeAccountId.value === null) {
+            activeAccountId.value = favAccounts.value[0]?.id ?? list[0]?.id ?? null;
+          } else if (!list.some((a) => sameId(a.id, activeAccountId.value))) {
+            activeAccountId.value = favAccounts.value[0]?.id ?? list[0]?.id ?? null;
+          }
+        } catch (e) {
+          console.warn('[CatButler] watch accounts fallback:', e);
+          activeAccountId.value = null;
         }
       }, { immediate: true });
 
@@ -1255,149 +1274,234 @@
 
       // ---------- 悬浮球拖拽与贴边（10px 阈值 + 400ms 关闭保护锁 + Pointer 强捕获） ----------
       let startX = 0, startY = 0, origLeft = 0, origTop = 0, fabW = 56, fabH = 56;
-      const fabStyle = computed(() => (pos.left === null ? {} : { left: pos.left + 'px', top: pos.top + 'px', right: 'auto', bottom: 'auto' }));
+      const fabStyle = computed(() => {
+        if (pos.left === null || pos.top === null || !Number.isFinite(pos.left) || !Number.isFinite(pos.top)) {
+          return {};
+        }
+        return { left: pos.left + 'px', top: pos.top + 'px', right: 'auto', bottom: 'auto' };
+      });
       const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
       function snap(left, top, w, h) {
-        const vw = global.innerWidth, vh = global.innerHeight;
-        pos.left = (left + w / 2 < vw / 2) ? 12 : vw - w - 12;
-        pos.top = clamp(top, 70, Math.max(70, vh - h - 80));
-        try { localStorage.setItem(LS_POS, JSON.stringify({ side: pos.left === 12 ? 'l' : 'r', topRatio: pos.top / vh })); } catch (e) { /* ignore */ }
+        try {
+          const vw = global.innerWidth, vh = global.innerHeight;
+          if (!vw || !vh || vw < 200 || vh < 200) {
+            pos.left = null;
+            pos.top = null;
+            return;
+          }
+          pos.left = (left + w / 2 < vw / 2) ? 12 : vw - w - 12;
+          pos.top = clamp(top, 70, Math.max(70, vh - h - 80));
+          try { localStorage.setItem(LS_POS, JSON.stringify({ side: pos.left === 12 ? 'l' : 'r', topRatio: pos.top / vh })); } catch (e) { /* ignore */ }
+        } catch (e) {
+          pos.left = null;
+          pos.top = null;
+        }
       }
       function restorePos() {
         try {
           const saved = JSON.parse(localStorage.getItem(LS_POS) || 'null');
-          if (!saved) return;
+          if (!saved || typeof saved !== 'object' || !Number.isFinite(saved.topRatio)) return;
           const vw = global.innerWidth, vh = global.innerHeight, size = 56;
-          pos.left = saved.side === 'l' ? 12 : vw - size - 12;
-          pos.top = clamp(saved.topRatio * vh, 70, Math.max(70, vh - size - 80));
-        } catch (e) { /* ignore */ }
+          if (!vw || !vh || vw < 200 || vh < 200) {
+            pos.left = null;
+            pos.top = null;
+            return;
+          }
+          const nextLeft = saved.side === 'l' ? 12 : vw - size - 12;
+          const nextTop = clamp(saved.topRatio * vh, 70, Math.max(70, vh - size - 80));
+          if (!Number.isFinite(nextLeft) || !Number.isFinite(nextTop) || nextLeft < 0 || nextTop < 0) {
+            pos.left = null;
+            pos.top = null;
+            return;
+          }
+          pos.left = nextLeft;
+          pos.top = nextTop;
+        } catch (e) {
+          pos.left = null;
+          pos.top = null;
+        }
       }
       function onResize() {
-        if (pos.left === null || !fabEl.value) return;
-        const r = fabEl.value.getBoundingClientRect();
-        snap(r.left, r.top, r.width, r.height);
+        try {
+          if (pos.left === null || !fabEl.value) return;
+          const r = fabEl.value.getBoundingClientRect();
+          snap(r.left, r.top, r.width, r.height);
+        } catch (_) {}
       }
 
       let _lastOpenTime = 0;
+      let _fabCaptureHandled = false;
       function openSheet() {
-        _lastOpenTime = Date.now();
-        open.value = true;
-        scrollBottom();
+        try {
+          _lastOpenTime = Date.now();
+          open.value = true;
+          scrollBottom();
+        } catch (err) {
+          console.warn('[CatButler] openSheet fallback:', err);
+          try {
+            open.value = true;
+            messages.value.push({
+              role: 'cat',
+              type: 'text',
+              text: '喵~ 管家刚刚初始化完毕，直接在这里输入一句话就可以记账啦 🐾'
+            });
+          } catch (_) {}
+        }
       }
       function closeSheet() {
-        if (_lastOpenTime && (Date.now() - _lastOpenTime < 400)) {
-          return; // 抽屉刚打开 400ms 内，严禁任何合成 click 或遮罩层事件将其关闭！
+        try {
+          if (_lastOpenTime && (Date.now() - _lastOpenTime < 400)) {
+            return; // 抽屉刚打开 400ms 内，严禁任何合成 click 或遮罩层事件将其关闭！
+          }
+          open.value = false;
+          showPicker.value = false;
+        } catch (_) {
+          open.value = false;
         }
-        open.value = false;
-        showPicker.value = false;
+      }
+      function onFabDirectClick() {
+        try {
+          if (_fabCaptureHandled) {
+            _fabCaptureHandled = false;
+            return;
+          }
+          if (isDragging.value) return;
+          openSheet();
+        } catch (err) {
+          console.warn('[CatButler] direct click fallback:', err);
+          openSheet();
+        }
       }
 
       function bindFabEvents(fab) {
         if (!fab) return;
-        // 1. 样式与子元素穿透设置
-        fab.style.touchAction = 'none';
-        fab.style.userSelect = 'none';
-        fab.style.webkitUserSelect = 'none';
-        fab.style.webkitTouchCallout = 'none';
-        fab.querySelectorAll('*').forEach(el => {
-          el.style.pointerEvents = 'none';
-          el.style.userSelect = 'none';
-          if (el.tagName === 'IMG') el.draggable = false;
-        });
+        try {
+          // 1. 样式与子元素穿透设置
+          fab.style.touchAction = 'none';
+          fab.style.userSelect = 'none';
+          fab.style.webkitUserSelect = 'none';
+          fab.style.webkitTouchCallout = 'none';
+          fab.querySelectorAll('*').forEach(el => {
+            el.style.pointerEvents = 'none';
+            el.style.userSelect = 'none';
+            if (el.tagName === 'IMG') el.draggable = false;
+          });
 
-        // 2. 状态变量（绝不在 pointerdown 记录防抖时间！）
-        let isPointerDown = false;
-        let dragging = false;
-        let lastWasDrag = false;
-        let activePointerId = null;
+          // 2. 状态变量（绝不在 pointerdown 记录防抖时间！）
+          let isPointerDown = false;
+          let dragging = false;
+          let lastWasDrag = false;
+          let activePointerId = null;
 
-        fab.addEventListener('contextmenu', e => {
-          e.preventDefault();
-          e.stopPropagation();
-        });
-
-        fab.addEventListener('pointerdown', e => {
-          if (e.pointerType === 'mouse' && e.button !== 0) return;
-          e.stopPropagation(); // 阻止冒泡
-          isPointerDown = true;
-          dragging = false;
-          isDragging.value = false;
-          activePointerId = e.pointerId;
-          startX = e.clientX;
-          startY = e.clientY;
-          const r = fab.getBoundingClientRect();
-          origLeft = r.left;
-          origTop = r.top;
-          fabW = r.width || 56;
-          fabH = r.height || 56;
-        });
-
-        fab.addEventListener('pointermove', e => {
-          if (!isPointerDown || e.pointerId !== activePointerId) return;
-          const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
-          if (!dragging && dist > 10) {
-            dragging = true;
-            isDragging.value = true;
-            try { fab.setPointerCapture(e.pointerId); } catch (_) {}
-          }
-          if (dragging) {
+          fab.addEventListener('contextmenu', e => {
             e.preventDefault();
             e.stopPropagation();
-            pos.left = clamp(origLeft + (e.clientX - startX), 0, global.innerWidth - fabW);
-            pos.top = clamp(origTop + (e.clientY - startY), 0, global.innerHeight - fabH);
-          }
-        });
+          });
 
-        fab.addEventListener('pointerup', e => {
-          if (!isPointerDown || e.pointerId !== activePointerId) return;
-          e.stopPropagation();
-          isPointerDown = false;
-          const wasDragging = dragging;
-          lastWasDrag = wasDragging;
-          dragging = false;
-          isDragging.value = false;
-          activePointerId = null;
-          try {
-            if (fab.hasPointerCapture(e.pointerId)) fab.releasePointerCapture(e.pointerId);
-          } catch (_) {}
+          fab.addEventListener('pointerdown', e => {
+            try {
+              if (e.pointerType === 'mouse' && e.button !== 0) return;
+              e.stopPropagation(); // 阻止冒泡
+              isPointerDown = true;
+              dragging = false;
+              isDragging.value = false;
+              activePointerId = e.pointerId;
+              startX = e.clientX;
+              startY = e.clientY;
+              const r = fab.getBoundingClientRect();
+              origLeft = r.left;
+              origTop = r.top;
+              fabW = r.width || 56;
+              fabH = r.height || 56;
+            } catch (_) {}
+          });
 
-          if (wasDragging) {
-            // 仅执行贴边吸附保存位置，不打开抽屉
-            if (pos.left !== null) snap(pos.left, pos.top, fabW, fabH);
-          } else {
-            // 无任何时间门槛！只要没拖拽，无论按下 10ms 还是 500ms，松手立刻强制打开抽屉！
-            _lastOpenTime = Date.now();
-            openSheet();
-          }
-        });
+          fab.addEventListener('pointermove', e => {
+            try {
+              if (!isPointerDown || e.pointerId !== activePointerId) return;
+              const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+              if (!dragging && dist > 10) {
+                dragging = true;
+                isDragging.value = true;
+                try { fab.setPointerCapture(e.pointerId); } catch (_) {}
+              }
+              if (dragging) {
+                e.preventDefault();
+                e.stopPropagation();
+                pos.left = clamp(origLeft + (e.clientX - startX), 0, global.innerWidth - fabW);
+                pos.top = clamp(origTop + (e.clientY - startY), 0, global.innerHeight - fabH);
+              }
+            } catch (_) {}
+          });
 
-        fab.addEventListener('pointercancel', () => {
-          isPointerDown = false;
-          dragging = false;
-          isDragging.value = false;
-          activePointerId = null;
-        });
+          fab.addEventListener('pointerup', e => {
+            try {
+              if (!isPointerDown || e.pointerId !== activePointerId) return;
+              e.stopPropagation();
+              isPointerDown = false;
+              const wasDragging = dragging;
+              lastWasDrag = wasDragging;
+              dragging = false;
+              isDragging.value = false;
+              activePointerId = null;
+              try {
+                if (fab.hasPointerCapture(e.pointerId)) fab.releasePointerCapture(e.pointerId);
+              } catch (_) {}
 
-        // 捕获并拦截合成的 click 事件，防止冒泡到遮罩层或 document 把刚打开的抽屉关掉
-        fab.addEventListener('click', e => {
-          e.preventDefault();
-          e.stopPropagation();
-          if (!lastWasDrag) {
-            _lastOpenTime = Date.now();
-            openSheet();
-          }
-          lastWasDrag = false;
-        }, true);
+              if (wasDragging) {
+                // 仅执行贴边吸附保存位置，不打开抽屉
+                if (pos.left !== null) snap(pos.left, pos.top, fabW, fabH);
+              } else {
+                // 无任何时间门槛！只要没拖拽，无论按下 10ms 还是 500ms，松手立刻强制打开抽屉！
+                _lastOpenTime = Date.now();
+                openSheet();
+              }
+            } catch (_) {
+              openSheet();
+            }
+          });
+
+          fab.addEventListener('pointercancel', () => {
+            isPointerDown = false;
+            dragging = false;
+            isDragging.value = false;
+            activePointerId = null;
+          });
+
+          // 捕获并拦截合成的 click 事件，防止冒泡到遮罩层或 document 把刚打开的抽屉关掉
+          fab.addEventListener('click', e => {
+            try {
+              e.preventDefault();
+              e.stopPropagation();
+              _fabCaptureHandled = true;
+              if (!lastWasDrag) {
+                _lastOpenTime = Date.now();
+                openSheet();
+              }
+              lastWasDrag = false;
+            } catch (_) {
+              openSheet();
+            }
+          }, true);
+        } catch (err) {
+          console.warn('[CatButler] bindFabEvents fallback:', err);
+        }
       }
 
       onMounted(() => {
-        restorePos();
-        bindFabEvents(fabEl.value);
-        global.addEventListener('resize', onResize);
+        try {
+          restorePos();
+          bindFabEvents(fabEl.value);
+          global.addEventListener('resize', onResize);
+        } catch (err) {
+          console.warn('[CatButler] onMounted fallback:', err);
+        }
       });
       onBeforeUnmount(() => {
-        stopVoiceRecognition();
-        global.removeEventListener('resize', onResize);
+        try {
+          stopVoiceRecognition();
+          global.removeEventListener('resize', onResize);
+        } catch (_) {}
       });
 
       return {
@@ -1405,12 +1509,12 @@
         favAccounts, activeAccountId, otherActive, isFav, toggleFav, pickAccount, sameId,
         accountName, accIcon, catImg, catEmoji, fmtMoney,
         send, onKeydown, toggleVoice, normalizeVoiceText, toggleEdit, setType, removeBill, cancelCard, confirmCard,
-        openSheet, closeSheet
+        openSheet, closeSheet, onFabDirectClick
       };
     },
     template: `
 <div class="cb-root">
-  <button v-show="!open" ref="fabEl" type="button" class="cb-fab" :class="{ 'cb-dragging': isDragging }" :style="fabStyle" title="喵咪管家 · 对话记账">
+  <button v-show="!open" ref="fabEl" type="button" class="cb-fab" :class="{ 'cb-dragging': isDragging }" :style="fabStyle" @click="onFabDirectClick" title="喵咪管家 · 对话记账">
     <img :src="AVATAR" alt="喵咪管家" draggable="false">
     <span class="cb-fab-badge">喵记账</span>
   </button>

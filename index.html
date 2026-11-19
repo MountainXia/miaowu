@@ -1288,13 +1288,13 @@
       font-weight: 700;
     }
 
-    /* 悬浮记账 FAB */
+    /* 悬浮记账 FAB (位于喵记账正下方) */
     .fab-btn {
       position: fixed;
       right: 20px;
-      bottom: calc(80px + var(--safe-bottom));
-      width: 54px;
-      height: 54px;
+      bottom: calc(env(safe-area-inset-bottom, 20px) + 68px);
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--primary), var(--primary-hover));
       color: #fff;
@@ -4440,16 +4440,18 @@
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
     </button>
+  </div> <!-- 结束 !isLocked 主界面视图 -->
 
-    <!-- 🐾 喵咪管家：全局智能对话记账（逻辑全部封装于 components/CatButler.js） -->
+    <!-- 🐾 喵咪管家：独立挂载于主容器外层，空账本及 PWA 独立模式下均始终可见 -->
     <cat-butler
+      v-if="!isLocked"
       :accounts="accounts"
       :get-category-img="getCategoryImg"
       :get-category-emoji="getCategoryEmoji"
       :get-account-icon-img="getAccountIconImg"
       @saved="onCatButlerSaved"
+      @fallback-open-tx="openNewTxModal"
     ></cat-butler>
-  </div> <!-- 结束 !isLocked 主界面视图 -->
 
     <!-- ============================================== -->
     <!-- 弹窗 0: 粮仓应用设置 (主题/暗号/重置/版本历史)     -->
@@ -5762,7 +5764,7 @@
 
     const { createApp, ref, reactive, computed, watch, onMounted, nextTick } = Vue;
 
-    createApp({
+    const appInstance = createApp({
       setup() {
         const currentTab = ref('overview');
         const hideAmount = ref(localStorage.getItem('hideAmount') === 'true');
@@ -5803,8 +5805,18 @@
             }
           }
         });
-        const currentVersion = ref('v5.0.8');
+        const currentVersion = ref('v5.0.9');
         const versionHistoryList = [
+          {
+            version: 'v5.0.9',
+            date: '2026-11-19',
+            title: '🐾 修复空账本与 PWA 主屏幕模式「喵记账」悬浮按钮丢失及异常容错',
+            features: [
+              '空账本与 PWA 独立模式全场景稳定显示：将「喵记账」组件移至外层独立挂载，默认适配 0 账户纯流水模式，并在冷启动视口未就绪或缓存坐标异常时自动回归默认固定位置；',
+              '右下角双悬浮按钮安全定位：固定「喵记账」悬浮球至 right: 16px / bottom: calc(env(safe-area-inset-bottom, 20px) + 124px) / z-index: 999，并同步微调「+」号按钮位置与尺寸，彻底消除遮挡与列表容器影响；',
+              '全链路 try/catch 容错与兜底组件：为 CatButler 初始化、拖拽绑定及点击弹窗补充异常捕获与直连点击，并新增 CatButlerFallback 兜底按钮与弹窗，缓存升级至 personal-asset-pwa-v51。'
+            ]
+          },
           {
             version: 'v5.0.8',
             date: '2026-11-18',
@@ -10192,7 +10204,68 @@
           selectedDateIncome
         };
       }
-    }).component('cat-butler', window.CatButler || { template: '<span></span>' }).mount('#app');
+    });
+
+    // 安全兜底组件：即使 CatButler.js 尚未完全就绪，悬浮“喵记账”按钮也绝不消失
+    const CatButlerFallback = {
+      name: 'CatButlerFallback',
+      emits: ['saved', 'fallback-open-tx'],
+      setup(_, { emit }) {
+        const open = Vue.ref(false);
+        const hintMsg = Vue.ref('喵~ 管家刚刚醒来正在加载词库，您可以先点下方「快速记一笔」入账 🐾');
+        function handleOpen() {
+          try {
+            open.value = true;
+          } catch (_) {
+            try { emit('fallback-open-tx'); } catch (__) {}
+          }
+        }
+        function handleQuickTx() {
+          try {
+            open.value = false;
+            emit('fallback-open-tx');
+          } catch (_) {}
+        }
+        return { open, hintMsg, handleOpen, handleQuickTx };
+      },
+      template: `
+        <div class="cb-fallback-root">
+          <button
+            v-show="!open"
+            type="button"
+            @click="handleOpen"
+            title="喵咪管家 · 对话记账"
+            style="position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 20px) + 124px); z-index: 999; width: 56px; height: 56px; border-radius: 50%; background: var(--bg-card, #fff); border: 2.5px solid var(--primary, #3b82f6); box-shadow: 0 6px 20px rgba(0,0,0,.28); padding: 0; cursor: pointer;"
+          >
+            <img src="icons/app-logo.png" alt="喵咪管家" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />
+            <span style="position: absolute; top: -6px; right: -10px; background: var(--primary, #3b82f6); color: #fff; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 10px; white-space: nowrap;">喵记账</span>
+          </button>
+          <div v-if="open" @click.self="open = false" style="position: fixed; inset: 0; background: rgba(0,0,0,.42); z-index: 1050; display: flex; align-items: flex-end; justify-content: center;">
+            <div style="width: 100%; max-width: 720px; background: var(--bg-card, #fff); border-radius: 24px 24px 0 0; padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 20px)); color: var(--text-main, #111);">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                <strong style="font-size: 15px;">🐾 喵咪管家</strong>
+                <button type="button" @click="open = false" style="border: none; background: var(--bg-subtle, #f3f3f3); width: 30px; height: 30px; border-radius: 50%; cursor: pointer;">✕</button>
+              </div>
+              <div style="font-size: 13.5px; line-height: 1.5; background: var(--bg-subtle, #f5f5f5); padding: 12px; border-radius: 14px; margin-bottom: 14px;">
+                {{ hintMsg }}
+              </div>
+              <button type="button" class="btn-primary" style="width: 100%; justify-content: center; padding: 11px;" @click="handleQuickTx">
+                打开「记一笔」窗口
+              </button>
+            </div>
+          </div>
+        </div>
+      `
+    };
+
+    try {
+      appInstance.component('cat-butler', window.CatButler || CatButlerFallback).mount('#app');
+    } catch (mountErr) {
+      console.warn('[App] CatButler mount fallback:', mountErr);
+      try {
+        appInstance.component('cat-butler', CatButlerFallback).mount('#app');
+      } catch (_) {}
+    }
   </script>
 </body>
 </html>
