@@ -601,17 +601,85 @@
     return t.replace(/[\s+＋\-－:：]+/g, '').trim();
   }
 
-  function matchAccount(text, accounts) {
-    if (!text || !Array.isArray(accounts) || accounts.length === 0) return undefined;
+  function buildParentIdSet(accounts = []) {
+    const set = new Set();
+    if (!Array.isArray(accounts)) return set;
+    for (const acc of accounts) {
+      if (acc && acc.parentId !== undefined && acc.parentId !== null && acc.parentId !== '') {
+        set.add(String(acc.parentId));
+      }
+    }
+    return set;
+  }
+
+  function pickDefaultChildForParent(parentId, accounts = [], preferredIds = []) {
+    if (!parentId || !Array.isArray(accounts)) return null;
+    const children = accounts.filter((a) => a && a.parentId && String(a.parentId) === String(parentId));
+    if (children.length === 0) return null;
+    if (children.length === 1) return children[0];
+
+    const prefList = Array.isArray(preferredIds) ? preferredIds.filter((id) => id !== null && id !== undefined && id !== '') : [];
+    for (const pid of prefList) {
+      const hit = children.find((c) => String(c.id) === String(pid));
+      if (hit) return hit;
+    }
+
+    const scoreChild = (c) => {
+      const n = String((c && c.name) || '').trim();
+      let score = 0;
+      if (/^(活期|零钱|存款)$/.test(n)) score += 300;
+      else if (/(活期|零钱|存款|储蓄|日常|工资)/.test(n)) score += 200;
+
+      const t = String((c && c.type) || 'bank');
+      if (t === 'cash') score += 120;
+      else if (t === 'bank') score += 100;
+      else if (t === 'other') score += 40;
+      else if (t === 'credit') score += 20;
+      else if (t === 'investment') score -= 100;
+
+      const bal = Number((c && c.balance) || 0);
+      if (bal > 0) score += 15 + Math.min(bal, 1000000) * 1e-6;
+      return score;
+    };
+
+    const sorted = [...children].sort((a, b) => scoreChild(b) - scoreChild(a));
+    return sorted[0] || children[0];
+  }
+
+  function resolveAccountToLeaf(accOrId, accounts = [], preferredIds = []) {
+    if (accOrId === undefined || accOrId === null || accOrId === '' || !Array.isArray(accounts)) {
+      return { id: undefined, routedFromParent: '' };
+    }
+    const target = typeof accOrId === 'object'
+      ? accOrId
+      : accounts.find((a) => a && String(a.id) === String(accOrId));
+    if (!target) return { id: undefined, routedFromParent: '' };
+
+    const parentIdSet = buildParentIdSet(accounts);
+    if (!parentIdSet.has(String(target.id))) {
+      return { id: target.id, routedFromParent: '' };
+    }
+    const child = pickDefaultChildForParent(target.id, accounts, preferredIds);
+    if (child) {
+      return { id: child.id, routedFromParent: target.name || '' };
+    }
+    return { id: undefined, routedFromParent: '' };
+  }
+
+  function matchAccountWithMeta(text, accounts, preferredIds = []) {
+    if (!text || !Array.isArray(accounts) || accounts.length === 0) return null;
     const accMap = new Map();
     for (const acc of accounts) {
       if (acc && acc.id !== undefined) accMap.set(String(acc.id), acc);
     }
+    const parentIdSet = buildParentIdSet(accounts);
+
     // 0) 优先匹配「母账户 + 子账户」组合名称（如 “工行理财”、“工行 - 理财”）
     let bestCombined = null;
     let bestCombinedLen = 0;
     for (const acc of accounts) {
       if (!acc || !acc.parentId || !acc.name) continue;
+      if (parentIdSet.has(String(acc.id))) continue;
       const parent = accMap.get(String(acc.parentId));
       if (!parent || !parent.name) continue;
       const combos = [`${parent.name} - ${acc.name}`, `${parent.name}-${acc.name}`, `${parent.name} ${acc.name}`, `${parent.name}${acc.name}`];
@@ -622,24 +690,46 @@
         }
       }
     }
-    if (bestCombined) return bestCombined.id;
-    // 1) 账户全名直接命中（取最长）
-    let best = null;
+    if (bestCombined) return { id: bestCombined.id, routedFromParent: '' };
+
+    // 1) 账户全名直接命中：优先匹配叶子账户（子账户或独立账户），其次若命中母账户则智能路由至其名下消费型子账户
+    let bestLeaf = null;
+    let bestParent = null;
     for (const acc of accounts) {
-      if (acc && acc.name && text.includes(acc.name) && (!best || acc.name.length > best.name.length)) best = acc;
-    }
-    if (best) return best.id;
-    // 2) 简称 / 别名命中
-    for (const group of ACCOUNT_ALIAS_GROUPS) {
-      if (!group.some((w) => text.includes(w))) continue;
-      const hit = accounts.find((acc) => acc && acc.name && group.some((w) => acc.name.includes(w)));
-      if (hit) return hit.id;
-      if (group[0] === '信用卡') {
-        const credit = accounts.find((acc) => acc && /credit|信用/i.test(String(acc.type || '')));
-        if (credit) return credit.id;
+      if (!acc || !acc.name || !text.includes(acc.name)) continue;
+      if (parentIdSet.has(String(acc.id))) {
+        if (!bestParent || acc.name.length > bestParent.name.length) bestParent = acc;
+      } else {
+        if (!bestLeaf || acc.name.length > bestLeaf.name.length) bestLeaf = acc;
       }
     }
-    return undefined;
+    if (bestLeaf) return { id: bestLeaf.id, routedFromParent: '' };
+    if (bestParent) {
+      const resolved = resolveAccountToLeaf(bestParent, accounts, preferredIds);
+      if (resolved.id !== undefined) return resolved;
+    }
+
+    // 2) 简称 / 别名命中（优先叶子账户，若命中母账户同样路由至其默认子账户）
+    for (const group of ACCOUNT_ALIAS_GROUPS) {
+      if (!group.some((w) => text.includes(w))) continue;
+      const leafHit = accounts.find((acc) => acc && !parentIdSet.has(String(acc.id)) && acc.name && group.some((w) => acc.name.includes(w)));
+      if (leafHit) return { id: leafHit.id, routedFromParent: '' };
+      const parentHit = accounts.find((acc) => acc && parentIdSet.has(String(acc.id)) && acc.name && group.some((w) => acc.name.includes(w)));
+      if (parentHit) {
+        const resolved = resolveAccountToLeaf(parentHit, accounts, preferredIds);
+        if (resolved.id !== undefined) return resolved;
+      }
+      if (group[0] === '信用卡') {
+        const credit = accounts.find((acc) => acc && !parentIdSet.has(String(acc.id)) && /credit|信用/i.test(String(acc.type || '')));
+        if (credit) return { id: credit.id, routedFromParent: '' };
+      }
+    }
+    return null;
+  }
+
+  function matchAccount(text, accounts, preferredIds = []) {
+    const res = matchAccountWithMeta(text, accounts, preferredIds);
+    return res ? res.id : undefined;
   }
 
   function extractAmount(s) {
@@ -679,15 +769,20 @@
    * @param {Array} accounts 账户列表（用于句内账户名覆盖）
    * @returns {Array} draftBills
    */
-  function parseMultiMessage(rawText, defaultAccountId, accounts = [], now = new Date()) {
+  function parseMultiMessage(rawText, defaultAccountId, accounts = [], now = new Date(), preferredIds = []) {
     if (!rawText || typeof rawText !== 'string') return [];
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     let inheritedDate = fmtDate(today);
     const bills = [];
     const pieces = rawText.split(SPLIT_RE).map((s) => s.trim()).filter(Boolean);
 
+    const safeDefault = resolveAccountToLeaf(defaultAccountId, accounts, preferredIds);
+    const resolvedDefaultId = (defaultAccountId === null || defaultAccountId === undefined || defaultAccountId === '')
+      ? null
+      : (safeDefault.id !== undefined ? safeDefault.id : null);
+
     for (const piece of pieces) {
-      const pieceAccount = matchAccount(piece, accounts);
+      const pieceMatch = matchAccountWithMeta(piece, accounts, preferredIds);
       // 1. 品牌节日词数字保护（转全角，后续 \d 不再命中）
       let p = piece.replace(BRAND_NOISE_RE, (m, prefix, num) => (num !== undefined ? prefix + toFull(num) : toFull(m)));
       // 2. 日期识别与继承
@@ -714,12 +809,14 @@
         const rawNotes = buildNotes(sub, amt);
         const { type, category } = matchCategoryAndType(plain, stripAccountWords(rawNotes, accounts));
         const notes = rawNotes || category;
-        const subAccount = matchAccount(plain, accounts);
-        let accountId = subAccount !== undefined ? subAccount : (pieceAccount !== undefined ? pieceAccount : defaultAccountId);
+        const subMatch = matchAccountWithMeta(plain, accounts, preferredIds);
+        const chosen = subMatch || pieceMatch;
+        let accountId = chosen ? chosen.id : resolvedDefaultId;
         if (accountId === undefined || accountId === '') accountId = null;
+        const routedFromParent = chosen ? (chosen.routedFromParent || '') : '';
         bills.push({
           uid: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
-          type, category, amount: amt.amount, accountId, date: pieceDate, notes
+          type, category, amount: amt.amount, accountId, routedFromParent, date: pieceDate, notes
         });
       }
     }
@@ -795,18 +892,27 @@
       }
     }
 
-    // 4. 识别支付渠道与账户（微信/零钱 ➔ 微信；支付宝/花呗/余额宝 ➔ 支付宝）
+    // 4. 识别支付渠道与账户（微信/零钱 ➔ 微信；支付宝/花呗/余额宝 ➔ 支付宝；若命中母账户自动落至子账户）
     let channel = '';
     let accountId = null;
     const accList = Array.isArray(accounts) ? accounts : [];
+    const ocrParentSet = buildParentIdSet(accList);
     if (/(微信|零钱)/.test(cleaned)) {
       channel = '微信';
-      const wxAcc = accList.find((a) => a && a.name && /(微信|零钱)/.test(a.name));
-      if (wxAcc) accountId = wxAcc.id;
+      const wxLeaf = accList.find((a) => a && !ocrParentSet.has(String(a.id)) && a.name && /(微信|零钱)/.test(a.name));
+      const wxAny = wxLeaf || accList.find((a) => a && a.name && /(微信|零钱)/.test(a.name));
+      if (wxAny) {
+        const resolved = resolveAccountToLeaf(wxAny, accList);
+        accountId = resolved.id !== undefined ? resolved.id : null;
+      }
     } else if (/(支付宝|花呗|余额宝)/.test(cleaned)) {
       channel = '支付宝';
-      const aliAcc = accList.find((a) => a && a.name && /(支付宝|花呗|余额宝)/.test(a.name));
-      if (aliAcc) accountId = aliAcc.id;
+      const aliLeaf = accList.find((a) => a && !ocrParentSet.has(String(a.id)) && a.name && /(支付宝|花呗|余额宝)/.test(a.name));
+      const aliAny = aliLeaf || accList.find((a) => a && a.name && /(支付宝|花呗|余额宝)/.test(a.name));
+      if (aliAny) {
+        const resolved = resolveAccountToLeaf(aliAny, accList);
+        accountId = resolved.id !== undefined ? resolved.id : null;
+      }
     }
     if (accountId === null) {
       const matchedAcc = matchAccount(cleaned, accList);
@@ -1218,7 +1324,7 @@
   .cb-edit{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .cb-edit label{font-size:10.5px;color:var(--text-muted,#888);display:flex;flex-direction:column;gap:2px}
   .cb-edit .cb-full{grid-column:1 / -1}
-  .cb-edit input,.cb-edit select{width:100%;box-sizing:border-box;padding:6px 8px;border-radius:8px;border:1px solid var(--border-subtle,#ddd);
+  .cb-edit input,.cb-edit select{width:100%;height:34px;box-sizing:border-box;padding:0 8px;line-height:normal;border-radius:8px;border:1px solid var(--border-subtle,#ddd);
     background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:12.5px}
   .cb-seg{display:flex;gap:4px}.cb-seg button{flex:1;padding:6px 0;border-radius:8px;border:1px solid var(--border-subtle,#ddd);
     background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:12px;font-weight:700;cursor:pointer}
@@ -1268,7 +1374,7 @@
   .cb-acc-warn{background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.4);color:#b45309;font-size:12px;font-weight:700;padding:8px 10px;border-radius:10px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
   .cb-acc-field{margin-bottom:10px}
   .cb-acc-field label{display:block;font-size:11.5px;font-weight:700;color:var(--text-muted,#666);margin-bottom:4px}
-  .cb-acc-field input,.cb-acc-field select{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:10px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:13.5px}
+  .cb-acc-field input,.cb-acc-field select{width:100%;height:38px;box-sizing:border-box;padding:0 10px;line-height:normal;border-radius:10px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:13.5px}
   .cb-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
   .cb-type-btn{display:flex;align-items:center;gap:7px;padding:10px 10px;border-radius:12px;border:1.5px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:13px;font-weight:700;cursor:pointer;text-align:left;transition:all .15s ease}
   .cb-type-btn.cb-selected{border-color:var(--primary,#3b82f6);background:rgba(59,130,246,.12);color:var(--primary,#3b82f6);box-shadow:0 2px 8px rgba(59,130,246,.15)}
@@ -1282,7 +1388,7 @@
   .cb-type-pills{display:flex;flex-wrap:wrap;gap:6px}
   .cb-type-pill{display:inline-flex;align-items:center;gap:4px;padding:6px 9px;border-radius:10px;border:1.5px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s ease}
   .cb-type-pill.cb-selected{border-color:var(--primary,#3b82f6);background:rgba(59,130,246,.14);color:var(--primary,#3b82f6)}
-  .cb-acc-form input,.cb-acc-form select{width:100%;box-sizing:border-box;padding:7px 9px;border-radius:9px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:13px;font-family:inherit}
+  .cb-acc-form input,.cb-acc-form select{width:100%;height:38px;box-sizing:border-box;padding:0 9px;line-height:normal;border-radius:9px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);color:var(--text-main,#111);font-size:13px;font-family:inherit}
   .cb-acc-form input.cb-input-err{border-color:#ea580c}
   .cb-acc-err{font-size:11.5px;font-weight:700;color:#ea580c;padding:4px 8px;border-radius:8px;background:rgba(249,115,22,.1)}
   .cb-radio-card{border:1.5px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);border-radius:12px;padding:10px 12px;cursor:pointer;transition:all .15s ease;margin-bottom:9px}
@@ -1291,7 +1397,7 @@
   .cb-radio-desc{font-size:11.5px;line-height:1.5;color:var(--text-muted,#666);margin-top:4px;padding-left:21px}
   .cb-radio-subform{margin-top:8px;padding-left:21px;display:grid;grid-template-columns:1fr 1fr;gap:7px}
   .cb-radio-subform label{font-size:11px;font-weight:700;color:var(--text-muted,#666);display:flex;flex-direction:column;gap:3px}
-  .cb-radio-subform input,.cb-radio-subform select{width:100%;box-sizing:border-box;padding:6px 8px;border-radius:8px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-card,#fff);color:var(--text-main,#111);font-size:12.5px}
+  .cb-radio-subform input,.cb-radio-subform select{width:100%;height:36px;box-sizing:border-box;padding:0 8px;line-height:normal;border-radius:8px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-card,#fff);color:var(--text-main,#111);font-size:12.5px}
   .cb-icon-strip{display:flex;gap:6px;overflow-x:auto;padding:3px 2px 6px;scrollbar-width:none}.cb-icon-strip::-webkit-scrollbar{display:none}
   .cb-icon-btn{flex-shrink:0;width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border-subtle,#ddd);background:var(--bg-subtle,#f7f7f7);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:4px;transition:all .15s ease}
   .cb-icon-btn img{width:24px;height:24px;object-fit:contain;pointer-events:none}
@@ -1353,35 +1459,112 @@
         text: '喵~ 我是你的喵管家 🐾\n• 一句话记账：「昨天早饭10，晚饭30」「收到工资8000 农行」\n• 一句话创建账户：「新建招行储蓄卡 余额5000」「在工行下新建理财 10000」'
       }]);
 
-      // ---------- 账户快捷栏 ----------
+      // ---------- 账户快捷栏（仅展示与选中叶子账户，严格隔离母账户） ----------
       const sameId = (a, b) => a !== null && a !== undefined && b !== null && b !== undefined && String(a) === String(b);
       const loadFav = () => { try { return JSON.parse(localStorage.getItem(LS_FAV) || 'null'); } catch (e) { return null; } };
       const favIds = ref(loadFav());
+
+      const parentIdSet = computed(() => buildParentIdSet(props.accounts || []));
+      const leafAccounts = computed(() => {
+        const accs = Array.isArray(props.accounts) ? props.accounts : [];
+        return accs.filter((a) => a && !parentIdSet.value.has(String(a.id)));
+      });
+      const groupedAccountSections = computed(() => {
+        const accs = Array.isArray(props.accounts) ? props.accounts : [];
+        const primaries = accs.filter((a) => a && !a.parentId);
+        const sections = [];
+        for (const parent of primaries) {
+          const children = accs.filter((a) => a && sameId(a.parentId, parent.id));
+          if (children.length > 0) {
+            sections.push({
+              key: parent.id,
+              isGroup: true,
+              label: `${parent.icon || getDefaultIconForType(parent.type)} ${parent.name}`,
+              items: children.map((c) => ({
+                id: c.id,
+                label: `${parent.name} - ${c.name}`,
+                account: c
+              }))
+            });
+          } else {
+            sections.push({
+              key: parent.id,
+              isGroup: false,
+              items: [{
+                id: parent.id,
+                label: parent.name,
+                account: parent
+              }]
+            });
+          }
+        }
+        return sections;
+      });
+
       const favAccounts = computed(() => {
         try {
           const accs = Array.isArray(props.accounts) ? props.accounts : [];
+          const leaves = leafAccounts.value;
           if (Array.isArray(favIds.value)) {
-            const valid = favIds.value.map((id) => accs.find((a) => sameId(a.id, id))).filter(Boolean);
+            const seen = new Set();
+            const valid = [];
+            for (const rawId of favIds.value) {
+              const resolved = resolveAccountToLeaf(rawId, accs);
+              if (resolved.id === undefined || seen.has(String(resolved.id))) continue;
+              const hit = leaves.find((a) => sameId(a.id, resolved.id));
+              if (hit) {
+                seen.add(String(hit.id));
+                valid.push(hit);
+              }
+            }
             if (valid.length || favIds.value.length === 0) return valid.slice(0, 3);
           }
-          return accs.slice(0, 3);
+          return leaves.slice(0, 3);
         } catch (_) {
           return [];
         }
       });
+
       const activeAccountId = ref(null); // null=纯流水（空账本默认可用）
       watch(() => props.accounts, (accs) => {
         try {
-          favIds.value = loadFav();
           const list = Array.isArray(accs) ? accs : [];
-          if (!list.length) {
+          const pSet = buildParentIdSet(list);
+          const leaves = list.filter((a) => a && !pSet.has(String(a.id)));
+
+          // 迁移缓存中的旧母账户收藏为对应子账户
+          const rawFav = loadFav();
+          if (Array.isArray(rawFav) && rawFav.length > 0 && list.length > 0) {
+            const migrated = [];
+            let changed = false;
+            for (const id of rawFav) {
+              if (pSet.has(String(id))) changed = true;
+              const resolved = resolveAccountToLeaf(id, list);
+              if (resolved.id !== undefined && !migrated.some((m) => sameId(m, resolved.id))) {
+                migrated.push(resolved.id);
+              }
+            }
+            if (changed) {
+              favIds.value = migrated.slice(0, 3);
+              try { localStorage.setItem(LS_FAV, JSON.stringify(favIds.value)); } catch (_) {}
+            } else {
+              favIds.value = rawFav;
+            }
+          } else {
+            favIds.value = rawFav;
+          }
+
+          if (!leaves.length) {
             activeAccountId.value = null;
             return;
           }
           if (activeAccountId.value === undefined || activeAccountId.value === null) {
-            activeAccountId.value = favAccounts.value[0]?.id ?? list[0]?.id ?? null;
-          } else if (!list.some((a) => sameId(a.id, activeAccountId.value))) {
-            activeAccountId.value = favAccounts.value[0]?.id ?? list[0]?.id ?? null;
+            activeAccountId.value = favAccounts.value[0]?.id ?? leaves[0]?.id ?? null;
+          } else if (pSet.has(String(activeAccountId.value))) {
+            const resolved = resolveAccountToLeaf(activeAccountId.value, list);
+            activeAccountId.value = resolved.id ?? favAccounts.value[0]?.id ?? leaves[0]?.id ?? null;
+          } else if (!leaves.some((a) => sameId(a.id, activeAccountId.value))) {
+            activeAccountId.value = favAccounts.value[0]?.id ?? leaves[0]?.id ?? null;
           }
         } catch (e) {
           console.warn('[CatButler] watch accounts fallback:', e);
@@ -1393,10 +1576,11 @@
         const id = activeAccountId.value;
         if (id === null || id === undefined) return null;
         if (favAccounts.value.some((a) => sameId(a.id, id))) return null;
-        return (props.accounts || []).find((a) => sameId(a.id, id)) || null;
+        return leafAccounts.value.find((a) => sameId(a.id, id)) || null;
       });
       const isFav = (id) => favAccounts.value.some((a) => sameId(a.id, id));
       function toggleFav(acc) {
+        if (!acc || parentIdSet.value.has(String(acc.id))) return;
         let ids = favAccounts.value.map((a) => a.id);
         if (ids.some((id) => sameId(id, acc.id))) {
           ids = ids.filter((id) => !sameId(id, acc.id));
@@ -1407,7 +1591,15 @@
         favIds.value = ids;
         try { localStorage.setItem(LS_FAV, JSON.stringify(ids)); } catch (e) { /* ignore */ }
       }
-      function pickAccount(id) { activeAccountId.value = id; showPicker.value = false; }
+      function pickAccount(id) {
+        if (id === null || id === undefined || id === '') {
+          activeAccountId.value = null;
+        } else {
+          const resolved = resolveAccountToLeaf(id, props.accounts || []);
+          activeAccountId.value = resolved.id !== undefined ? resolved.id : id;
+        }
+        showPicker.value = false;
+      }
 
       const accountHierarchyName = (acc) => {
         if (!acc) return '未知账户';
@@ -1754,6 +1946,10 @@
           msg.validationError = '请选择账户类型后再确认创建';
           return;
         }
+        if (['bank', 'cash', 'investment'].includes(draft.type) && Number(draft.balance || 0) < 0) {
+          msg.validationError = '储蓄卡/活期零钱/投资理财账户余额不能为负数，如需记录欠款请改为信用卡/负债';
+          return;
+        }
         msg.nameError = '';
         msg.validationError = '';
 
@@ -2063,7 +2259,8 @@
 
         // 2. 常规对话拆账记账流程
         const defaultId = activeAccountId.value === undefined ? null : activeAccountId.value;
-        const bills = parseMultiMessage(text, defaultId, props.accounts || []);
+        const preferredIds = [defaultId, ...favAccounts.value.map((a) => a.id)].filter((id) => id !== null && id !== undefined);
+        const bills = parseMultiMessage(text, defaultId, props.accounts || [], new Date(), preferredIds);
         if (!bills.length) {
           catSay('喵？没找到金额或创建指令呢~ 可以说「午饭25」或「新建招行储蓄卡 余额5000」🐟');
           return;
@@ -2514,6 +2711,7 @@
         AVATAR, EXP, INC, ACCOUNT_TYPE_OPTIONS,
         open, input, listEl, fabEl, inputEl, showPicker, isDragging, isListening, fabStyle, messages,
         favAccounts, activeAccountId, otherActive, isFav, toggleFav, pickAccount, sameId,
+        leafAccounts, groupedAccountSections,
         primaryAccounts, resolvedIconOptions, iconOptImg, duplicateConfirmModal, migrationConfirmModal, getAccountTypeLabel,
         getParentNameById, getPositiveChildAccounts, getSelectedDeductChild, onDraftParentChange,
         canCarveMigration, migrationCarveRemainder,
@@ -2680,7 +2878,7 @@
                       <div style="flex:1;min-width:0">
                         <div style="font-weight:800;color:var(--text-main,#111)">从已有子账户划出</div>
                         <div v-if="msg.draftAccount.fundingSource === 'carve'" style="margin-top:6px" @click.stop>
-                          <select v-model="msg.draftAccount.deductFromChildId" style="width:100%;font-size:12px;padding:6px 8px;background:var(--bg-subtle,#f7f7f7)">
+                          <select v-model="msg.draftAccount.deductFromChildId" style="width:100%;height:36px;line-height:normal;font-size:12px;padding:0 8px;background:var(--bg-subtle,#f7f7f7)">
                             <option
                               v-for="sub in getPositiveChildAccounts(msg.draftAccount.parentId)"
                               :key="sub.id"
@@ -2775,6 +2973,7 @@
                     <div class="cb-bill-l1">
                       <span class="cb-tag" :class="bill.type === 'income' ? 'cb-inc' : 'cb-exp'">{{ bill.type === 'income' ? '收入' : '支出' }}</span>
                       <span>{{ bill.category }}</span>
+                      <span v-if="msg.status === 'pending' && bill.routedFromParent" style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;background:rgba(59,130,246,.12);color:var(--primary,#3b82f6)">已自动落至子账户 · 点击切换</span>
                     </div>
                     <div class="cb-bill-l2">{{ accountName(bill.accountId) }} · {{ bill.date }}<template v-if="bill.notes"> · {{ bill.notes }}</template></div>
                   </div>
@@ -2793,9 +2992,14 @@
                     </select>
                   </label>
                   <label>账户
-                    <select v-model="bill.accountId">
+                    <select v-model="bill.accountId" @change="bill.routedFromParent = ''">
                       <option :value="null">⚡ 纯流水 (不计入资产)</option>
-                      <option v-for="a in accounts" :key="a.id" :value="a.id">{{ accountHierarchyName(a) }}</option>
+                      <template v-for="sec in groupedAccountSections" :key="sec.key">
+                        <optgroup v-if="sec.isGroup" :label="sec.label">
+                          <option v-for="item in sec.items" :key="item.id" :value="item.id">{{ item.label }}</option>
+                        </optgroup>
+                        <option v-else :value="sec.items[0].id">{{ sec.items[0].label }}</option>
+                      </template>
                     </select>
                   </label>
                   <label>金额 (¥)<input type="number" step="0.01" min="0" inputmode="decimal" v-model.number="bill.amount"></label>
@@ -2839,12 +3043,12 @@
       <div v-if="showPicker" class="cb-picker-mask" @click.self="showPicker = false">
         <div class="cb-picker">
           <div class="cb-picker-title"><span>选择账户 · 自定义常用 ({{ favAccounts.length }}/3)</span><button class="cb-close" @click="showPicker = false">×</button></div>
-          <div class="cb-picker-tip">点击左侧切换当前入账账户；右侧勾选「常用」自定义输入框上方前 3 个常用账户</div>
+          <div class="cb-picker-tip">点击左侧切换当前入账账户；右侧勾选「常用」自定义输入框上方前 3 个常用账户（母账户仅作归类不可直接入账）</div>
           <div class="cb-pick" :class="{ 'cb-active': activeAccountId === null }" @click="pickAccount(null)">
             <span style="font-size:22px;width:28px;text-align:center">⚡</span>
             <div class="cb-pick-name">纯流水 (不计入资产)</div>
           </div>
-          <div v-for="acc in accounts" :key="acc.id" class="cb-pick" :class="{ 'cb-active': sameId(activeAccountId, acc.id) }" @click="pickAccount(acc.id)">
+          <div v-for="acc in leafAccounts" :key="acc.id" class="cb-pick" :class="{ 'cb-active': sameId(activeAccountId, acc.id) }" @click="pickAccount(acc.id)">
             <img v-if="accIcon(acc)" :src="accIcon(acc)" alt="">
             <div style="flex:1;min-width:0">
               <div class="cb-pick-name">{{ accountHierarchyName(acc) }}</div>
@@ -2855,7 +3059,7 @@
               <span>常用</span>
             </label>
           </div>
-          <div v-if="!accounts.length" class="cb-picker-tip">还没有账户喵，可先用「纯流水」记账~</div>
+          <div v-if="!leafAccounts.length" class="cb-picker-tip">还没有可用子账户或独立账户喵，可先用「纯流水」记账~</div>
         </div>
       </div>
 
@@ -2893,7 +3097,7 @@
             <div class="cb-radio-card cb-radio-active" style="cursor:default">
               <div style="font-size:13px;font-weight:800;margin-bottom:6px">1. 作为「{{ duplicateConfirmModal.fullDisplayName }}」的新子账户存入（推荐）</div>
               <div style="display:flex;gap:6px;align-items:center">
-                <input type="text" v-model="duplicateConfirmModal.newSubName" placeholder="子账户名称，如：存款" style="flex:1;padding:7px 9px;border-radius:8px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-card,#fff);font-size:13px" />
+                <input type="text" v-model="duplicateConfirmModal.newSubName" placeholder="子账户名称，如：存款" style="flex:1;height:36px;box-sizing:border-box;line-height:normal;padding:0 9px;border-radius:8px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-card,#fff);font-size:13px" />
                 <button type="button" class="cb-btn cb-btn-primary" style="flex:0 0 auto;padding:8px 12px" :disabled="duplicateConfirmModal.saving" @click="resolveA1CreateSubAccount">
                   确认存入
                 </button>
@@ -2903,7 +3107,7 @@
             <div class="cb-radio-card" style="cursor:default">
               <div style="font-size:13px;font-weight:800;margin-bottom:6px">2. 并入已有子账户</div>
               <div style="display:flex;gap:6px;align-items:center">
-                <select v-model="duplicateConfirmModal.selectedChildId" style="flex:1;padding:7px 9px;border-radius:8px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-card,#fff);font-size:13px">
+                <select v-model="duplicateConfirmModal.selectedChildId" style="flex:1;height:36px;box-sizing:border-box;line-height:normal;padding:0 9px;border-radius:8px;border:1px solid var(--border-subtle,#ddd);background:var(--bg-card,#fff);font-size:13px">
                   <option v-for="c in duplicateConfirmModal.children" :key="c.id" :value="c.id">{{ c.name }} (¥{{ fmtMoney(c.balance) }})</option>
                 </select>
                 <button type="button" class="cb-btn cb-btn-primary" style="flex:0 0 auto;padding:8px 12px" :disabled="duplicateConfirmModal.saving || !duplicateConfirmModal.selectedChildId" @click="resolveA1MergeExistingChild">

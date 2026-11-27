@@ -109,9 +109,17 @@
     });
   }
 
+  const NON_NEGATIVE_ACCOUNT_TYPES = new Set(['bank', 'cash', 'investment']);
+
+  function isNonNegativeAccountType(type) {
+    return NON_NEGATIVE_ACCOUNT_TYPES.has(String(type || 'bank'));
+  }
+
   /**
    * 严格不变量自愈巡检（叶子存钱、母账户纯汇总）：
-   * 若发现任何已有子账户的母账户自身 balance !== 0，自动将该残留金额合并入其名下「存款」子账户（不存在则自动创建），
+   * 若发现任何已有子账户的母账户自身 balance !== 0，
+   * 正残留余额合并入其名下「存款」子账户（不存在则自动创建）；
+   * 若为历史负残留，优先从余额充足的子账户抵扣，绝不凭空创建新的负余额「存款」账户，
    * 并将母账户自身 balance 强制清零后写回 IndexedDB。
    */
   async function healParentAccountsIfNeeded() {
@@ -140,26 +148,47 @@
       if (residual === 0) continue;
 
       const depositChild = children.find((c) => String(c.name || '').trim() === '存款');
-      if (depositChild) {
-        depositChild.balance = +(Number(depositChild.balance || 0) + residual).toFixed(2);
-        depositChild.updatedAt = nowIso;
-        toPut.push(depositChild);
+      if (residual > 0) {
+        if (depositChild) {
+          depositChild.balance = +(Number(depositChild.balance || 0) + residual).toFixed(2);
+          depositChild.updatedAt = nowIso;
+          toPut.push(depositChild);
+        } else {
+          const newDeposit = {
+            id: generateId('acc'),
+            name: '存款',
+            type: 'bank',
+            balance: residual,
+            parentId: String(acc.id),
+            currency: acc.currency || 'CNY',
+            color: '#2563eb',
+            icon: '💳',
+            notes: '',
+            creditLimit: 0,
+            updatedAt: nowIso
+          };
+          children.push(newDeposit);
+          toAdd.push(newDeposit);
+        }
       } else {
-        const newDeposit = {
-          id: generateId('acc'),
-          name: '存款',
-          type: 'bank',
-          balance: residual,
-          parentId: String(acc.id),
-          currency: acc.currency || 'CNY',
-          color: '#2563eb',
-          icon: '💳',
-          notes: '',
-          creditLimit: 0,
-          updatedAt: nowIso
-        };
-        children.push(newDeposit);
-        toAdd.push(newDeposit);
+        const targetChild =
+          (depositChild && Number(depositChild.balance || 0) + residual >= 0 ? depositChild : null)
+          || [...children]
+            .filter((c) => c && c.type !== 'credit' && Number(c.balance || 0) + residual >= 0)
+            .sort((a, b) => {
+              const aLiq = (a.type === 'cash' || a.type === 'bank') ? 0 : 1;
+              const bLiq = (b.type === 'cash' || b.type === 'bank') ? 0 : 1;
+              if (aLiq !== bLiq) return aLiq - bLiq;
+              return Number(b.balance || 0) - Number(a.balance || 0);
+            })[0]
+          || depositChild
+          || [...children].sort((a, b) => Number(b.balance || 0) - Number(a.balance || 0))[0];
+
+        if (targetChild) {
+          targetChild.balance = +(Number(targetChild.balance || 0) + residual).toFixed(2);
+          targetChild.updatedAt = nowIso;
+          toPut.push(targetChild);
+        }
       }
 
       acc.balance = 0;
@@ -229,11 +258,16 @@
 
   async function addAccount(accountData) {
     const id = accountData.id || generateId('acc');
+    const accType = accountData.type || 'bank'; // cash, bank, investment, credit, other
+    const initBalance = Number(accountData.balance || 0);
+    if (isNonNegativeAccountType(accType) && initBalance < 0) {
+      throw new Error('储蓄卡/活期零钱/投资理财账户余额不能为负数，如需记录欠款请使用信用卡/负债账户');
+    }
     const account = {
       id,
       name: accountData.name || '新账户',
-      type: accountData.type || 'bank', // cash, bank, investment, credit, other
-      balance: Number(accountData.balance || 0),
+      type: accType,
+      balance: initBalance,
       parentId: accountData.parentId ? String(accountData.parentId) : null,
       currency: accountData.currency || 'CNY',
       color: accountData.color || '#3b82f6',
@@ -272,6 +306,14 @@
       creditLimit: accountData.creditLimit !== undefined ? Number(accountData.creditLimit) : (existing.creditLimit || 0),
       updatedAt: new Date().toISOString()
     };
+
+    // 保留极个别历史负余额账户可改名/向上回正，但禁止新增或扩大正资产账户的负余额
+    const prevBal = Number(existing.balance || 0);
+    if (!hasChildren && isNonNegativeAccountType(updated.type) && updated.balance < 0) {
+      if (!(prevBal < 0 && updated.balance >= prevBal)) {
+        throw new Error('储蓄卡/活期零钱/投资理财账户余额不能为负数，如需记录欠款请使用信用卡/负债账户');
+      }
+    }
 
     await new Promise((resolve, reject) => {
       const tx = db.transaction('accounts', 'readwrite');
@@ -570,8 +612,12 @@
    */
   async function adjustBalance(id, newBalance, reason = '余额更正', recordDate = null, recordTransaction = false, category = null, forcedTxType = null) {
     const targetBalance = Number(newBalance);
+    if (isNaN(targetBalance)) throw new Error('请输入有效的目标余额');
     const account = await getAccount(id);
     if (!account) throw new Error('账户不存在');
+    if (isNonNegativeAccountType(account.type) && targetBalance < 0) {
+      throw new Error('储蓄卡/活期零钱/投资理财账户余额不能调整为负数，如需记录欠款请使用信用卡/负债账户');
+    }
 
     const oldBalance = Number(account.balance || 0);
     const diff = +(targetBalance - oldBalance).toFixed(2);
@@ -679,6 +725,66 @@
     });
   }
 
+  function applyTxAccountDelta(fromAccount, toAccount, txType, amount, direction = 1) {
+    const amt = Number(amount);
+    const nowIso = new Date().toISOString();
+    if (txType === 'transfer') {
+      if (fromAccount) {
+        if (fromAccount.type === 'credit') {
+          if (direction === 1) {
+            fromAccount.balance = fromAccount.balance < 0
+              ? +(fromAccount.balance - amt).toFixed(2)
+              : +(fromAccount.balance + amt).toFixed(2);
+          } else {
+            fromAccount.balance = fromAccount.balance < 0
+              ? +(fromAccount.balance + amt).toFixed(2)
+              : +(fromAccount.balance - amt).toFixed(2);
+          }
+        } else {
+          fromAccount.balance = +(fromAccount.balance + (direction === 1 ? -amt : amt)).toFixed(2);
+        }
+        fromAccount.updatedAt = nowIso;
+      }
+      if (toAccount) {
+        if (toAccount.type === 'credit') {
+          if (direction === 1) {
+            toAccount.balance = toAccount.balance < 0
+              ? +(toAccount.balance + amt).toFixed(2)
+              : +(toAccount.balance - amt).toFixed(2);
+          } else {
+            toAccount.balance = toAccount.balance < 0
+              ? +(toAccount.balance - amt).toFixed(2)
+              : +(toAccount.balance + amt).toFixed(2);
+          }
+        } else {
+          toAccount.balance = +(toAccount.balance + (direction === 1 ? amt : -amt)).toFixed(2);
+        }
+        toAccount.updatedAt = nowIso;
+      }
+      return;
+    }
+
+    if (fromAccount) {
+      if (txType === 'expense') {
+        fromAccount.balance = +(fromAccount.balance + (direction === 1 ? -amt : amt)).toFixed(2);
+      } else if (txType === 'income') {
+        fromAccount.balance = +(fromAccount.balance + (direction === 1 ? amt : -amt)).toFixed(2);
+      }
+      fromAccount.updatedAt = nowIso;
+    }
+  }
+
+  function assertAccountAllowsResultBalance(acc, prevBal, amount) {
+    if (!acc) return;
+    if (isNonNegativeAccountType(acc.type) && Number(acc.balance || 0) < 0) {
+      if (prevBal >= 0 || Number(acc.balance || 0) < prevBal) {
+        throw new Error(
+          `「${acc.name}」当前余额 ¥${prevBal.toFixed(2)} 不足 ¥${Number(amount).toFixed(2)}，正资产账户余额不能为负数。请先校准余额，或改用「⚡ 纯流水」/ 信用卡记账`
+        );
+      }
+    }
+  }
+
   /**
    * 添加流水并联动更新对应账户余额
    * @param {Object} txData
@@ -696,6 +802,12 @@
     // 纯流水模式判定：未关联账户且非转账类型
     const isPureTransaction = !accountId && type !== 'transfer';
 
+    const rawAccounts = await readRawAccounts();
+    const parentIdSet = new Set();
+    for (const a of rawAccounts) {
+      if (a && a.parentId) parentIdSet.add(String(a.parentId));
+    }
+
     let fromAccount = null;
     let toAccount = null;
 
@@ -705,51 +817,34 @@
       }
       fromAccount = await getAccount(accountId);
       if (!fromAccount) throw new Error('转出账户不存在');
+      if (parentIdSet.has(String(fromAccount.id))) {
+        throw new Error(`「${fromAccount.name}」为母账户，请选择名下具体子账户进行转账`);
+      }
       if (!toAccountId || toAccountId === accountId) {
         throw new Error('转账必须选择不同的转入账户');
       }
       toAccount = await getAccount(toAccountId);
       if (!toAccount) throw new Error('转入账户不存在');
-
-      // 1. 转出账户余额更新
-      if (fromAccount.type === 'credit') {
-        // 从信用卡/负债账户转出（透支取现）：负债绝对值增加
-        if (fromAccount.balance < 0) {
-          fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
-        } else {
-          fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
-        }
-      } else {
-        // 普通资产账户转出：资金减少
-        fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
+      if (parentIdSet.has(String(toAccount.id))) {
+        throw new Error(`「${toAccount.name}」为母账户，请选择名下具体子账户作为转入账户`);
       }
 
-      // 2. 转入账户余额更新
-      if (toAccount.type === 'credit') {
-        // 转入信用卡/负债账户（还款）：负债绝对值减少，向 0 靠近
-        if (toAccount.balance < 0) {
-          toAccount.balance = +(toAccount.balance + amount).toFixed(2);
-        } else {
-          toAccount.balance = +(toAccount.balance - amount).toFixed(2);
-        }
-      } else {
-        // 普通资产账户转入：资金增加
-        toAccount.balance = +(toAccount.balance + amount).toFixed(2);
-      }
-
-      fromAccount.updatedAt = new Date().toISOString();
-      toAccount.updatedAt = new Date().toISOString();
+      const prevFromBal = Number(fromAccount.balance || 0);
+      applyTxAccountDelta(fromAccount, toAccount, 'transfer', amount, 1);
+      assertAccountAllowsResultBalance(fromAccount, prevFromBal, amount);
     } else if (!isPureTransaction) {
       // 关联账户记账：联动更新账户余额
       fromAccount = await getAccount(accountId);
       if (!fromAccount) throw new Error('关联账户不存在');
-
-      if (type === 'expense') {
-        fromAccount.balance = +(fromAccount.balance - amount).toFixed(2);
-      } else if (type === 'income') {
-        fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
+      if (parentIdSet.has(String(fromAccount.id))) {
+        throw new Error(`「${fromAccount.name}」为母账户，请选择名下具体子账户进行记账`);
       }
-      fromAccount.updatedAt = new Date().toISOString();
+
+      const prevFromBal = Number(fromAccount.balance || 0);
+      applyTxAccountDelta(fromAccount, null, type, amount, 1);
+      if (type === 'expense') {
+        assertAccountAllowsResultBalance(fromAccount, prevFromBal, amount);
+      }
     }
     // 纯流水模式：不修改任何账户，跳过余额联动
 
@@ -787,6 +882,123 @@
 
     await updateTodaySnapshot();
     return newTx;
+  }
+
+  /**
+   * 编辑已有流水并原子级重算受影响账户余额（支持修复旧流水错误挂载的母账户/金额/类型）
+   */
+  async function updateTransaction(id, newTxData) {
+    const oldTx = await getTransaction(id);
+    if (!oldTx) throw new Error('流水记录不存在');
+
+    const newAmount = Number(newTxData.amount);
+    if (isNaN(newAmount) || newAmount <= 0) {
+      throw new Error('金额必须大于 0');
+    }
+
+    const newType = newTxData.type || oldTx.type;
+    const newAccountId = newTxData.accountId || null;
+    const newToAccountId = newType === 'transfer' ? (newTxData.toAccountId || null) : null;
+
+    const rawAccounts = await readRawAccounts();
+    const parentIdSet = new Set();
+    const accMap = new Map();
+    const origBalances = new Map();
+    for (const a of rawAccounts) {
+      if (!a || !a.id) continue;
+      if (a.parentId) parentIdSet.add(String(a.parentId));
+      accMap.set(String(a.id), { ...a });
+      origBalances.set(String(a.id), Number(a.balance || 0));
+    }
+
+    if (newType === 'transfer') {
+      if (!newAccountId) throw new Error('转账必须选择转出账户');
+      if (!newToAccountId || newToAccountId === newAccountId) {
+        throw new Error('转账必须选择不同的转入账户');
+      }
+    }
+    if (newAccountId) {
+      const targetAcc = accMap.get(String(newAccountId));
+      if (!targetAcc) throw new Error(newType === 'transfer' ? '转出账户不存在' : '关联账户不存在');
+      if (parentIdSet.has(String(newAccountId))) {
+        throw new Error(`「${targetAcc.name}」为母账户，请选择名下具体子账户`);
+      }
+    }
+    if (newToAccountId) {
+      const targetTo = accMap.get(String(newToAccountId));
+      if (!targetTo) throw new Error('转入账户不存在');
+      if (parentIdSet.has(String(newToAccountId))) {
+        throw new Error(`「${targetTo.name}」为母账户，请选择名下具体子账户`);
+      }
+    }
+
+    const touchedIds = new Set();
+
+    // 1. 回滚旧流水对账户余额的影响（若旧流水错记在母账户，同样允许回滚释放）
+    const oldFrom = oldTx.accountId ? accMap.get(String(oldTx.accountId)) : null;
+    const oldTo = oldTx.toAccountId ? accMap.get(String(oldTx.toAccountId)) : null;
+    if (oldFrom || oldTo) {
+      applyTxAccountDelta(oldFrom, oldTo, oldTx.type, Number(oldTx.amount || 0), -1);
+      if (oldFrom) touchedIds.add(String(oldFrom.id));
+      if (oldTo) touchedIds.add(String(oldTo.id));
+    }
+
+    // 2. 应用新流水对账户余额的影响
+    const newFrom = newAccountId ? accMap.get(String(newAccountId)) : null;
+    const newTo = newToAccountId ? accMap.get(String(newToAccountId)) : null;
+    if (newFrom || newTo) {
+      applyTxAccountDelta(newFrom, newTo, newType, newAmount, 1);
+      if (newFrom) touchedIds.add(String(newFrom.id));
+      if (newTo) touchedIds.add(String(newTo.id));
+    }
+
+    // 3. 校验非负债账户修改后不能新增负余额
+    for (const tid of touchedIds) {
+      const acc = accMap.get(tid);
+      if (!acc || parentIdSet.has(tid)) continue;
+      const beforeBal = origBalances.get(tid) ?? 0;
+      if (isNonNegativeAccountType(acc.type) && Number(acc.balance || 0) < 0) {
+        if (beforeBal >= 0 || Number(acc.balance || 0) < beforeBal) {
+          throw new Error(
+            `修改后「${acc.name}」余额将变为 ¥${Number(acc.balance || 0).toFixed(2)}（余额不足），正资产账户余额不能为负数。请先校准余额，或改用「⚡ 纯流水」/ 信用卡`
+          );
+        }
+      }
+    }
+
+    const updatedTx = {
+      ...oldTx,
+      type: newType,
+      amount: newAmount,
+      accountId: newAccountId,
+      toAccountId: newToAccountId,
+      category: newTxData.category || (newType === 'transfer' ? '内部转账' : '日常收支'),
+      date: newTxData.date || oldTx.date || formatDate(),
+      notes: newTxData.notes !== undefined ? newTxData.notes : (oldTx.notes || ''),
+      receiptImage: newTxData.receiptImage !== undefined ? newTxData.receiptImage : (oldTx.receiptImage || null),
+      updatedAt: new Date().toISOString()
+    };
+
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const stores = touchedIds.size > 0 ? ['transactions', 'accounts'] : ['transactions'];
+      const transaction = db.transaction(stores, 'readwrite');
+      const txStore = transaction.objectStore('transactions');
+      txStore.put(updatedTx);
+      if (touchedIds.size > 0) {
+        const accStore = transaction.objectStore('accounts');
+        for (const tid of touchedIds) {
+          const acc = accMap.get(tid);
+          if (acc) accStore.put(acc);
+        }
+      }
+      transaction.oncomplete = () => resolve(updatedTx);
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    await healParentAccountsIfNeeded();
+    await updateTodaySnapshot();
+    return updatedTx;
   }
 
   /**
@@ -1330,6 +1542,7 @@
     getAccount,
     addAccount,
     updateAccount,
+    isNonNegativeAccountType,
     createFirstSubAccountWithOldBalance,
     createSubAccountFromExistingChild,
     applyAccountSplitPlan,
@@ -1341,6 +1554,7 @@
     getAllTransactions,
     getTransaction,
     addTransaction,
+    updateTransaction,
     recordTransaction: addTransaction,
     deleteTransaction,
     // Snapshots

@@ -27,7 +27,7 @@
   <script src="./db.js"></script>
   <script src="./icloudSync.js"></script>
   <script src="./biometricLock.js"></script>
-  <script src="./components/CatButler.js?v=5.2.1"></script>
+  <script src="./components/CatButler.js?v=5.3.2"></script>
 
   <style>
     /* ================================================= */
@@ -1418,8 +1418,13 @@
 
     .split-ctrl {
       height: 40px !important;
+      min-height: 40px !important;
+      max-height: 40px !important;
       box-sizing: border-box !important;
       margin: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      line-height: normal !important;
       vertical-align: middle !important;
       font-size: 13px !important;
       border-radius: 10px !important;
@@ -1695,7 +1700,7 @@
       color: var(--text-main);
       padding: 0 12px;
       font-size: 13.5px;
-      line-height: 40px;
+      line-height: normal;
       font-family: inherit;
       outline: none;
       display: block;
@@ -1706,6 +1711,9 @@
       cursor: pointer;
       appearance: none;
       -webkit-appearance: none;
+      line-height: normal;
+      padding-top: 0;
+      padding-bottom: 0;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 12px center;
@@ -5230,7 +5238,7 @@
               <svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
               </svg>
-              <span>记一笔</span>
+              <span>{{ editingTxId ? '编辑账单流水' : '记一笔' }}</span>
             </span>
           </div>
           <button class="btn-close" @click="showTxModal = false">✕</button>
@@ -5243,7 +5251,7 @@
           </div>
 
           <!-- 📷 OCR 智能识别票据/长图快捷入口 -->
-          <div style="margin-bottom: 12px;">
+          <div v-if="!editingTxId" style="margin-bottom: 12px;">
             <button type="button" class="btn-ocr-trigger" @click="triggerOcrUpload">
               <span style="font-size: 16px;">📷</span> 智能识别票据/长图 (OCR 批量入账)
             </button>
@@ -5454,7 +5462,7 @@
         <!-- 吸底固定保存按钮 (首屏 100% 可见) -->
         <div class="tx-modal-sticky-footer">
           <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px;" @click="submitTransaction">
-            保存并自动联动更新账户
+            {{ editingTxId ? '保存修改并重算账户余额' : '保存并自动联动更新账户' }}
           </button>
         </div>
       </div>
@@ -5547,13 +5555,18 @@
           </div>
         </div>
 
-        <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
           <button class="btn-sm danger" @click="deleteAndCloseTxDetail(selectedTx)">
-            🗑️ 删除该笔流水
+            🗑️ 删除
           </button>
-          <button class="btn-primary" @click="showTxDetailModal = false">
-            关闭
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn-secondary" style="padding: 8px 14px;" @click="openEditTxModal(selectedTx)">
+              ✏️ 编辑
+            </button>
+            <button class="btn-primary" @click="showTxDetailModal = false">
+              关闭
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -5595,9 +5608,16 @@
           <label class="form-label" style="font-weight: 700; margin-bottom: 6px;">💳 统一下扣款账户</label>
           <select v-model="batchAccountId" class="form-select" style="font-weight: 600;">
             <option value="">仅记录流水 (不计入资产)</option>
-            <option v-for="a in accounts" :key="a.id" :value="a.id">
-              {{ a.icon || '📦' }} {{ a.name }} (余额: ¥{{ formatNumber(a.balance) }})
-            </option>
+            <template v-for="sec in groupedTxAccountSections" :key="sec.key">
+              <optgroup v-if="sec.isGroup" :label="sec.label">
+                <option v-for="item in sec.items" :key="item.id" :value="item.id">
+                  {{ item.label }} (¥{{ formatNumber(item.balance) }})
+                </option>
+              </optgroup>
+              <option v-else :value="sec.items[0].id">
+                {{ sec.items[0].label }} (¥{{ formatNumber(sec.items[0].balance) }})
+              </option>
+            </template>
           </select>
         </div>
 
@@ -5634,7 +5654,7 @@
               </div>
               <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label" style="font-size: 11px;">业务分类</label>
-                <select v-model="item.category" class="form-select" style="font-size: 13px; font-weight: 600; padding: 6px 8px;">
+                <select v-model="item.category" class="form-select" style="font-size: 13px; font-weight: 600; height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 28px 0 10px;">
                   <option v-for="c in (item.type === 'income' ? incomeCategories : expenseCategories)" :key="c.name" :value="c.name">
                     {{ c.emoji }} {{ c.name }}
                   </option>
@@ -6043,7 +6063,7 @@
             <div style="flex: 1; min-width: 0;">
               <div style="font-size: 13px; font-weight: 800; color: var(--text-main);">从已有子账户划出</div>
               <div v-if="accountForm.fundingSource === 'carve'" style="margin-top: 6px;" @click.stop>
-                <select v-model="accountForm.deductFromChildId" class="form-select" style="padding: 6px 8px; font-size: 12.5px;">
+                <select v-model="accountForm.deductFromChildId" class="form-select" style="height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 28px 0 10px; font-size: 12.5px;">
                   <option v-for="sub in accountFormPositiveChildren" :key="sub.id" :value="sub.id">
                     {{ sub.name }} (¥{{ formatNumber(sub.balance) }})
                   </option>
@@ -6131,10 +6151,10 @@
           </div>
           <div v-if="balanceMigrateModal.mode === 'carve' && getBalanceMigrationRemainder() > 0" class="migrate-radio-subform" @click.stop>
             <label>剩余余额子账户名称
-              <input type="text" class="form-input" v-model="balanceMigrateModal.legacyName" placeholder="存款" style="padding: 6px 8px; font-size: 12.5px;" />
+              <input type="text" class="form-input" v-model="balanceMigrateModal.legacyName" placeholder="存款" style="height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 10px; font-size: 12.5px;" />
             </label>
             <label>账户类型
-              <select class="form-select" v-model="balanceMigrateModal.legacyType" style="padding: 6px 8px; font-size: 12.5px;">
+              <select class="form-select" v-model="balanceMigrateModal.legacyType" style="height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 28px 0 10px; font-size: 12.5px;">
                 <option value="bank">储蓄/银行卡</option>
                 <option value="cash">活期/零钱</option>
                 <option value="investment">投资理财</option>
@@ -6160,10 +6180,10 @@
           </div>
           <div v-if="balanceMigrateModal.mode === 'split'" class="migrate-radio-subform" @click.stop>
             <label>原余额子账户名称
-              <input type="text" class="form-input" v-model="balanceMigrateModal.legacyName" placeholder="存款" style="padding: 6px 8px; font-size: 12.5px;" />
+              <input type="text" class="form-input" v-model="balanceMigrateModal.legacyName" placeholder="存款" style="height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 10px; font-size: 12.5px;" />
             </label>
             <label>账户类型
-              <select class="form-select" v-model="balanceMigrateModal.legacyType" style="padding: 6px 8px; font-size: 12.5px;">
+              <select class="form-select" v-model="balanceMigrateModal.legacyType" style="height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 28px 0 10px; font-size: 12.5px;">
                 <option value="bank">储蓄/银行卡</option>
                 <option value="cash">活期/零钱</option>
                 <option value="investment">投资理财</option>
@@ -6242,7 +6262,7 @@
               1. 作为「{{ duplicateAccountModal.fullDisplayName }}」的新子账户存入（推荐）
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <input type="text" v-model="duplicateAccountModal.newSubName" class="form-input" placeholder="子账户名称，如：存款" style="flex: 1; padding: 7px 10px; font-size: 13px;" />
+              <input type="text" v-model="duplicateAccountModal.newSubName" class="form-input" placeholder="子账户名称，如：存款" style="flex: 1; height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 10px; font-size: 13px;" />
               <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 13px; white-space: nowrap;" @click="confirmA1CreateSubAccount">
                 确认存入
               </button>
@@ -6254,7 +6274,7 @@
               2. 并入已有子账户
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
-              <select v-model="duplicateAccountModal.selectedChildId" class="form-select" style="flex: 1; padding: 7px 10px; font-size: 13px;">
+              <select v-model="duplicateAccountModal.selectedChildId" class="form-select" style="flex: 1; height: 38px; min-height: 38px; max-height: 38px; line-height: normal; padding: 0 28px 0 10px; font-size: 13px;">
                 <option v-for="c in duplicateAccountModal.children" :key="c.id" :value="c.id">{{ c.name }} (¥{{ formatNumber(c.balance) }})</option>
               </select>
               <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 13px; white-space: nowrap;" :disabled="!duplicateAccountModal.selectedChildId" @click="confirmA1MergeExistingChild">
@@ -6644,8 +6664,19 @@
             }
           }
         });
-        const currentVersion = ref('v5.3.0');
+        const currentVersion = ref('v5.4.0');
         const versionHistoryList = [
+          {
+            version: 'v5.4.0',
+            date: '2026-11-27',
+            title: '🛡️ 流水编辑重算、喵管家子账户智能落账、正资产防负校验与表单对齐修复',
+            features: [
+              '新增流水编辑能力：流水详情弹窗新增「✏️ 编辑」按钮，支持修改金额、类型、分类、日期、备注与所属账户并原子回滚/重算受影响账户余额，误挂母账户的历史流水也可一键改挂修正；',
+              '喵管家与全端严格隔离母账户：CatButler（语音/文本/OCR）及批量核对选择器全部仅允许落账到叶子账户；仅提及母账户名时优先路由至活期/零钱/存款等消费类子账户并附带可切换提示；',
+              '正资产非负不变量与状态机加固：银行卡/活期零钱/投资理财（含股票基金）新建、调额与扣款支出严禁出现负余额（历史负余额仍保留展示以便修复），db.js 拦截母账户记账并修复负残留自愈逻辑；',
+              '全局表单下拉框垂直居中修复：修正 .form-select 与喵管家各弹窗内 <select>/<input> 的 line-height 与纵向 padding 挤压问题，确保「账户类型」等下拉框文字居中工整对齐，缓存升级至 personal-asset-pwa-v61。'
+            ]
+          },
           {
             version: 'v5.3.0',
             date: '2026-11-19',
@@ -7207,6 +7238,7 @@
 
         // 弹窗状态
         const showTxModal = ref(false);
+        const editingTxId = ref('');
         const showAdjustModal = ref(false);
         const showAccountModal = ref(false);
         const isEditAccount = ref(false);
@@ -9145,8 +9177,9 @@
         // 数据加载与交互
         async function refreshAllData() {
           try {
-            const [accs, txs, stats, trends] = await Promise.all([
-              AssetDB.getAllAccounts(),
+            // 先完成账户状态机自愈，再并发拉取流水、概览净值与趋势快照，防止母账户残余与总览竞态不一致
+            const accs = await AssetDB.getAllAccounts();
+            const [txs, stats, trends] = await Promise.all([
               AssetDB.getAllTransactions(),
               AssetDB.getOverviewStats(),
               AssetDB.getTrendSnapshots()
@@ -9256,6 +9289,7 @@
         const txAutoBanner = ref('');
 
         function openNewTxModal() {
+          editingTxId.value = '';
           txAutoBanner.value = '';
           txForm.type = 'expense';
           txForm.amount = '';
@@ -9271,6 +9305,47 @@
           if (receiptFileInputRef.value) {
             receiptFileInputRef.value.value = '';
           }
+          showTxModal.value = true;
+        }
+
+        function openEditTxModal(tx) {
+          if (!tx) return;
+          showTxDetailModal.value = false;
+          editingTxId.value = tx.id;
+          txAutoBanner.value = '';
+
+          txForm.type = tx.type || 'expense';
+          txForm.amount = Number(tx.amount || 0);
+          txForm.category = tx.category || (txForm.type === 'income' ? '工资薪酬' : (txForm.type === 'transfer' ? '内部转账' : '餐饮美食'));
+          txForm.date = tx.date || AssetDB.formatDate();
+          txForm.notes = tx.notes || '';
+          txForm.receiptImage = tx.receiptImage || '';
+          receiptCompressRatio.value = '';
+          receiptSizeText.value = tx.receiptImage ? '已附带历史凭据图片' : '';
+          if (receiptFileInputRef.value) {
+            receiptFileInputRef.value.value = '';
+          }
+
+          let mappedAccountId = tx.accountId || '';
+          if (mappedAccountId && hasChildAccounts(mappedAccountId)) {
+            const children = getChildAccounts(mappedAccountId);
+            const preferred = children.find(c => /^(活期|零钱|存款)$/.test(String(c.name || '').trim()))
+              || children.find(c => c.type === 'cash' || c.type === 'bank')
+              || children[0];
+            mappedAccountId = preferred ? preferred.id : '';
+            txAutoBanner.value = '⚠️ 原流水错挂在母账户下，已为你预选子账户，请确认或重选后保存修正';
+          }
+          txForm.accountId = mappedAccountId;
+
+          let mappedToId = tx.toAccountId || '';
+          if (txForm.type === 'transfer' && mappedToId && hasChildAccounts(mappedToId)) {
+            const children = getChildAccounts(mappedToId);
+            mappedToId = children[0] ? children[0].id : '';
+            if (!txAutoBanner.value) {
+              txAutoBanner.value = '⚠️ 原转账目标错挂在母账户下，请确认转入子账户';
+            }
+          }
+          txForm.toAccountId = mappedToId;
           showTxModal.value = true;
         }
 
@@ -9410,9 +9485,15 @@
             txForm.type = parsed.type === 'income' ? 'income' : 'expense';
             txForm.amount = parsed.amount && parsed.amount > 0 ? parsed.amount : '';
             txForm.category = parsed.category || (txForm.type === 'income' ? '其他收入' : '餐饮美食');
-            txForm.accountId = (parsed.accountId !== null && parsed.accountId !== undefined)
+            const selectable = groupedTxAccountSections.value.flatMap(sec => sec.items);
+            let targetAccId = (parsed.accountId !== null && parsed.accountId !== undefined)
               ? parsed.accountId
-              : (accounts.value.length > 0 ? accounts.value[0].id : '');
+              : (selectable.length > 0 ? selectable[0].id : '');
+            if (targetAccId && hasChildAccounts(targetAccId)) {
+              const children = getChildAccounts(targetAccId);
+              targetAccId = children[0] ? children[0].id : '';
+            }
+            txForm.accountId = targetAccId;
             txForm.date = parsed.date || AssetDB.formatDate();
             txForm.notes = parsed.notes || (rawText ? rawText.slice(0, 60) : '');
           } else {
@@ -9631,7 +9712,7 @@
           }
 
           try {
-            await AssetDB.addTransaction({
+            const payload = {
               type: txForm.type,
               amount: amt,
               accountId: txForm.accountId || null,
@@ -9640,12 +9721,22 @@
               date: txForm.date,
               notes: txForm.notes,
               receiptImage: txForm.receiptImage || null
-            });
+            };
+            const isEditing = !!editingTxId.value;
+            if (isEditing) {
+              await AssetDB.updateTransaction(editingTxId.value, payload);
+            } else {
+              await AssetDB.addTransaction(payload);
+            }
 
             triggerHaptic('success');
             showTxModal.value = false;
+            editingTxId.value = '';
             txAutoBanner.value = '';
-            showToast(txForm.accountId ? '记账成功！账户余额已联动更新 ✨' : '纯流水记录成功！(不计入资产) ✨');
+            showToast(isEditing
+              ? '账单已修改并重算账户余额 ✨'
+              : (txForm.accountId ? '记账成功！账户余额已联动更新 ✨' : '纯流水记录成功！(不计入资产) ✨')
+            );
             await refreshAllData();
             scheduleCloudAutoBackup();
           } catch (err) {
@@ -10169,9 +10260,10 @@
           const file = event.target.files && event.target.files[0];
           if (!file) return;
 
-          // 默认扣款账户设置
-          if (!batchAccountId.value && accounts.value.length > 0) {
-            batchAccountId.value = accounts.value[0].id;
+          // 默认扣款账户设置（仅从可选叶子账户选取，隔离母账户）
+          const selectableBatch = groupedTxAccountSections.value.flatMap(sec => sec.items);
+          if ((!batchAccountId.value || hasChildAccounts(batchAccountId.value)) && selectableBatch.length > 0) {
+            batchAccountId.value = selectableBatch[0].id;
           }
 
           ocrLoading.value = true;
@@ -11890,6 +11982,8 @@
           txFilterType,
           txFilterAccountId,
           showTxModal,
+          editingTxId,
+          openEditTxModal,
           showAdjustModal,
           showAccountModal,
           showBatchModal,
