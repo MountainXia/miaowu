@@ -5416,6 +5416,28 @@
             <input type="text" v-model="txForm.notes" class="form-input" placeholder="添加补充说明..." />
           </div>
 
+          <!-- 余额联动控制：允许在已校对账户真实余额时“仅补记/仅改流水，不改动余额” -->
+          <div v-if="txForm.accountId && txForm.type !== 'transfer'" style="margin: 8px 0; padding: 9px 11px; border-radius: 10px; background: var(--bg-subtle); border: 1px solid var(--border-subtle);">
+            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin: 0;">
+              <input
+                type="checkbox"
+                :checked="!txForm.syncAccountBalance"
+                @change="txForm.syncAccountBalance = !$event.target.checked"
+                style="margin-top: 2px; accent-color: var(--primary); width: 15px; height: 15px; flex-shrink: 0;"
+              />
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">
+                  {{ editingTxId ? '仅更正流水记录（保持账户当前余额不变）' : '账户当前余额已是真实金额（仅补记流水，不再增减余额）' }}
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; line-height: 1.4;">
+                  {{ editingTxId
+                    ? '勾选后仅修正该条流水的分类/收支/金额/账户，不会重复加减当前余额；取消勾选则自动回滚旧账并重算余额。'
+                    : '适用于已先通过调额对准当前余额，只想补录这笔归属流水的场景。' }}
+                </div>
+              </div>
+            </label>
+          </div>
+
           <!-- 🧾 账单凭据上传与强力压缩控件 -->
           <div class="form-group" style="margin-bottom: 8px;">
             <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
@@ -5567,6 +5589,64 @@
               关闭
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- 弹窗 1.6: 删除流水确认弹窗 (支持保留当前余额)       -->
+    <!-- ============================================== -->
+    <div v-if="txDeleteModal.visible && txDeleteModal.item" class="modal-backdrop" @click.self="txDeleteModal.visible = false">
+      <div class="modal-box" style="max-width: 420px;">
+        <div class="modal-header">
+          <div class="modal-title" style="font-size: 16px;">
+            <span>🗑️ 删除该笔流水记录？</span>
+          </div>
+          <button class="btn-close" @click="txDeleteModal.visible = false">✕</button>
+        </div>
+
+        <div style="font-size: 13px; line-height: 1.6; color: var(--text-main); background: var(--bg-subtle); padding: 11px 13px; border-radius: 12px; border: 1px solid var(--border-subtle); margin-bottom: 14px;">
+          <div>
+            <strong>{{ txDeleteModal.item.category }}</strong>
+            <span style="margin-left: 8px; font-weight: 800;" :class="'amt-' + txDeleteModal.item.type">
+              {{ txDeleteModal.item.type === 'income' ? '+' : (txDeleteModal.item.type === 'expense' ? '-' : '⇄') }}¥{{ formatNumber(txDeleteModal.item.amount) }}
+            </span>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px;">
+            <template v-if="txDeleteModal.item.accountId">
+              关联账户：{{ getAccountName(txDeleteModal.item.accountId) }}
+              <template v-if="txDeleteModal.item.toAccountId"> → {{ getAccountName(txDeleteModal.item.toAccountId) }}</template>
+            </template>
+            <template v-else>⚡ 纯流水记录（未关联账户余额）</template>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <button
+            type="button"
+            class="btn-primary"
+            style="width: 100%; justify-content: center; padding: 11px; background: #ef4444; border-color: #ef4444;"
+            @click="executeDeleteTx(true)"
+          >
+            {{ txDeleteModal.item.accountId ? '删除流水并回滚对应账户余额' : '确认删除该笔纯流水' }}
+          </button>
+          <button
+            v-if="txDeleteModal.item.accountId"
+            type="button"
+            class="btn-secondary"
+            style="width: 100%; justify-content: center; padding: 10px;"
+            @click="executeDeleteTx(false)"
+          >
+            仅删除流水（保持账户当前余额不变）
+          </button>
+          <button
+            type="button"
+            class="btn-secondary"
+            style="width: 100%; justify-content: center; padding: 9px; color: var(--text-muted);"
+            @click="txDeleteModal.visible = false"
+          >
+            取消
+          </button>
         </div>
       </div>
     </div>
@@ -5874,54 +5954,47 @@
                 <span v-if="adjustForm.recordAsTransaction" style="color: #3b82f6; font-weight: 900;">✓</span>
               </div>
               <div style="font-size: 11px; line-height: 1.35; opacity: 0.85; word-break: break-word;">
-                差额记为<strong>{{ adjustForm.txType === 'income' ? '收入' : '支出' }}</strong>，并<strong>计入统计</strong>
+                <template v-if="adjustDiff > 0">差额 +¥{{ formatNumber(adjustDiff) }} 自动记为<strong>收入</strong>，计入统计</template>
+                <template v-else-if="adjustDiff < 0">差额 -¥{{ formatNumber(Math.abs(adjustDiff)) }} 自动记为<strong>支出</strong>，计入统计</template>
+                <template v-else>金额无变化，不会生成收支流水</template>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 流水分类选择 (仅当选择记入收支流水时呈现，和流水中记一笔保持完全一致) -->
+        <!-- 流水分类选择 (根据余额增减方向自动确定收入/支出，不再手动反向选择) -->
         <div v-if="adjustForm.recordAsTransaction" class="form-group" style="margin-top: 14px;">
-          <!-- 支出与收入分类切换 Tab (与记一笔分类选择完全一致) -->
-          <div class="tx-type-tabs" style="margin-bottom: 8px;">
-            <button
-              type="button"
-              class="tx-type-btn expense"
-              :class="{ active: adjustForm.txType === 'expense' }"
-              @click="setAdjustTxType('expense')"
-            >
-              支出分类
-            </button>
-            <button
-              type="button"
-              class="tx-type-btn income"
-              :class="{ active: adjustForm.txType === 'income' }"
-              @click="setAdjustTxType('income')"
-            >
-              收入分类
-            </button>
+          <div v-if="adjustDiff === 0" style="font-size: 12px; color: var(--text-muted); background: var(--bg-subtle); border: 1px dashed var(--border-subtle); border-radius: 10px; padding: 10px 12px;">
+            💡 目标金额与原金额相同（差额 ¥0.00），请调整金额后再生成对应收入或支出流水。
           </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="form-label" style="margin-bottom: 0;">
-              {{ adjustForm.txType === 'income' ? '📈 收入分类选择' : '📉 支出分类选择' }}
-            </label>
-            <span style="font-size: 11px; color: var(--text-muted);">已选: <b style="color: var(--primary);">{{ adjustForm.category }}</b></span>
-          </div>
-          <div class="cat-grid" style="max-height: 160px; overflow-y: auto;">
-            <button
-              v-for="cat in adjustCategoryList"
-              :key="cat.name"
-              type="button"
-              class="cat-btn"
-              :class="{ active: adjustForm.category === cat.name }"
-              @click="adjustForm.category = cat.name"
-            >
-              <img v-if="getCategoryImg(cat.name)" :src="getCategoryImg(cat.name)" class="w-10 h-10 object-contain" :alt="cat.name" />
-              <span v-else class="cat-emoji">{{ cat.emoji }}</span>
-              <span class="cat-title">{{ cat.name }}</span>
-            </button>
-          </div>
+          <template v-else>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 6px; flex-wrap: wrap;">
+              <label class="form-label" style="margin-bottom: 0; display: inline-flex; align-items: center; gap: 6px;">
+                <span>{{ effectiveAdjustTxType === 'income' ? '📈 收入分类选择' : '📉 支出分类选择' }}</span>
+                <span
+                  style="font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 999px;"
+                  :style="effectiveAdjustTxType === 'income' ? 'background: rgba(16,185,129,0.14); color: #059669;' : 'background: rgba(239,68,68,0.12); color: #dc2626;'"
+                >
+                  {{ effectiveAdjustTxType === 'income' ? '余额增加 · 自动记为收入' : '余额减少 · 自动记为支出' }}
+                </span>
+              </label>
+              <span style="font-size: 11px; color: var(--text-muted);">已选: <b style="color: var(--primary);">{{ adjustForm.category }}</b></span>
+            </div>
+            <div class="cat-grid" style="max-height: 160px; overflow-y: auto;">
+              <button
+                v-for="cat in adjustCategoryList"
+                :key="cat.name"
+                type="button"
+                class="cat-btn"
+                :class="{ active: adjustForm.category === cat.name }"
+                @click="adjustForm.category = cat.name"
+              >
+                <img v-if="getCategoryImg(cat.name)" :src="getCategoryImg(cat.name)" class="w-10 h-10 object-contain" :alt="cat.name" />
+                <span v-else class="cat-emoji">{{ cat.emoji }}</span>
+                <span class="cat-title">{{ cat.name }}</span>
+              </button>
+            </div>
+          </template>
         </div>
 
         <div class="form-group" style="margin-top: 12px;">
@@ -5930,12 +6003,12 @@
             type="text"
             v-model="adjustForm.reason"
             class="form-input"
-            :placeholder="adjustForm.recordAsTransaction ? (adjustForm.txType === 'income' ? '如：额外入账、未记收入、投资收益等' : '如：未记支出、手续费、资金扣减等') : '如：对账更正、初始录入笔误修改等'"
+            :placeholder="adjustForm.recordAsTransaction ? (effectiveAdjustTxType === 'income' ? '如：额外入账、未记收入、投资收益等' : '如：未记支出、手续费、资金扣减等') : '如：对账更正、初始录入笔误修改等'"
           />
         </div>
 
         <button class="btn-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 15px; margin-top: 14px;" @click="submitAdjustBalance">
-          {{ adjustForm.recordAsTransaction ? `确认调整并记一笔${adjustForm.txType === 'income' ? '收入' : '支出'}` : '确认更正金额 (不记流水)' }}
+          {{ (adjustForm.recordAsTransaction && adjustDiff !== 0) ? `确认调${effectiveAdjustTxType === 'income' ? '增' : '减'}并记一笔${effectiveAdjustTxType === 'income' ? '收入' : '支出'}` : '确认更正金额 (不记流水)' }}
         </button>
       </div>
     </div>
@@ -6664,8 +6737,18 @@
             }
           }
         });
-        const currentVersion = ref('v5.4.0');
+        const currentVersion = ref('v5.4.1');
         const versionHistoryList = [
+          {
+            version: 'v5.4.1',
+            date: '2026-11-27',
+            title: '⚖️ 直接调额收支方向自动锁定，删除/编辑/补录流水支持保留当前账户余额',
+            features: [
+              '直接调额方向严格与余额增减同步：移除调额弹窗「记入收支流水」下的手动收入/支出切换，改为按变动差额自动锁定（余额增加 ➔ 自动记为收入，余额减少 ➔ 自动记为支出），杜绝账务方向矛盾；',
+              '删除流水支持双模式确认：删除关联账户的流水时，可选「删除并回滚对应账户余额」或「仅删除流水（保持账户当前余额不变）」，轻松清理错账而不破坏已核对准确的真实余额；',
+              '新建/编辑流水支持「保持账户当前余额不变」：忘记错账前原始余额、仅记得当前真实总金额时，先核准余额再勾选「仅补记/仅更正流水，不改变当前余额」，即可完整补录或修正收支归属且不重复增减余额，缓存升级至 personal-asset-pwa-v62。'
+            ]
+          },
           {
             version: 'v5.4.0',
             date: '2026-11-27',
@@ -7271,7 +7354,12 @@
           category: '餐饮美食',
           date: '',
           notes: '',
-          receiptImage: ''
+          receiptImage: '',
+          syncAccountBalance: true
+        });
+        const txDeleteModal = reactive({
+          visible: false,
+          item: null
         });
 
         // ==========================================
@@ -7993,9 +8081,13 @@
           return adjustDiff.value >= 0;
         });
 
-        // 调额分类选择：受 adjustForm.txType ('expense' | 'income') 驱动，与流水中记一笔完全一致
+        // 调额流水方向严格由余额变动差额自动推导（增多=收入，减少=支出）
+        const effectiveAdjustTxType = computed(() => {
+          return adjustDiff.value > 0 ? 'income' : 'expense';
+        });
+
         const adjustCategoryList = computed(() => {
-          return adjustForm.txType === 'income' ? incomeCategories : expenseCategories;
+          return effectiveAdjustTxType.value === 'income' ? incomeCategories : expenseCategories;
         });
 
         function setAdjustTxType(type) {
@@ -8004,11 +8096,17 @@
         }
 
         function syncAdjustCategory() {
-          const list = adjustCategoryList.value;
+          const derivedType = effectiveAdjustTxType.value;
+          adjustForm.txType = derivedType;
+          const list = derivedType === 'income' ? incomeCategories : expenseCategories;
           if (!list.some(c => c.name === adjustForm.category)) {
-            adjustForm.category = adjustForm.txType === 'income' ? '营业盈余' : '餐饮美食';
+            adjustForm.category = derivedType === 'income' ? '营业盈余' : '餐饮美食';
           }
         }
+
+        watch(adjustDiff, () => {
+          syncAdjustCategory();
+        });
 
         // 账户快速查找关键字与顺序调整弹窗状态
         const accountSearchKeyword = ref('');
@@ -9300,6 +9398,7 @@
           txForm.date = AssetDB.formatDate();
           txForm.notes = '';
           txForm.receiptImage = '';
+          txForm.syncAccountBalance = true;
           receiptCompressRatio.value = '';
           receiptSizeText.value = '';
           if (receiptFileInputRef.value) {
@@ -9320,6 +9419,7 @@
           txForm.date = tx.date || AssetDB.formatDate();
           txForm.notes = tx.notes || '';
           txForm.receiptImage = tx.receiptImage || '';
+          txForm.syncAccountBalance = true;
           receiptCompressRatio.value = '';
           receiptSizeText.value = tx.receiptImage ? '已附带历史凭据图片' : '';
           if (receiptFileInputRef.value) {
@@ -9712,6 +9812,7 @@
           }
 
           try {
+            const syncBal = txForm.type === 'transfer' ? true : (txForm.syncAccountBalance !== false);
             const payload = {
               type: txForm.type,
               amount: amt,
@@ -9720,11 +9821,12 @@
               category: txForm.category,
               date: txForm.date,
               notes: txForm.notes,
-              receiptImage: txForm.receiptImage || null
+              receiptImage: txForm.receiptImage || null,
+              skipBalanceSync: !syncBal
             };
             const isEditing = !!editingTxId.value;
             if (isEditing) {
-              await AssetDB.updateTransaction(editingTxId.value, payload);
+              await AssetDB.updateTransaction(editingTxId.value, payload, { syncAccountBalance: syncBal });
             } else {
               await AssetDB.addTransaction(payload);
             }
@@ -9733,10 +9835,13 @@
             showTxModal.value = false;
             editingTxId.value = '';
             txAutoBanner.value = '';
-            showToast(isEditing
-              ? '账单已修改并重算账户余额 ✨'
-              : (txForm.accountId ? '记账成功！账户余额已联动更新 ✨' : '纯流水记录成功！(不计入资产) ✨')
-            );
+            if (isEditing) {
+              showToast(syncBal ? '账单已修改并重算账户余额 ✨' : '流水记录已更正（账户当前余额保持不变）✨');
+            } else if (!txForm.accountId) {
+              showToast('纯流水记录成功！(不计入资产) ✨');
+            } else {
+              showToast(syncBal ? '记账成功！账户余额已联动更新 ✨' : '已补记该账户流水（当前余额保持不变）✨');
+            }
             await refreshAllData();
             scheduleCloudAutoBackup();
           } catch (err) {
@@ -9745,15 +9850,31 @@
           }
         }
 
-        async function confirmDeleteTx(item) {
-          const promptMsg = item.accountId
-            ? `确认删除该笔 ${item.category} (¥${item.amount}) 记录吗？\n将自动回滚对应账户的余额。`
-            : `确认删除该笔纯流水 ${item.category} (¥${item.amount}) 记录吗？`;
-          if (confirm(promptMsg)) {
-            await AssetDB.deleteTransaction(item.id);
-            showToast(item.accountId ? '流水已删除，账户余额已回滚' : '纯流水记录已删除');
+        function confirmDeleteTx(item) {
+          if (!item) return;
+          txDeleteModal.item = item;
+          txDeleteModal.visible = true;
+        }
+
+        async function executeDeleteTx(rollbackBalance = true) {
+          const item = txDeleteModal.item;
+          if (!item) {
+            txDeleteModal.visible = false;
+            return;
+          }
+          txDeleteModal.visible = false;
+          txDeleteModal.item = null;
+          try {
+            await AssetDB.deleteTransaction(item.id, rollbackBalance);
+            if (!item.accountId) {
+              showToast('纯流水记录已删除');
+            } else {
+              showToast(rollbackBalance ? '流水已删除，账户余额已回滚' : '仅删除流水，账户当前余额保持不变 ✨');
+            }
             await refreshAllData();
             scheduleCloudAutoBackup();
+          } catch (err) {
+            alert('删除失败: ' + (err && err.message ? err.message : err));
           }
         }
 
@@ -10412,6 +10533,7 @@
           adjustForm.recordAsTransaction = false; // 默认纯更正数额，不生成收支流水
           adjustForm.txType = 'expense';
           adjustForm.category = '餐饮美食';
+          syncAdjustCategory();
           showAdjustModal.value = true;
         }
 
@@ -10421,7 +10543,10 @@
             const finalBalance = adjustForm.mode === 'direct'
               ? (Number(adjustForm.newBalance) || 0)
               : previewCalculatedBalance.value;
-            const isInc = adjustForm.txType === 'income';
+            const oldBal = Number(targetAdjustAccount.value.balance || 0);
+            const diff = +(finalBalance - oldBal).toFixed(2);
+            const willRecordTx = adjustForm.recordAsTransaction === true && diff !== 0;
+            const isInc = diff > 0;
             const defaultReason = adjustForm.mode === 'delta'
               ? (adjustForm.deltaDirection === 'add' ? '新增资金' : '扣减资金')
               : (isInc ? '调增入账' : '调减支出');
@@ -10431,14 +10556,15 @@
               finalBalance,
               adjustForm.reason || defaultReason,
               null,
-              adjustForm.recordAsTransaction === true,
-              adjustForm.category,
-              adjustForm.txType
+              willRecordTx,
+              adjustForm.category
             );
             showAdjustModal.value = false;
-            showToast(adjustForm.recordAsTransaction
+            showToast(willRecordTx
               ? `余额已调整，已成功记入「${adjustForm.category}」${isInc ? '收入' : '支出'}流水与统计 ✨`
-              : '金额已成功更正，未产生任何收支流水 ✨'
+              : (adjustForm.recordAsTransaction && diff === 0
+                ? '目标金额无变化，未产生收支流水'
+                : '金额已成功更正，未产生任何收支流水 ✨')
             );
             await refreshAllData();
             scheduleCloudAutoBackup();
@@ -12006,9 +12132,12 @@
           previewCalculatedBalance,
           adjustDiff,
           isAdjustIncrease,
+          effectiveAdjustTxType,
           adjustCategoryList,
           setAdjustTxType,
           syncAdjustCategory,
+          txDeleteModal,
+          executeDeleteTx,
           getCreditCardRemainingLimit,
           getCreditCardUsagePct,
           accountForm,

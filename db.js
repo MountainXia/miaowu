@@ -635,9 +635,9 @@
       req.onerror = () => reject(req.error);
     });
 
-    // 仅在明确指定生成流水且存在差值时，才写入一条流水记录
+    // 仅在明确指定生成流水且存在差值时，才写入一条流水记录；收支方向严格由余额增减方向决定
     if (recordTransaction && diff !== 0) {
-      const txType = forcedTxType || (diff > 0 ? 'income' : 'expense');
+      const txType = diff > 0 ? 'income' : 'expense';
       const finalCategory = category || (txType === 'income' ? '其他收入' : '其他支出');
       const txData = {
         id: generateId('tx'),
@@ -799,7 +799,8 @@
     const accountId = txData.accountId || null;
     const toAccountId = txData.toAccountId || null;
 
-    // 纯流水模式判定：未关联账户且非转账类型
+    // 纯流水模式或显式跳过余额同步判定
+    const skipBalanceSync = !!txData.skipBalanceSync && type !== 'transfer';
     const isPureTransaction = !accountId && type !== 'transfer';
 
     const rawAccounts = await readRawAccounts();
@@ -833,17 +834,21 @@
       applyTxAccountDelta(fromAccount, toAccount, 'transfer', amount, 1);
       assertAccountAllowsResultBalance(fromAccount, prevFromBal, amount);
     } else if (!isPureTransaction) {
-      // 关联账户记账：联动更新账户余额
+      // 关联账户记账：校验账户合法性，仅在未跳过同步时联动更新余额
       fromAccount = await getAccount(accountId);
       if (!fromAccount) throw new Error('关联账户不存在');
       if (parentIdSet.has(String(fromAccount.id))) {
         throw new Error(`「${fromAccount.name}」为母账户，请选择名下具体子账户进行记账`);
       }
 
-      const prevFromBal = Number(fromAccount.balance || 0);
-      applyTxAccountDelta(fromAccount, null, type, amount, 1);
-      if (type === 'expense') {
-        assertAccountAllowsResultBalance(fromAccount, prevFromBal, amount);
+      if (skipBalanceSync) {
+        fromAccount = null; // 仅挂靠账户归属，不修改账户余额
+      } else {
+        const prevFromBal = Number(fromAccount.balance || 0);
+        applyTxAccountDelta(fromAccount, null, type, amount, 1);
+        if (type === 'expense') {
+          assertAccountAllowsResultBalance(fromAccount, prevFromBal, amount);
+        }
       }
     }
     // 纯流水模式：不修改任何账户，跳过余额联动
@@ -887,9 +892,11 @@
   /**
    * 编辑已有流水并原子级重算受影响账户余额（支持修复旧流水错误挂载的母账户/金额/类型）
    */
-  async function updateTransaction(id, newTxData) {
+  async function updateTransaction(id, newTxData, options = {}) {
     const oldTx = await getTransaction(id);
     if (!oldTx) throw new Error('流水记录不存在');
+
+    const syncAccountBalance = !(options && options.syncAccountBalance === false);
 
     const newAmount = Number(newTxData.amount);
     if (isNaN(newAmount) || newAmount <= 0) {
@@ -934,34 +941,36 @@
 
     const touchedIds = new Set();
 
-    // 1. 回滚旧流水对账户余额的影响（若旧流水错记在母账户，同样允许回滚释放）
-    const oldFrom = oldTx.accountId ? accMap.get(String(oldTx.accountId)) : null;
-    const oldTo = oldTx.toAccountId ? accMap.get(String(oldTx.toAccountId)) : null;
-    if (oldFrom || oldTo) {
-      applyTxAccountDelta(oldFrom, oldTo, oldTx.type, Number(oldTx.amount || 0), -1);
-      if (oldFrom) touchedIds.add(String(oldFrom.id));
-      if (oldTo) touchedIds.add(String(oldTo.id));
-    }
+    if (syncAccountBalance) {
+      // 1. 回滚旧流水对账户余额的影响（若旧流水错记在母账户，同样允许回滚释放）
+      const oldFrom = oldTx.accountId ? accMap.get(String(oldTx.accountId)) : null;
+      const oldTo = oldTx.toAccountId ? accMap.get(String(oldTx.toAccountId)) : null;
+      if (oldFrom || oldTo) {
+        applyTxAccountDelta(oldFrom, oldTo, oldTx.type, Number(oldTx.amount || 0), -1);
+        if (oldFrom) touchedIds.add(String(oldFrom.id));
+        if (oldTo) touchedIds.add(String(oldTo.id));
+      }
 
-    // 2. 应用新流水对账户余额的影响
-    const newFrom = newAccountId ? accMap.get(String(newAccountId)) : null;
-    const newTo = newToAccountId ? accMap.get(String(newToAccountId)) : null;
-    if (newFrom || newTo) {
-      applyTxAccountDelta(newFrom, newTo, newType, newAmount, 1);
-      if (newFrom) touchedIds.add(String(newFrom.id));
-      if (newTo) touchedIds.add(String(newTo.id));
-    }
+      // 2. 应用新流水对账户余额的影响
+      const newFrom = newAccountId ? accMap.get(String(newAccountId)) : null;
+      const newTo = newToAccountId ? accMap.get(String(newToAccountId)) : null;
+      if (newFrom || newTo) {
+        applyTxAccountDelta(newFrom, newTo, newType, newAmount, 1);
+        if (newFrom) touchedIds.add(String(newFrom.id));
+        if (newTo) touchedIds.add(String(newTo.id));
+      }
 
-    // 3. 校验非负债账户修改后不能新增负余额
-    for (const tid of touchedIds) {
-      const acc = accMap.get(tid);
-      if (!acc || parentIdSet.has(tid)) continue;
-      const beforeBal = origBalances.get(tid) ?? 0;
-      if (isNonNegativeAccountType(acc.type) && Number(acc.balance || 0) < 0) {
-        if (beforeBal >= 0 || Number(acc.balance || 0) < beforeBal) {
-          throw new Error(
-            `修改后「${acc.name}」余额将变为 ¥${Number(acc.balance || 0).toFixed(2)}（余额不足），正资产账户余额不能为负数。请先校准余额，或改用「⚡ 纯流水」/ 信用卡`
-          );
+      // 3. 校验非负债账户修改后不能新增负余额
+      for (const tid of touchedIds) {
+        const acc = accMap.get(tid);
+        if (!acc || parentIdSet.has(tid)) continue;
+        const beforeBal = origBalances.get(tid) ?? 0;
+        if (isNonNegativeAccountType(acc.type) && Number(acc.balance || 0) < 0) {
+          if (beforeBal >= 0 || Number(acc.balance || 0) < beforeBal) {
+            throw new Error(
+              `修改后「${acc.name}」余额将变为 ¥${Number(acc.balance || 0).toFixed(2)}（余额不足），正资产账户余额不能为负数。请先校准余额，或改用「⚡ 纯流水」/ 信用卡`
+            );
+          }
         }
       }
     }
@@ -1002,22 +1011,23 @@
   }
 
   /**
-   * 删除流水，并反向回滚账户余额
+   * 删除流水，支持选择是否反向回滚账户余额（默认回滚）
    */
-  async function deleteTransaction(id) {
+  async function deleteTransaction(id, rollbackBalance = true) {
     const txItem = await getTransaction(id);
     if (!txItem) return true;
 
+    const shouldRollback = rollbackBalance !== false;
     const amount = Number(txItem.amount);
     const type = txItem.type;
     const accountId = txItem.accountId;
     const toAccountId = txItem.toAccountId;
 
-    const fromAccount = accountId ? await getAccount(accountId) : null;
-    let toAccount = toAccountId ? await getAccount(toAccountId) : null;
+    let fromAccount = shouldRollback && accountId ? await getAccount(accountId) : null;
+    let toAccount = shouldRollback && toAccountId ? await getAccount(toAccountId) : null;
 
-    // 回滚余额 (仅当存在关联账户时)
-    if (fromAccount) {
+    // 回滚余额 (仅当开启回滚且存在关联账户时)
+    if (shouldRollback && fromAccount) {
       if (type === 'expense') {
         fromAccount.balance = +(fromAccount.balance + amount).toFixed(2);
       } else if (type === 'income') {
